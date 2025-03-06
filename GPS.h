@@ -22,7 +22,7 @@ struct posLTP { // Local Tangent Plane Coordinates
     double n;   // north    (m)
     double u;   // up       (m)
 };
-
+ 
 
 struct gpsState{
     double lat;
@@ -69,7 +69,7 @@ class GPS {
         GPS();
         gpsState getState() const;
         NMEA_Type getMsgType(const char* msg);
-        gpsDebug update(int msgType, const char* msg);
+        int update(int msgType, const char* msg);
         posLTP getPosLTP();
         // functino: start (GPS LOOOP)
         // initialize buffered serial object

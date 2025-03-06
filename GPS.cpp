@@ -13,22 +13,18 @@ gpsState GPS::getState() const{
 NMEA_Type GPS::getMsgType(const char* msg) {
 
     switch (msg[4]) {
-
         case 'G': { // GGA
             return NMEA_GGA; // Might need NMEA_Type::NMEA_GGA;
             break;
         }
-
         case 'S': { // GSA
             return NMEA_GSA;
             break;
         }
-
         case 'M': { // RMC
-            return NMEA_GGA;
+            return NMEA_RMC;
             break;
         }
-
         case 'T': { // VTG
             return NMEA_VTG;
             break;
@@ -50,9 +46,8 @@ typedef enum {
 
 
 // Q: should I call getMsgType inside update() or leave them separate?
-gpsDebug GPS::update(int msgType, const char* msg){
+int GPS::update(int msgType, const char* msg){
 
-    
     // initialize state variables
     int _;
     double utc;
@@ -86,8 +81,8 @@ gpsDebug GPS::update(int msgType, const char* msg){
             int result = sscanf(msg, "$GPGGA,%lf,%lf,%c,%lf,%c,%d,%d,%lf,%lf,%c,%lf,%c,%lf,*%d", &utc, &lat, &latNS, &lon, \
                         &lonEW, &fix, &nsats, &hdop, &alt, &altUnits, &gsep, &gsepUnits, &ageCorrection, &checksum);
             
-            if (result == 14) {
-                // If parsing was successful, assign values to the state
+            // assign values to the state
+            if (result > 0) {
                 this->state.utc = utc;
                 this->state.lat = lat;
                 this->state.latNS = latNS;
@@ -96,15 +91,23 @@ gpsDebug GPS::update(int msgType, const char* msg){
                 this->state.fix = fix;
                 this->state.hdop = hdop;
                 this->state.alt = alt;
-                printf("State Succesfully Updated");
-                // logState()
-                return chillin;
-            } else {
+                return result;
+
+                if (result == 14) {
+                    // If parsing was successful
+                    printf("State Succesfully Updated");
+                    // logState()
+                }
+
+            } else if (result == 0) {
                 // log failure
                 printf("Failed to parse GGA message\n");
-                return uhoh;
+                return result;
+                break;
+            } else {
+                // matched some stuff
+                return result;
             }
-            break;
         }
 
         case NMEA_GSA: { // GSA
