@@ -44,7 +44,7 @@ typedef enum {
 */
 
 
-int GPS::update_GGA(const char* msg){
+int GPS::update_GGA(const char* msg){ // TODO: NEEDS TESTING
     int _;
     double utc;
     double lat;
@@ -89,8 +89,7 @@ int GPS::update_GGA(const char* msg){
     }
 }
 
-
-int GPS::update_GSV(const char* msg){
+int GPS::update_GSV(const char* msg){ // TODO: NEEDS TESTING
     // Process GSV Message and Update State
     int numMessages, messageNum, satellitesInView;
     int satelliteIDs[4] = {0}; // Up to 4 satellites per message
@@ -131,15 +130,61 @@ int GPS::update_GSV(const char* msg){
     }
 }
 
-int update_GSA(const char* msg){
+int GPS::update_GSA(const char* msg){ // TODO: NEEDS TESTING
     return 0;
 }
 
-int update_RMC(const char* msg){
-    return 0;
+int GPS::update_RMC(const char* msg){ // TODO: NEEDS TESTING
+    double utc;
+    char status;
+    double lat;
+    char latNS;
+    double lon;
+    char lonEW;
+    double gspeed;
+    double heading;
+    int date;
+    double magneticVariation = 0.0; // Optional field
+    char mode = '\0'; // Optional field
+    int checksum;
+
+    // Parse the RMC message
+    int result = sscanf(msg, "$GPRMC,%lf,%c,%lf,%c,%lf,%c,%lf,%lf,%d,%lf,%c*%x",
+                        &utc, &status, &lat, &latNS, &lon, &lonEW,
+                        &gspeed, &heading, &date,
+                        &magneticVariation, &mode, &checksum);
+
+    // Assign values to the state
+    if (result > 0) {
+        this->state.utc = utc;
+        this->state.status = status;
+        this->state.lat = lat;
+        this->state.latNS = latNS;
+        this->state.lon = lon;
+        this->state.lonEW = lonEW;
+        this->state.gspeed = gspeed;
+        this->state.heading = heading;
+        this->state.date = date;
+
+        if (result >= 10) { // Magnetic variation and mode are optional
+            this->state.magneticVariation = magneticVariation;
+            this->state.mode = mode;
+        }
+
+        return result;
+
+        if (result >= 10) {
+            printf("State Successfully Updated\n");
+        }
+        } else if (result == 0) {
+            printf("Failed to parse RMC message\n");
+            return result;
+        } else {
+            return result;
+        }
 }
 
-int update_VTG(const char* msg){
+int GPS::update_VTG(const char* msg){ // TODO: NEEDS TESTING
     return 0;
 }
 
