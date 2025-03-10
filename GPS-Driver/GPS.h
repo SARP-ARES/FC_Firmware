@@ -1,6 +1,5 @@
 #ifndef GPS_H
 #define GPS_H
-
 #include "mbed.h"
 
 
@@ -61,6 +60,13 @@ class GPS {
         posLTP pos;
         originECEFr origin;
         double dms2rad();
+
+        // NMEA message readers
+        int update_GGA(const char* msg);
+        int update_GSA(const char* msg);
+        int update_GSV(const char* msg);
+        int update_RMC(const char* msg);
+        int update_VTG(const char* msg);
         
         // getMsgType()
         // update()
