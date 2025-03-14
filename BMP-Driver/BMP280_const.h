@@ -3,6 +3,9 @@
 * Contains all variable names for all addresses 
 */ 
 
+#ifndef BMP280_const_H
+#define BMP280_const_H
+
 #define BMP280_TEMP_XLSB 0xFC
 #define BMP280_TEMP_LSB 0xFB
 #define BMP280_TEMP_MSB 0xFA
@@ -14,3 +17,5 @@
 #define BMP280_STATUS 0xF3 
 #define BMP280_RESET 0xE0 
 #define BMP280_ID 0xd0
+
+#endif // BMP280_const_H

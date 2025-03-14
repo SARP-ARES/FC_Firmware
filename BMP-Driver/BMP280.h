@@ -1,6 +1,8 @@
 /* 
 * Contains methods of the BMP280 Class and related enums and structs 
 */
+#ifndef BMP280_H
+#define BMP280_H
 
 #include <cstdint> 
 #include "mbed.h"
@@ -11,7 +13,6 @@ struct BMP280_Values {
     double press_psi; // Pressure in PSI
     double temp_f; // Temperature in Farenheit 
 };
-
 
 struct BMP280_Calibration {
             // Temperature 
@@ -59,7 +60,9 @@ class BMP280 {
         float getTemperature(); 
         int updateValues(); 
 
-        
+        int start();
+        int sleep();
+
 
     private: 
 
@@ -84,4 +87,7 @@ class BMP280 {
         int BMP280_CalibrateTemp();
         int BMP280_CalibratePress();
 
+
 };
+
+#endif // BMP280_H
