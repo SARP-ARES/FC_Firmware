@@ -49,6 +49,20 @@ int BMP280::writeData(char regaddr, char data) {
     return i2c->write(addr, buffer, 2);
 }
 
+
+int BMP280::start(){
+    result = writeData(BMP280_CTRL_MEAS, 0b11)
+    // 11 = normal mode
+    return result
+}
+
+int BMP280::sleep(){
+    result = writeData(BMP280_CTRL_MEAS, 0b00)
+    // 00 = sleep mode
+    return result
+}
+
+
 /* @brief Retrieves and organizes temperature data
  * @return calulated temperature value
  */ 
