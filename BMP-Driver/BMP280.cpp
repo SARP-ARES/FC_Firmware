@@ -49,19 +49,17 @@ int BMP280::writeData(char regaddr, char data) {
     return i2c->write(addr, buffer, 2);
 }
 
-
 int BMP280::start(){
-    result = writeData(BMP280_CTRL_MEAS, 0b11)
+    int result = writeData(BMP280_CTRL_MEAS, 0b11);
     // 11 = normal mode
-    return result
+    return result;
 }
 
 int BMP280::sleep(){
-    result = writeData(BMP280_CTRL_MEAS, 0b00)
+    int result = writeData(BMP280_CTRL_MEAS, 0b00);
     // 00 = sleep mode
-    return result
+    return result;
 }
-
 
 /* @brief Retrieves and organizes temperature data
  * @return calulated temperature value
@@ -73,12 +71,12 @@ int BMP280::updateTemperatureData(){
     lsbErr = readData(BMP280_TEMP_LSB, &lsb, 1);
     msbErr = readData(BMP280_TEMP_MSB, &msb, 1);
     
-    int total = xlsbErr + lsbErr + msbErr;
+    int totalErr = xlsbErr + lsbErr + msbErr;
     //Shifts each byte into useful position
     int32_t rawTemperature = ((int32_t)msb << 12) | ((int32_t)lsb << 4 ) | ((int32_t)xlsb >> 4);
     // float temp = ((float)rawTemperature * 9.0/5.0) + 32.0; // Convert from native Celcius to Farienheit
     values.temp_f = convert_temp(rawTemperature);
-    return total; 
+    return totalErr; 
 }
 
 /* @brief Retrieves and organizes pressure data
@@ -90,14 +88,14 @@ int BMP280::updatePressureData(){
     xlsbErr = readData(BMP280_PRESS_XLSB, &xlsb, 1); // Extra least significant byte 
     lsbErr = readData(BMP280_PRESS_LSB, &lsb, 1);// Least significant byte 
     msbErr = readData(BMP280_PRESS_MSB, &msb, 1); // Most significant byte 
-    int total = xlsbErr + lsbErr + msbErr;
+    int totalErr = xlsbErr + lsbErr + msbErr;
 
     // Shifts each byte into useful position 
     uint32_t rawPressure = ((uint32_t)msb << 12) | ((uint32_t)lsb << 4 ) | ((uint32_t)xlsb >> 4);
     // float press = (float)rawPressure * 0.0145037738; // Convert from native Hectopascal to psi 
     values.press_psi = BMP280_compensate_P_double(rawPressure); 
 
-    return total; 
+    return totalErr; 
 }
 
 double BMP280::convert_temp(int32_t adc_T){
