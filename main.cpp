@@ -31,15 +31,30 @@ int main(){
     Timer t; 
     t.start();
 
+    // Attempt to awaken the sensor
+    int result = bmp280.start();
+    ThisThread::sleep_for(1s); // wait for serial port to connect
+    if (result == 0) {
+        pc.printf("\n=================================");
+        pc.printf("\n=================================");
+        pc.printf("\n\n\tThe BMP280 HAS RISEN\n");
+        pc.printf("\n=================================");
+        pc.printf("\n=================================\n");
+    }else {
+        pc.printf("\n========================================");
+        pc.printf("\n========================================");
+        pc.printf("\n\n\tThe BMP280 remains asleep\n");
+        pc.printf("\n========================================");
+        pc.printf("\n========================================\n");   
+    }
+
     while (true) {
         if(t.read_ms() >= 4000){
-            BMP280_Values values;
-            
-            values.temp_f = bmp280.getTemperature(); 
-            values.press_psi = bmp280.getPressure(); 
-            pc.printf("-------------------------------\n");
-            pc.printf("Errors\t\t: %d\n", bmp280.updateValues());
-            pc.printf("Temperature\t: %lf\nPressure\t: %lf\n", values.temp_f, values.press_psi);
+            int err = bmp280.updateValues();
+            float temp_f = bmp280.getTemperature(); 
+            float press_psi = bmp280.getPressure(); 
+            pc.printf("\n-------------------------------");
+            pc.printf("\nErrors\t\t: %d\nTemperature\t: %lf\nPressure\t: %lf\n", err, temp_f, press_psi);
             t.reset(); 
         }
     }
