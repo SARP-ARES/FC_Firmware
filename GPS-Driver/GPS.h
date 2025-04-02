@@ -34,6 +34,8 @@ struct gpsState{
     char latNS;
     char lonEW;
     int fix;
+    char rmcStatus;
+    int date;
 };
 
 typedef enum {
