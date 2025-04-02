@@ -10,7 +10,7 @@ int main(){
     EUSBSerial pc(true); // new class Extended USB Serial
     BufferedSerial gps_serial(PA_2, PA_3);
 
-    led_B.write(1);
+    led_B.write(0);
     
     // setup timer for use in secondary actions
     Timer t;
@@ -20,22 +20,53 @@ int main(){
 
     char buf[256] = {0};
     int index = 0;
-    while(true){
 
-        // TESTING SENDING MESSAGES
+    ThisThread::sleep_for(1000ms); // Wait for serial port to connect
+    pc.printf("\n\nStarting GPS Testing...");
+    while(true){
+        // pc.printf("..::: entered while-loop :::..");
+        // TESTING; SENDING FAKE MESSAGES
         if (t.read_ms() >= 5000){
+            t.reset(); // reset timer
+
+            led_B = !led_B; // toggle LED
+
             // artifical GGA message
-            const char* msg = "$GPGGA,091626.000,2236.2791,N,12017.2818,E,1,10,1.00,8.8,M,18.7,M,,*66";
+            // const char* msg = "$GPGGA,091626.000,2236.2791,N,12017.2818,E,1,10,1.00,8.8,M,18.7,M,,*66"; // GGA
+            // const char* msg = "$GPGGA,091626.000,2236.2791,N,12017.2818,E,1,10,1.00,8.8,M,"; // testing smaller message
+            const char* msg = "$GNRMC,172740.000,A,4739.3344,N,12218.3884,W,0.11,154.71"; // RMC (cut down a little)
             NMEA_Type msgType = gps.getMsgType(msg);
             int result = gps.update(msgType, msg);
-            pc.printf("==================================\n");
-            pc.printf("%s", msg); // write the message to serial port
-            pc.printf("Message Type: %d\n", msgType); // write the message type
+            pc.printf("\n==================================");
+            pc.printf("\n%s", msg); // write the message to serial port
+            pc.printf("\nMessage Type: %d", msgType); // write the message type
             gpsState state = gps.getState();
-            pc.printf("UTC\t\t: %f \nFix\t\t: %d \nLattitude\t: %f %c \nLongitude\t: %f %c\nAltitude\t: %f\n", \
+
+            switch(msgType) {
+                case NMEA_NA: {
+                    pc.printf("\ntype not found");
+                    break;
+                }
+                case NMEA_GGA: { // GGA
+                    pc.printf("\nUTC\t\t: %.3f \nFix\t\t: %d \nLattitude\t: %.4f %c \nLongitude\t: %.4f %c\nAltitude\t: %f\n", \
                             state.utc, state.fix, state.lat, state.latNS, state.lon, state.lonEW, state.alt);
-            pc.printf("items matched\t: %d\n", result);
-            t.reset();
+                    break;
+                }
+                case NMEA_GSA: { // GSA
+                    pc.printf("\nwoopy doopy GSA");
+                    break;
+                }
+                case NMEA_RMC: { // RMC
+                    pc.printf("\nUTC\t\t: %.3f \nStatus\t\t: %c \nLattitude\t: %.4f %c \nLongitude\t: %f.4 %c\nGround Speed\t: %f knots \nHeading\t\t: %.3f degrees", \
+                            state.utc, state.rmcStatus, state.lat, state.latNS, state.lon, state.lonEW, state.gspeed, state.heading);
+                    break;
+                }
+                case NMEA_VTG: { // VTG
+                    pc.printf("\nwoopy doopy VTG");
+                    break;
+                }
+            }
+            pc.printf("\nitems matched\t: %d", result);
         }
 
         // // read each character of the message and send to the corresponding buffer index
@@ -58,23 +89,5 @@ int main(){
         //     index = 0; // reset 
         // }
     }
-
-    // char c;
-
-    // while(true) {
-    //     // if gps has characters, read into c and write it to USB
-    //     if (gps.readable()){ 
-    //         gps.read(&c, 1);
-    //         pc.write(&c, 1);
-    //     }
-
-    //     // every 5s & if GPS line has been sent toggle LED & print to USB
-    //     if (t.read_ms() >= 5000 && c == '\n') {
-    //         pc.printf("task #%d\n", 2);
-    //         led_B = !led_B;
-    //         t.reset();
-    //     }
-    // }
-
 }
 
