@@ -48,7 +48,7 @@ class ctrldRogallo {
 
     public:
         filteredState getState() const;
-        void updateState(gpsState stateGPS, bmpState stateBMP, imuState stateIMU);
+        void updateState(gpsState* stateGPS, bmpState* stateBMP, imuState* stateIMU);
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
 };

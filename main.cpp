@@ -1,6 +1,7 @@
 #include "mbed.h"
 #include "EUSBSerial.h"
 #include "GPS.h"
+#include "ctrldRogallo.h"
 #include <string> // only need these for testing w/ artificial messages
 
 int main(){
