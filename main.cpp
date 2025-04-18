@@ -67,8 +67,9 @@ int main() {
             int err = bmp280.updateValues();
             float temp_f = bmp280.getTemperature(); 
             float press_psi = bmp280.getPressure(); 
-            pc.printf("\n-------------------------------");
-            pc.printf("\nErrors\t\t: %d\nTemperature\t: %lf\nPressure\t: %lf\n", err, temp_f, press_psi);
+            float altitude_ft = bmp280.getAltitude();
+            pc.printf("\n=========================");
+            pc.printf("\nErrors\t\t: %d\nTemperature (F)\t: %lf\nPressure (psi)\t: %lf\n Altiude (ft)\t: %lf ", err, temp_f, press_psi, altitude_ft);
             t.reset(); 
         }
     }

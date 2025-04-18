@@ -60,22 +60,6 @@ int BMP280::sleep(){
     // 00 = sleep mode
     return result;
 }
-
-int BMP280::wakeUpPressure(){
-    // AwakeMode
-    uint8_t wakeUp = 0b11;
-    wakeUp = wakeUp << 2;
-    int result = writeData(BMP280_CTRL_MEAS, wakeUp);
-    return result; 
-}
-
-int BMP280::wakeUpTemperature(){
-    uint8_t wakeUp = 0b1;
-    wakeUp = wakeUp << 5; 
-    int result = writeData(BMP280_CTRL_MEAS, wakeUp);
-    return result;
-} 
-
 /* @brief Retrieves and organizes temperature data
  * @return calulated temperature value
  */ 
@@ -89,8 +73,7 @@ int BMP280::updateTemperatureData(){
     int totalErr = xlsbErr + lsbErr + msbErr;
     //Shifts each byte into useful position
     int32_t rawTemperature = ((int32_t)msb << 12) | ((int32_t)lsb << 4 ) | ((int32_t)xlsb >> 4);
-    // float temp = ((float)rawTemperature * 9.0/5.0) + 32.0; // Convert from native Celcius to Farienheit
-    values.temp_f = convert_temp(rawTemperature);
+    values.temp_c = convert_temp(rawTemperature);
     return totalErr; 
 }
 
@@ -107,9 +90,7 @@ int BMP280::updatePressureData(){
 
     // Shifts each byte into useful position 
     uint32_t rawPressure = ((uint32_t)msb << 12) | ((uint32_t)lsb << 4 ) | ((uint32_t)xlsb >> 4);
-    // float press = (float)rawPressure * 0.0145037738; // Convert from native Hectopascal to psi 
-    values.press_psi = BMP280_compensate_P_double(rawPressure); 
-
+    values.press_pa = convert_press(rawPressure); 
     return totalErr; 
 }
 
@@ -125,12 +106,12 @@ double BMP280::convert_temp(int32_t adc_T){
     return T;
 }
 
-// @breif returns pressure data
+// @breif returns pressure data in Psi 
 float BMP280::getPressure(){
-    return values.press_psi;
+    return values.press_pa * 0.000145038; // Converts Pa to Psi
 }
 
-double BMP280::BMP280_compensate_P_double(int32_t adc_P){
+double BMP280::convert_press(int32_t adc_P){
     int err = BMP280_CalibratePress(); 
 
     double var1, var2, p;
@@ -153,9 +134,9 @@ double BMP280::BMP280_compensate_P_double(int32_t adc_P){
 
 
 
-// @brief returns temperature value
+// @brief returns temperature value in Farenheit
 float BMP280::getTemperature(){
-    return values.temp_f;
+    return values.temp_c * 9.0/5.0 + 32.0;
 }
 
 // @breif updates sensor values 
@@ -165,13 +146,8 @@ int BMP280::updateValues(){
     return(errPress + errTemp);
 }
 
-/* @breif check for error from the pressure reading
-*/
-BMP280_Status BMP280::getPressureStatus() {
- return BMP280_Status::Ok; 
-}
 
-//@briif calibrates temperature values
+//@breif calibrates temperature values
 // - Array Calib: each calibration number comes in a lsb and msb pair 
 int BMP280::BMP280_CalibrateTemp(){
     char calib[6];
@@ -188,28 +164,6 @@ int BMP280::BMP280_CalibratePress(){
     // Read Calibration data 
     readData(0x8E, calib, 18);
 
-    // int t1 = readData(0x8E, &calib[0],1);
-    // int t2 = readData(0x8F, &calib[1], 1);
-    // int t3 = readData(0x90, &calib[2],1);
-    // int t4 = readData(0x91, &calib[3], 1);
-    // int t5 = readData(0x92, &calib[4],1);
-    // int t6 = readData(0x93, &calib[5], 1);
-    // int t7 = readData(0x94, &calib[6], 1);
-    // int t8 = readData(0x95, &calib[7], 1);
-    // int t9 = readData(0x96, &calib[8], 1);
-    // int t10 = readData(0x97, &calib[9], 1);
-    // int t11 = readData(0x98, &calib[10],1);
-    // int t12 = readData(0x99, &calib[11], 1);
-    // int t13 = readData(0x9A, &calib[12], 1);
-    // int t14 = readData(0x9B, &calib[13], 1);
-    // int t15 = readData(0x9C, &calib[14], 1);
-    // int t16 = readData(0x9D, &calib[15], 1);
-    // int t17 = readData(0x9E, &calib[16], 1);
-    // int t18 = readData(0x9F, &calib[17], 1);
-
-    // int err = t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8 + t9 + t10 +
-    //         t11 + t12 + t13 + t14 + t15 + t16 + t17 + t18;
-
     //Store Calibration data
     c.dig_P1 = calib[0] | calib[1] << 8;
     c.dig_P2 = calib[2] | calib[3] << 8;
@@ -222,5 +176,12 @@ int BMP280::BMP280_CalibratePress(){
     c.dig_P9 = calib[16] | calib[17] << 8;
 
     return 0;
+}
 
+// @ Brief calcuates Altitude using hyposometric equation for altitude
+double BMP280::getAltitude(){
+    double pressRatioTerm = pow((101300/values.press_pa),(1/5.257)) - 1.0;
+    double temp_k = values.temp_c +273.15;
+    values.altitude_m = (pressRatioTerm*temp_k)/.0065;
+    return values.altitude_m * 3.28084; 
 }
