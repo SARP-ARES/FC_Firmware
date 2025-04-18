@@ -61,6 +61,21 @@ int BMP280::sleep(){
     return result;
 }
 
+int BMP280::wakeUpPressure(){
+    // AwakeMode
+    uint8_t wakeUp = 0b11;
+    wakeUp = wakeUp << 2;
+    int result = writeData(BMP280_CTRL_MEAS, wakeUp);
+    return result; 
+}
+
+int BMP280::wakeUpTemperature(){
+    uint8_t wakeUp = 0b1;
+    wakeUp = wakeUp << 5; 
+    int result = writeData(BMP280_CTRL_MEAS, wakeUp);
+    return result;
+} 
+
 /* @brief Retrieves and organizes temperature data
  * @return calulated temperature value
  */ 

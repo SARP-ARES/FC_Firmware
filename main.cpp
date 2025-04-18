@@ -32,14 +32,30 @@ int main(){
     t.start();
 
     // Attempt to awaken the sensor
+    ThisThread::sleep_for(1s);
     int result = bmp280.start();
     ThisThread::sleep_for(1s); // wait for serial port to connect
+    
     if (result == 0) {
         pc.printf("\n=================================");
         pc.printf("\n=================================");
         pc.printf("\n\n\tThe BMP280 HAS RISEN\n");
+        if(bmp280.wakeUpTemperature() == 0){
+            pc.printf("\n\n\tTemp online\n");
+        } else {
+            pc.printf("\n\n\tNo temp :(\n");
+        }
+
+        pc.printf("\n=================================\n");
+
+        if(bmp280.wakeUpPressure() == 0){
+            pc.printf("\n\n\tTHE Press IS OPERATIONAL\n");
+        } else {
+            pc.printf("\n\n\t press no feel so good\n"); 
+        }
         pc.printf("\n=================================");
         pc.printf("\n=================================\n");
+        
     }else {
         pc.printf("\n========================================");
         pc.printf("\n========================================");

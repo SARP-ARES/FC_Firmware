@@ -62,6 +62,8 @@ class BMP280 {
 
         int start();
         int sleep();
+        int wakeUpTemperature();
+        int wakeUpPressure(); 
 
 
     private: 
