@@ -50,7 +50,7 @@ int BMP280::writeData(char regaddr, char data) {
 }
 
 int BMP280::start(){
-    int result = writeData(BMP280_CTRL_MEAS, 0b11);
+    int result = writeData(BMP280_CTRL_MEAS, 0b00100111);
     // 11 = normal mode
     return result;
 }
