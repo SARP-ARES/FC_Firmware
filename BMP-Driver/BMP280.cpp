@@ -111,6 +111,10 @@ float BMP280::getPressure(){
     return values.press_pa * 0.000145038; // Converts Pa to Psi
 }
 
+float BMP280::getPressurePa(){
+    return values.press_pa;
+}
+
 double BMP280::convert_press(int32_t adc_P){
     int err = BMP280_CalibratePress(); 
 
@@ -139,10 +143,14 @@ float BMP280::getTemperature(){
     return values.temp_c * 9.0/5.0 + 32.0;
 }
 
+float BMP280::getTemperatureC(){
+    return values.temp_c;
+}
+
 // @breif updates sensor values 
 int BMP280::updateValues(){
-    int errPress  = updatePressureData();
     int errTemp = updateTemperatureData();
+    int errPress  = updatePressureData();
     return(errPress + errTemp);
 }
 
@@ -178,10 +186,18 @@ int BMP280::BMP280_CalibratePress(){
     return 0;
 }
 
-// @ Brief calcuates Altitude using hyposometric equation for altitude
-double BMP280::getAltitude(){
+// @ Brief updates Altitude using hyposometric equation for altitude
+void BMP280::updateAltitude(){
     double pressRatioTerm = pow((101300/values.press_pa),(1/5.257)) - 1.0;
     double temp_k = values.temp_c +273.15;
-    values.altitude_m = (pressRatioTerm*temp_k)/.0065;
+    values.altitude_m = (pressRatioTerm*temp_k)/.0065; 
+}
+
+double BMP280::getAltitude(){
     return values.altitude_m * 3.28084; 
 }
+
+double BMP280::getAltitudeM(){
+    return values.altitude_m; 
+}
+

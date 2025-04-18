@@ -51,7 +51,12 @@ class BMP280 {
 
         float getPressure(); // Returns the current pressure in Psi
         float getTemperature(); // Returns the current Temperature in deg F
+        
+        float getPressurePa(); // Returns the current pressure in Pa
+        float getTemperatureC(); // Returns the current Temperature in deg C
+
         double getAltitude(); // Returns the current altitude in Ft
+        double getAltitudeM(); // Returns the current altitude in m
         int updateValues(); // updates the current pressure and temperature values 
 
         int start(); // Awakens the BMP from slumber 
@@ -61,6 +66,7 @@ class BMP280 {
 
         int updatePressureData(); // updates the pressure value 
         int updateTemperatureData(); // updates the temperature value 
+        void updateAltitude(); // updates the current altitude based on temp and pressure
 
         BMP280_Values values; // Stores the nessecary values to be returned 
         BMP280_Calibration c; // Stores the calibration data nessecary for the sensor 
