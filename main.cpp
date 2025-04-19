@@ -10,7 +10,6 @@ int ack;
 int address;
 I2C i2c(PB_7,PB_8);
 
-
 void scanI2C() {
   for(address=1;address<255;address++) {    
     ack = i2c.write(address, "11", 1);
@@ -64,14 +63,10 @@ int main() {
 
             // pc.printf("id: %d\n", status);
 
-            int err = bmp280.updateValues();
-            float temp_C = bmp280.getTemperatureC(); 
-            float press_psi = bmp280.getPressure(); 
-            double altitude_h1 = bmp280.updateAltitudeH1();
-            double altitude_h2 = bmp280.updateAltitudeH2();
+            bmp280.updateValues();
             pc.printf("\n=========================");
-            pc.printf("\nTemperature (F)\t: %lf\nPressure (psi)\t: %lf", temp_C, press_psi);
-            pc.printf("\nAltitude (H1 m)\t: %lf\nAltitude (H2 m)\t: %lf", altitude_h1, altitude_h2);
+            pc.printf("\nTemperature (F)\t: %lf\nPressure (psi)\t: %lf", bmp280.values.temp_f, bmp280.values.press_psi);
+            pc.printf("\nAltitude (H1 m)\t: %lf\nAltitude (H2 m)\t: %lf", bmp280.values.altitude_h1, bmp280.values.altitude_h2);
             t.reset(); 
         }
     }

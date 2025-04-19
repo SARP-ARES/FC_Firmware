@@ -12,10 +12,13 @@ using namespace std;
 struct BMP280_Values {
     double press_pa; // Pressure in Pascals 
     double temp_c; // Temperature in Celcius
-    double altitude_m;// Altitude from Sea Level in m
-    double altitude_h1;
-    double altitude_h2;
-    double altitude_b1; 
+    double altitude_m; // Altitude from Sea Level in m
+    double press_psi; // Pressure in Psi
+    double temp_f; // temp in farenheit
+    double altitude_ft; // alt in ft 
+    double altitude_h1; // alt from hypsometric 1 (m)
+    double altitude_h2; // alt from hypsometric 2 (m)
+    double altitude_b1; // alt from barometic (m)
 };
 
 struct BMP280_Calibration {
@@ -52,14 +55,6 @@ class BMP280 {
         int writeData(char regaddr, char data);
         int readData(char regaddr, char* data, uint8_t len);
 
-        float getPressure(); // Returns the current pressure in Psi
-        float getTemperature(); // Returns the current Temperature in deg F
-        
-        float getPressurePa(); // Returns the current pressure in Pa
-        float getTemperatureC(); // Returns the current Temperature in deg C
-
-        double getAltitude(); // Returns the current altitude in Ft
-        double getAltitudeM(); // Returns the current altitude in m
         int updateValues(); // updates the current pressure and temperature values 
 
         int start(); // Awakens the BMP from slumber 
@@ -69,8 +64,8 @@ class BMP280 {
 
         int updatePressureData(); // updates the pressure value 
         int updateTemperatureData(); // updates the temperature value 
-        double updateAltitudeH1();
-        double updateAltitudeH2();
+        void updateAltitudeH1();
+        void updateAltitudeH2();
         // double updateAltitudeB1();
          // updates the current altitude based on temp and pressure
 

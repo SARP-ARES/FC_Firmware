@@ -78,6 +78,7 @@ int BMP280::updateTemperatureData(){
     //Shifts each byte into useful position
     int32_t rawTemperature = ((int32_t)msb << 12) | ((int32_t)lsb << 4 ) | ((int32_t)xlsb >> 4);
     values.temp_c = convert_temp(rawTemperature) - 3.5; // offsets temperature by experimentally gathered amount
+    values.temp_f = values.temp_c * 9.0/5.0 + 32.0; 
     return totalErr; 
 }
 
@@ -95,6 +96,7 @@ int BMP280::updatePressureData(){
     // Shifts each byte into useful position 
     uint32_t rawPressure = ((uint32_t)msb << 12) | ((uint32_t)lsb << 4 ) | ((uint32_t)xlsb >> 4);
     values.press_pa = convert_press(rawPressure) - 944.6; // offset from experimental data
+    values.press_psi = values.press_pa * 0.000145038;
     return totalErr; 
 }
 
@@ -108,15 +110,6 @@ double BMP280::convert_temp(int32_t adc_T){
     t_fine = (int32_t)(var1 + var2);
     T = (var1 + var2)/5120.0;
     return T;
-}
-
-// @breif returns pressure data in Psi 
-float BMP280::getPressure(){
-    return values.press_pa * 0.000145038; // Converts Pa to Psi
-}
-
-float BMP280::getPressurePa(){
-    return values.press_pa;
 }
 
 // @brief calibrates the pressure based upon formulas from datasheet
@@ -139,18 +132,6 @@ double BMP280::convert_press(int32_t adc_P){
     var2 = p * ((double)c.dig_P8) / 32768.0;
     p = p + (var1 + var2 + ((double)c.dig_P7)) / 16.0;
     return p;
-}
-
-
-
-// @brief returns temperature value in Farenheit
-float BMP280::getTemperature(){
-    return values.temp_c * 9.0/5.0 + 32.0;
-}
-
-// @brief returns temperature value in Celcius
-float BMP280::getTemperatureC(){
-    return values.temp_c;
 }
 
 // @breif updates sensor values 
@@ -196,22 +177,12 @@ int BMP280::BMP280_CalibratePress(){
 
 // Shorthand hyposometric
 // @ Brief updates Altitude using hyposometric equation for altitude
-double BMP280::updateAltitudeH1(){
+void BMP280::updateAltitudeH1(){
     double pressRatioTerm = pow((101325/values.press_pa),(1/5.257)) - 1.0;
     double temp_k = values.temp_c +273.15;
     values.altitude_h1 = (pressRatioTerm*temp_k)/.0065; 
-    return values.altitude_h1;
 }
 
-// @brief returns altitude in ft
-double BMP280::getAltitude(){
-    return values.altitude_m * 3.28084; 
-}
-
-// @brief returns altitude in meters
-double BMP280::getAltitudeM(){
-    return values.altitude_m; 
-}
 
 // Barometric 
 // double BMP280::updateAltitudeB1(){
@@ -221,7 +192,7 @@ double BMP280::getAltitudeM(){
 // }
 
 // Advanced hypsometric
-double BMP280::updateAltitudeH2(){
+void BMP280::updateAltitudeH2(){
     double univesalGasConst = 8.31432;
     double staticPress = 101325;
     double sealvlTemp_K = 58 + 273.15; 
@@ -231,7 +202,6 @@ double BMP280::updateAltitudeH2(){
     values.altitude_h2 = (sealvlTemp_K/tempLapseRate) \
                         *(pow((values.press_pa/staticPress), \
                             -((univesalGasConst*tempLapseRate)/(gravity*molarMassAir)))-1.0); 
-    return values.altitude_h2;
 }
 
 
