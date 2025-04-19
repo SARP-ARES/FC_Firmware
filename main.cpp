@@ -42,7 +42,7 @@ int main() {
 
     DigitalOut led_G(PA_15);
     DigitalOut led_B(PA_8);
-    led_B.write(1);
+    led_B.write(0);
 
     //EUSBSerial pc(true); //instantiate ESUBSerial 
     BMP280 bmp280(PB_7,PB_8,0xEE); //instantiate 
@@ -59,17 +59,19 @@ int main() {
     while (true) {
         if(t.read_ms() >= 400) {
 
-            char status = 0;
-            bmp280.readData(0xD0, &status, 1);
+            // char status = 0;
+            // bmp280.readData(0xD0, &status, 1);
 
-            pc.printf("id: %d\n", status);
+            // pc.printf("id: %d\n", status);
 
             int err = bmp280.updateValues();
-            float temp_f = bmp280.getTemperature(); 
+            float temp_C = bmp280.getTemperatureC(); 
             float press_psi = bmp280.getPressure(); 
-            float altitude_ft = bmp280.getAltitude();
+            double altitude_h1 = bmp280.updateAltitudeH1();
+            double altitude_h2 = bmp280.updateAltitudeH2();
             pc.printf("\n=========================");
-            pc.printf("\nErrors\t\t: %d\nTemperature (F)\t: %lf\nPressure (psi)\t: %lf\n Altiude (ft)\t: %lf ", err, temp_f, press_psi, altitude_ft);
+            pc.printf("\nTemperature (F)\t: %lf\nPressure (psi)\t: %lf", temp_C, press_psi);
+            pc.printf("\nAltitude (H1 m)\t: %lf\nAltitude (H2 m)\t: %lf", altitude_h1, altitude_h2);
             t.reset(); 
         }
     }

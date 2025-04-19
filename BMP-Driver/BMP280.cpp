@@ -3,6 +3,7 @@
 #include"BMP280_const.h" 
 #include<map> 
 #include<iostream>
+#include<cmath>
 using namespace std;
 
 /* Constructor 
@@ -49,8 +50,10 @@ int BMP280::writeData(char regaddr, char data) {
     return i2c->write(addr, buffer, 2);
 }
 
+// Temperature 2x, Pressure 16x -> 0b11101011
+// Temperature 1x, Pressure 1x -> 0b00100111
 int BMP280::start(){
-    int result = writeData(BMP280_CTRL_MEAS, 0b00100111);
+    int result = writeData(BMP280_CTRL_MEAS, 0b11101011);
     // 11 = normal mode
     return result;
 }
@@ -60,6 +63,7 @@ int BMP280::sleep(){
     // 00 = sleep mode
     return result;
 }
+
 /* @brief Retrieves and organizes temperature data
  * @return calulated temperature value
  */ 
@@ -73,7 +77,7 @@ int BMP280::updateTemperatureData(){
     int totalErr = xlsbErr + lsbErr + msbErr;
     //Shifts each byte into useful position
     int32_t rawTemperature = ((int32_t)msb << 12) | ((int32_t)lsb << 4 ) | ((int32_t)xlsb >> 4);
-    values.temp_c = convert_temp(rawTemperature);
+    values.temp_c = convert_temp(rawTemperature) - 3.5; // offsets temperature by experimentally gathered amount
     return totalErr; 
 }
 
@@ -90,7 +94,7 @@ int BMP280::updatePressureData(){
 
     // Shifts each byte into useful position 
     uint32_t rawPressure = ((uint32_t)msb << 12) | ((uint32_t)lsb << 4 ) | ((uint32_t)xlsb >> 4);
-    values.press_pa = convert_press(rawPressure); 
+    values.press_pa = convert_press(rawPressure) - 944.6; // offset from experimental data
     return totalErr; 
 }
 
@@ -115,6 +119,7 @@ float BMP280::getPressurePa(){
     return values.press_pa;
 }
 
+// @brief calibrates the pressure based upon formulas from datasheet
 double BMP280::convert_press(int32_t adc_P){
     int err = BMP280_CalibratePress(); 
 
@@ -143,6 +148,7 @@ float BMP280::getTemperature(){
     return values.temp_c * 9.0/5.0 + 32.0;
 }
 
+// @brief returns temperature value in Celcius
 float BMP280::getTemperatureC(){
     return values.temp_c;
 }
@@ -151,6 +157,8 @@ float BMP280::getTemperatureC(){
 int BMP280::updateValues(){
     int errTemp = updateTemperatureData();
     int errPress  = updatePressureData();
+    updateAltitudeH1();
+    updateAltitudeH2();
     return(errPress + errTemp);
 }
 
@@ -186,18 +194,45 @@ int BMP280::BMP280_CalibratePress(){
     return 0;
 }
 
+// Shorthand hyposometric
 // @ Brief updates Altitude using hyposometric equation for altitude
-void BMP280::updateAltitude(){
-    double pressRatioTerm = pow((101300/values.press_pa),(1/5.257)) - 1.0;
+double BMP280::updateAltitudeH1(){
+    double pressRatioTerm = pow((101325/values.press_pa),(1/5.257)) - 1.0;
     double temp_k = values.temp_c +273.15;
-    values.altitude_m = (pressRatioTerm*temp_k)/.0065; 
+    values.altitude_h1 = (pressRatioTerm*temp_k)/.0065; 
+    return values.altitude_h1;
 }
 
+// @brief returns altitude in ft
 double BMP280::getAltitude(){
     return values.altitude_m * 3.28084; 
 }
 
+// @brief returns altitude in meters
 double BMP280::getAltitudeM(){
     return values.altitude_m; 
 }
+
+// Barometric 
+// double BMP280::updateAltitudeB1(){
+//     double lnPress = log(values.press_pa/101325);
+//     values.altitude_b1 = -lnPress/(9.8105*.02896);
+//     return values.altitude_b1; 
+// }
+
+// Advanced hypsometric
+double BMP280::updateAltitudeH2(){
+    double univesalGasConst = 8.31432;
+    double staticPress = 101325;
+    double sealvlTemp_K = 58 + 273.15; 
+    double tempLapseRate = -.0065;
+    double gravity = 9.80665;
+    double molarMassAir = .0289655;
+    values.altitude_h2 = (sealvlTemp_K/tempLapseRate) \
+                        *(pow((values.press_pa/staticPress), \
+                            -((univesalGasConst*tempLapseRate)/(gravity*molarMassAir)))-1.0); 
+    return values.altitude_h2;
+}
+
+
 

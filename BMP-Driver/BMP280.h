@@ -12,7 +12,10 @@ using namespace std;
 struct BMP280_Values {
     double press_pa; // Pressure in Pascals 
     double temp_c; // Temperature in Celcius
-    double altitude_m; // Altitude from Sea Level in m
+    double altitude_m;// Altitude from Sea Level in m
+    double altitude_h1;
+    double altitude_h2;
+    double altitude_b1; 
 };
 
 struct BMP280_Calibration {
@@ -62,11 +65,14 @@ class BMP280 {
         int start(); // Awakens the BMP from slumber 
         int sleep(); // Sleeps the BMP 
 
-    private: 
+    public: 
 
         int updatePressureData(); // updates the pressure value 
         int updateTemperatureData(); // updates the temperature value 
-        void updateAltitude(); // updates the current altitude based on temp and pressure
+        double updateAltitudeH1();
+        double updateAltitudeH2();
+        // double updateAltitudeB1();
+         // updates the current altitude based on temp and pressure
 
         BMP280_Values values; // Stores the nessecary values to be returned 
         BMP280_Calibration c; // Stores the calibration data nessecary for the sensor 
