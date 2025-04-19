@@ -3,47 +3,56 @@
 #include "mbed.h"
 
 
+
+#define KNOT_TO_M_S 0.5144444444
+
 struct posECEFg {   // Earth-Centered Earth-Fixed Geodic Coordinates
-    double lat; // lattitude    (radians)
-    double lon; // longitude    (radians)
-    double alt; // altitude     (meters)
+    float lat; // lattitude    (radians)
+    float lon; // longitude    (radians)
+    float alt; // altitude     (meters)
 };
 
 
-struct originECEFr {   // Earth-Centered Earth-Fixed Rectangular Coordinates
-    double x;       // get origin of linear tangent plan in ECEF-r coordinates
-    double y;       // (will likely be the launch pad)
-    double z;
+struct posECEFr {  // Earth-Centered Earth-Fixed Rectangular Coordinates
+    float x;       // get origin of linear tangent plan in ECEF-r coordinates
+    float y;       // (will likely be the launch pad)
+    float z;
 };
 
 struct posLTP { // Local Tangent Plane Coordinates
-    double e;   // east     (m)
-    double n;   // north    (m)
-    double u;   // up       (m)
+    float e;   // east     (m)
+    float n;   // north    (m)
+    float u;   // up       (m)
 };
  
 
 struct gpsState{
-    double lat;
-    double lon;
-    double alt;
-    double hdop;
-    double heading; 
-    double gspeed;
-    double utc;
+    float lat;
+    float lon;
+    float alt;
+    float pdop;
+    float vdop;
+    float hdop;
+    float heading; 
+    float gspeed;
+    float utc;
     char latNS;
     char lonEW;
     int fix;
     char rmcStatus;
     int date;
+    char mode1;
+    char mode2;
 };
+
 
 typedef enum {
     NMEA_NA,    // 0
     NMEA_GGA,   // 1
     NMEA_GSA,   // 2
-    NMEA_RMC,   // 3
-    NMEA_VTG    // 4
+    NMEA_GSV,   // 3
+    NMEA_RMC,   // 4
+    NMEA_VTG    // 5
 } NMEA_Type;
 
 
@@ -60,8 +69,10 @@ class GPS {
     private:
         gpsState state;
         posLTP pos;
-        originECEFr origin;
-        double dms2rad();
+        posECEFr origin;
+        float dms2rad(float coord_dms);
+        int getLatSign();
+        int getLonSign();
 
         // NMEA message readers
         int update_GGA(const char* msg);
@@ -74,11 +85,16 @@ class GPS {
         // update()
     
     public:
-        GPS();
+        GPS(PinName rx_gps, PinName tx_gps);
         gpsState getState() const;
-        NMEA_Type getMsgType(const char* msg);
-        int update(int msgType, const char* msg);
+        NMEA_Type getMsgType(const char* msg); // TODO: make private and make wrapper
+        int update(NMEA_Type msgType, const char* msg); // TODO: make private and make wrapper
+        int bigUpdate();
+        BufferedSerial serial;
+        void setOriginECEFr(); // uses current position to set origin if nothing is passed
+        void setOriginECEFr(posECEFr o); // can specify origin
         posLTP getPosLTP();
+
         // functino: start (GPS LOOOP)
         // initialize buffered serial object
         // make wrapper function for getMsgType() & update()
