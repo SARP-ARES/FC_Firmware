@@ -166,11 +166,13 @@ void flash::reset() {
  * Writes a 32-bit float to flash memory at specified address.
  * @param address - Flash memory address
  * @param data - Float value to store
+ * @return address + 4 (indexed to the next empty address)
  */
-void flash::writeNum(uint32_t address, float data) {
+uint32_t flash::writeNum(uint32_t address, float data) {
     uint8_t tempBytes[4];
     float2Byte(tempBytes, data);
     write(address, tempBytes, 4);
+    return address + 4; // index to the next empty flash address
 }
 
 /**

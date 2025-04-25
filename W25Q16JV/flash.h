@@ -16,7 +16,7 @@ public:
     // Write operations
     void write(uint32_t address, const uint8_t *buffer, size_t length);
     void writeByte(uint32_t address, uint8_t data);
-    void writeNum(uint32_t address, float data);
+    uint32_t writeNum(uint32_t address, float data);
 
     // Erase operations
     void eraseSector(uint32_t address);
