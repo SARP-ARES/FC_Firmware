@@ -3,13 +3,40 @@
 #include "GPS.h"
 #include <cmath>
 
+
+/*
+
+ADD DESCRIPTION
+
+*/
 GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
 
+
+/*
+ADD DESCRIPTION
+*/
 gpsState GPS::getState() const{
     return state; // return a copy of the state (can't be modified bc its private)
 }
 
 
+/*
+ADD DESCRIPTION
+*/
+posLTP GPS::getPosLTP() const{
+    return pos; // return a copy of the state (can't be modified bc its private)
+}
+
+/*
+ADD DESCRIPTION
+*/
+posECEFr GPS::getOriginECEFr() const{
+    return origin;
+}
+
+/*
+ADD DESCRIPTION
+*/
 // say "const" so that it can't be modified (only reading it)
 // msg will be the entire line 
 NMEA_Type GPS::getMsgType(const char* msg) {
@@ -44,6 +71,9 @@ NMEA_Type GPS::getMsgType(const char* msg) {
 }
 
 
+/*
+ADD DESCRIPTION
+*/
 int GPS::getLatSign() {
     int sign = 1; // expect northern hemisphere
     if (state.latNS == 'S') {
@@ -52,6 +82,9 @@ int GPS::getLatSign() {
     return sign;
 }
 
+/*
+ADD DESCRIPTION
+*/
 int GPS::getLonSign() {
     int sign = -1; // expect western longitude 
     if (state.latNS == 'E') {
@@ -60,17 +93,49 @@ int GPS::getLonSign() {
     return sign;
 }
 
-float GPS::dms2rad(float coord_dms) {
-    // converts ddmm.mmmm to d (rad)
-    float pi = 3.1415926535898;
-    int coord_deg = floor(coord_dms/100);       // extract degrees
-    float coord_min = fmod(coord_dms, 100);     // extract minutes
+
+float GPS::lat2deg(float lat_ddmm){
+    int lat_sign = getLatSign(); // -1 or 1
+    float lat_deg = floor(lat_ddmm/100);       // extract degrees
+    float lat_min = fmod(lat_ddmm, 100);     // extract minutes
     // convert degrees & minutes to radians
-    float coord_rad = coord_deg*( (coord_deg + coord_min/60) * pi/180 ); 
-    return coord_rad;
+    lat_deg = lat_sign*(lat_deg + lat_min/60); 
+    return lat_deg;
+}
+
+float GPS::lon2deg(float lon_dddmm){
+    int lon_sign = getLonSign(); // -1 or 1
+    float lon_deg = floor(lon_dddmm/100);       // extract degrees
+    float lon_min = fmod(lon_dddmm, 1000);     // extract minutes
+    // convert degrees & minutes to radians
+    lon_deg = lon_sign*(lon_deg + lon_min/60); 
+    return lon_deg;
 }
 
 
+/*
+converts lattitude coordinates in ddmm.mmmm to radians
+*/
+float GPS::lat2rad(float lat_ddmm) {
+    float lat_deg = lat2deg(lat_ddmm); 
+    float lat_rad = lat_deg * pi/180; 
+    return lat_rad;
+}
+
+/*
+converts longitude coordinates in dddmm.mmmm to radians
+*/
+float GPS::lon2rad(float lon_dddmm) {
+    float lon_deg = lon2deg(lon_dddmm);      // extract degrees
+    float lon_rad = lon_deg * pi/180; 
+    return lon_rad;
+}
+
+/*
+
+ADD DESCRIPTION
+
+*/
 int GPS::update_GGA(const char* msg){ // TODO: NEEDS TESTING
     int _;
     char subtype = 'O';
@@ -229,7 +294,7 @@ int GPS::update_VTG(const char* msg){ // TODO: NEEDS TESTING
 }
 
 
-// Q: should I call getMsgType inside update() or leave them separate?
+// legacy method
 int GPS::update(NMEA_Type msgType, const char* msg){
 
     // initialize state variables
@@ -288,10 +353,112 @@ int GPS::update(NMEA_Type msgType, const char* msg){
     return 0;
 }
 
+
+/*
+
+ADD DESCRIPTION
+
+*/
+void GPS::setOriginECEFr() { // uses current position to set origin if nothing is passed
+    // get longitude and latitude into radians
+    float lat_rad = lat2rad(state.lat);
+    float lon_rad = lon2rad(state.lon);
+
+    const float a = 6378137; // earth semi-major axis        (m)
+    const float b = 6356752.3142; // earth semi-minor axis   (m)
+    const float f = (a-b)/a; // ellipsoid flatness 
+    const float e = sqrt(f*(2-f)); // eccentricity
+    // distance from the earth's surface to the z-axis along the ellipsoid normal
+    const float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
+
+    // get current position in ECEF-r coordinates
+    float h = state.alt;
+    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
+    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
+    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
+    origin.x = x;
+    origin.y = y;
+    origin.z = z;
+}
+
+
+const float a = 6378137; // earth semi-major axis        (m)
+const float b = 6356752.3142; // earth semi-minor axis   (m)
+const float f = (a-b)/a; // ellipsoid flatness 
+const float e = sqrt(f*(2-f)); // eccentricity
+
+/*
+Overloaded... 
+can specify the lattitude and longitude of the origin in degrees if needed
+instead of pulling from the current GPS position
+*/
+void GPS::setOriginECEFr(float lat_deg, float lon_deg, float h) { // uses current position to set origin if nothing is passed
+    // convert longitude and latitude into radians
+    float lat_rad = lat_deg * pi/180;
+    float lon_rad = lon_deg * pi/180;
+ 
+    // distance from the earth's surface to the z-axis along the ellipsoid normal
+    const float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
+
+    // get current position in ECEF-r coordinates
+    // float h = state.alt;
+    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
+    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
+    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
+    origin.x = x;
+    origin.y = y;
+    origin.z = z;
+} 
+
+
+
+
+void GPS::updatePosLTP() {
+    // state.lat = ddmm.mmmm ... state.lat/100 = dd.mmmmmm
+    // North = positive, South = negative
+    // East = positive, West = negative 
+    
+    // get longitude and latitude into radians
+    float lat_rad = lat2rad(state.lat);
+    float lon_rad = lon2rad(state.lon);
+
+    // distance from the earth's surface to the z-axis along the ellipsoid normal
+    float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
+
+    // get current position in ECEF-r coordinates
+    float h = state.alt;
+    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
+    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
+    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
+    
+    // subtract the origin ECEF-r coordinate to get relative position vector
+    float x_p = x - origin.x;
+    float y_p = y - origin.y;
+    float z_p = z - origin.z;
+
+    // rotate to allign y-axis w/ LTP
+    float x_pp = -x_p*sin(lon_rad) + y_p*cos(lon_rad);
+    float y_pp = x_p*cos(lon_rad) + y_p*sin(lon_rad);
+    float z_pp = z_p;
+
+    // // final rotation to allign z_axis with up
+    // pos.e = x_pp;
+    // pos.n = -y_pp*sin(lat_rad) + z_pp*cos(lat_rad);
+    // pos.u = y_pp*cos(lat_rad) + z_pp*sin(lat_rad);
+
+    // TESTING RELATIVE POSITION IN ECEFr
+    pos.e = x_p;
+    pos.n = y_p;
+    pos.u = z_p;
+}
+
+
 int GPS::bigUpdate(){
     // multiple messages come in... gotta parse all of them and then update the state
     Timer t;
     t.start();
+
+    updatePosLTP(); // update local tangent plane position
 
     char buf[256] = {0};
     int index = 0;
@@ -309,7 +476,7 @@ int GPS::bigUpdate(){
             serial.read(&buf[index], 1);
             index ++;
         }
-
+    
         if (index != 0 && buf[index-1] == '\n') {
             buf[index] = 0; // terminate the string to negate leftovers
             NMEA_Type msgType = getMsgType(buf);
@@ -348,84 +515,9 @@ int GPS::bigUpdate(){
             break; // break out once all message types have been processed
         }
 
-        if (t.read_ms() > 5000) { // something fishy is going on
+        if (t.read_ms() > 3000) { // something fishy is going on
             break;
         }
     }
     return success; // number of messages processed with result > 0 (matched some items)
-}
-
-
-
-// posECEFg GPS::getPosECEFg() { 
-
-//     posECEFg z = state.lat
-
-//     return posECEFg;
-// }
-
-posLTP GPS::getPosLTP() {
-    // state.lat = ddmm.mmmm ... state.lat/100 = dd.mmmmmm
-    // Determine lat/lon coords as North or South & East or West
-    int lat_sign;
-    int lon_sign;
-    switch(state.latNS) {
-        case('N'): {
-            lat_sign = 1;
-            break;
-        }
-        case('S'): {
-            lat_sign = -1;
-            break;
-        }
-        printf("something is super wrong... latNS = '%c'", state.latNS);
-    }
-    switch(state.lonEW) {
-        case('E'): {
-            lon_sign = 1;
-            break;
-        }
-        case('W'): {
-            lon_sign = -1;
-            break;
-        }
-        printf("something is super wrong... latEW = '%c'", state.lonEW);
-    }
-
-    float pi = 3.1415926535898;
-
-    // get longitude and latitude into radians
-    int lat_rad = dms2rad(state.lat);
-    int lon_rad = dms2rad(state.lon);
-
-
-    float a = 6378137; // earth semi-major axis        (m)
-    float b = 6356752.3142; // earth semi-minor axis   (m)
-    float f = (a-b)/a; // ellipsoid flatness 
-    float e = sqrt(f*(2-f)); // eccentricity
-    // distance from the earth's surface to the z-axis along the ellipsoid normal
-    float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
-
-    // get current position in ECEF-r coordinates
-    float h = state.alt;
-    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
-    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
-    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
-    
-    // subtract the origin ECEF-r coordinate to get relative position vector
-    float x_p = x - origin.x;
-    float y_p = y - origin.y;
-    float z_p = z - origin.z;
-
-    // rotate to allign y-axis w/ LTP
-    float x_pp = -x_p*sin(lon_rad) + y_p*cos(lon_rad);
-    float y_pp = x_p*cos(lon_rad) + y_p*sin(lon_rad);
-    float z_pp = z_p;
-
-    // final rotation to allign z_axis with up
-    pos.e = x_pp;
-    pos.n = -y_pp*sin(lat_rad) + z_pp*cos(lat_rad);
-    pos.u = y_pp*cos(lat_rad) + z_pp*sin(lat_rad);
-
-    return pos;
 }

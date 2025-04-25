@@ -64,13 +64,13 @@ typedef enum {
     notype      // 4
 } gpsDebug;
 
+const float pi = 3.1415926535898;
 
 class GPS {
     private:
         gpsState state;
         posLTP pos;
         posECEFr origin;
-        float dms2rad(float coord_dms);
         int getLatSign();
         int getLonSign();
 
@@ -80,6 +80,8 @@ class GPS {
         int update_GSV(const char* msg);
         int update_RMC(const char* msg);
         int update_VTG(const char* msg);
+
+        void updatePosLTP();
         
         // getMsgType()
         // update()
@@ -87,13 +89,19 @@ class GPS {
     public:
         GPS(PinName rx_gps, PinName tx_gps);
         gpsState getState() const;
+        posLTP getPosLTP() const;
+        posECEFr getOriginECEFr() const;
+        float lat2rad(float lat_ddmm);
+        float lon2rad(float lon_dddmm);
+        float lat2deg(float lat_ddmm);
+        float lon2deg(float lon_dddmm);
         NMEA_Type getMsgType(const char* msg); // TODO: make private and make wrapper
         int update(NMEA_Type msgType, const char* msg); // TODO: make private and make wrapper
         int bigUpdate();
         BufferedSerial serial;
         void setOriginECEFr(); // uses current position to set origin if nothing is passed
-        void setOriginECEFr(posECEFr o); // can specify origin
-        posLTP getPosLTP();
+        void setOriginECEFr(float lat_deg, float lon_deg, float h); // can specify origin
+        
 
         // functino: start (GPS LOOOP)
         // initialize buffered serial object

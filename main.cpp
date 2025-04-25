@@ -30,6 +30,7 @@ const char* getTypeStr(NMEA_Type type) { // for printing to port
     return type_str;
 }
 
+
 int main(){
     DigitalOut led_G(PA_15);
     DigitalOut led_B(PA_8);
@@ -44,6 +45,17 @@ int main(){
     t.start();
 
     GPS gps(PA_2, PA_3); // instantiate
+    gps.setOriginECEFr(47.664612, -122.303568, 60); // set lat/lon/alt origin 
+    
+    /*
+    - center of red square (between benches): 47.655821, -122.309691
+    - triple brick stack red sq: 47.656229, -122.309831
+    - Pasco launch rail: 
+    - 47.664612, -122.303568
+    */
+
+    // Thread thred; // thread to automatically set origin if needed
+    // thred.start()
 
     char buf[256] = {0};
     int index = 0;
@@ -52,14 +64,12 @@ int main(){
     ThisThread::sleep_for(1000ms); // Wait for serial port to connect
     pc.printf("\n\nStarting GPS Testing...");
 
-    ThisThread::sleep_for(1000ms); // Wait for serial port to connect
     // trying to turn on antenna status messages
-    const char* buffy1 = "$CDCMD,33,1*7C\r\n";
+    // const char* buffy1 = "$CDCMD,33,1*7C\r\n";
     // const char* buffy2 = "$PGCMD,33,1*6C"; 
-    int rslt1 = gps.serial.write(buffy1, 17);
+    // int rslt1 = gps.serial.write(buffy1, 17);
     // int rslt2 = gps.serial.write(buffy2, 15);
-    pc.printf("\nsent command to enable antenna status messages... result: %d", rslt1);
-
+    // pc.printf("\nsent command to enable antenna status messages... result: %d", rslt1);
 
     while(true){
         // // BELOW SENDS FAKE MESSAGES TO TEST UPDATES
@@ -149,11 +159,23 @@ int main(){
 
         success = gps.bigUpdate();
         gpsState state = gps.getState();
+        posLTP pos = gps.getPosLTP();
+        posECEFr origin = gps.getOriginECEFr();
+        
+        float lat_deg = gps.lat2deg(state.lat);
+        float lon_deg = gps.lon2deg(state.lon);
+        float lat_rad = gps.lat2rad(state.lat);
+        float lon_rad = gps.lon2rad(state.lon);
+
+        // pc.printf("\n-----------------------------------------------");
+        // pc.printf("\nLat (deg)\t: %.4f \nLon (deg)\t: %.4f \nLat (rad)\t: %.4f \nLon (rad)\t: %.4f", lat_deg, lon_deg, lat_rad, lon_rad);
+        // pc.printf("\n-----------------------------------------------");
+
         pc.printf("\n-----------------------------------------------");
         pc.printf("\nNumber of messages parsed with information: %d", success);
         pc.printf("\n-----------------------------------------------");
-        pc.printf("\nUTC\t\t: %.3f \nFix\t\t: %d \nHeading\t\t: %.4f \nLattitude\t: %.4f %c \nLongitude\t: %.4f %c\nAltitude\t: %f \nmode1\t\t: %c \nmode2\t\t: %d \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f", \
-                state.utc, state.fix, state.heading, state.lat, state.latNS, state.lon, state.lonEW, state.alt, state.mode1, state.mode2, state.pdop, state.hdop, state.vdop);
+        pc.printf("\nUTC\t\t: %.3f \nFix\t\t: %d \nHeading\t\t: %.3f \nLattitude\t: %.3f \tdeg \nLongitude\t: %.3f \tdeg \nAltitude\t: %.3f \tm \nposEast\t\t: %.3f \tm \nposNorth\t: %.3f \tm \nposUp\t\t: %.3f \tm \nOrigin x\t: %.3f \nOrigin y\t: %.3f \nOrigin z\t: %.3f \nmode1\t\t: %c \nmode2\t\t: %d \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f", \
+                state.utc, state.fix, state.heading, gps.lat2deg(state.lat), gps.lon2deg(state.lon), state.alt, pos.e, pos.n, pos.u, origin.x, origin.y, origin.z, state.mode1, state.mode2, state.pdop, state.hdop, state.vdop);
         pc.printf("\n===============================================\n\n");
 
 
