@@ -1,7 +1,9 @@
-#ifndef GPS_H
-#define GPS_H
-// #include "mbed.h"
+#ifndef ROGALLO_H
+#define ROGALLO_H
 #include "GPS.h"
+#include "BMP280.h"
+#include "BNO055.h"
+
 
 struct filteredState{
     double latOrigin_deg;
@@ -40,17 +42,25 @@ struct imuState{ // Do I have to define this here again??
     
 };
 
+const float pi = 3.14159265359;
+
 class ctrldRogallo {
     private:
         filteredState state;
         float getThetaErr();
         float getTargetHeading();
+        GPS gps;
+        BMP280 bmp;
+        BNO055 bno;
 
     public:
+        ctrldRogallo();
         filteredState getState() const;
         void updateState(gpsState* stateGPS, bmpState* stateBMP, imuState* stateIMU);
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
+        
+
 };
 
 
