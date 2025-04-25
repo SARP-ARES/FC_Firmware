@@ -2,7 +2,7 @@
 #include <cmath>
 #include "GPS.h"
 
-ctrldRogallo::ctrldRogallo() : GPS gps(), BMP280 bmp(PB_7, PB_8, 0xEE), BNO055 bno {}
+ctrldRogallo::ctrldRogallo() : GPS gps(PA_2, PA_3), BMP280 bmp(PB_7, PB_8, 0xEE), BNO055 bno(PB_7, PB_8, 0x51) {}
 
 // GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
 
