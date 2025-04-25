@@ -6,18 +6,16 @@
 #include <cstdint>
 
 
-
-
-
 int main() {
-
+    
     // instantiate flash chip
     flash fc(PA_7, PA_6, PA_5, PA_4); // MOSI, MISO, SCLK, CS (Flight Computer)
 
     EUSBSerial pc(true);
     DigitalOut led_B(PA_8);
-    led_B.write(0);
+    led_B.write(1);
 
+    pc.printf("CHECK");
     // make test data
     float lat = 90.0;
     float lon = 180.0;
@@ -26,7 +24,7 @@ int main() {
     int packetSize = 8;
 
     // uint32_t flashAddress = 0; // start writing at address 0
-
+    pc.printf("Starting flash chip testing...");
     while (true){
         // TESTING...
         // THIS IS IN THE LOOP ON PURPOSE TO ONLY WRITE TO THE FIRST [packetSize] BYTES
@@ -60,13 +58,14 @@ int main() {
 
 
         // OR I CAN JUST USE WRITENUM
+        pc.printf("\n==================================");
         flashAddress = fc.writeNum(flashAddress, lat); // bytes 0-3
         flashAddress = fc.writeNum(flashAddress, lon); // bytes 4-7
         
 
         uint8_t buf[packetSize];
         fc.read(0, buf, packetSize);
-        pc.printf((const char*)buf);
+        pc.printf("\nData: %s", (const char*)buf);
         ThisThread::sleep_for(2s);
         // fc.write(flashAddress, packet_floats, pSize_floats)
 
