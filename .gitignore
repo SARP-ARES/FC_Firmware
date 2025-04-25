@@ -5,3 +5,5 @@ projectfiles
 mbed-os
 BUILD
 
+.DS_Store
+BLACKPILL_Custom_Target
