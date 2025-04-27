@@ -89,7 +89,16 @@ void ctrldRogallo::updateFlightPacket(){
  * @return - the fuzed altitude of the two sensors
 **/ 
 float ctrldRogallo::getFuzedAlt(){
-    float fuzedAlt = bmp_state.altitude_m*(1-alphaAlt) + state_gps.alt*alphaAlt;
+    float fuzedAlt; 
+    if(isnan(state_gps.alt) && isnan(bmp_state.altitude_m)){
+        fuzedAlt = -1; 
+    } else if(isnan(state_gps.alt)){
+        fuzedAlt = bmp_state.altitude_m;
+    }else if(isnan(bmp_state.altitude_m)){
+        fuzedAlt = state_gps.alt; 
+    } else {
+        fuzedAlt = bmp_state.altitude_m*(1-alphaAlt) + state_gps.alt*alphaAlt;
+    }
     return fuzedAlt;
 }
 
@@ -104,6 +113,10 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  * @return 0 if non apogee 1 if apogee
 **/ 
 int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
+    if(isnan(prevAlt) || isnan(currAlt)){
+        return 0; 
+    }
+
     double interval = .1; 
     double apogeeVelo = -1.5;
     double velo = (currAlt - prevAlt)/interval;
