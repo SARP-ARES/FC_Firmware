@@ -17,7 +17,7 @@
  * @param csPin - Chip Select pin
  */
 flash::flash(PinName mosi, PinName miso, PinName sclk, PinName csPin)
-    : _spi(mosi, miso, sclk), _cs(csPin, 1) {
+    : _spi(mosi, miso, sclk), _cs(csPin, 1), pc(true) {
     _spi.format(8, 0);           // 8-bit frame, mode 0
     _spi.frequency(1000000);     // 1 MHz SPI clock
 }
@@ -44,7 +44,7 @@ void flash::csHigh() {
  * @param buffer - Pointer to data buffer
  * @param length - Number of bytes to write
  */
-void flash::write(uint32_t address, const uint8_t *buffer, size_t length) {
+uint32_t flash::write(uint32_t address, const uint8_t *buffer, size_t length) {
     enableWrite(); // Required before any write
 
     uint8_t cmd[4];
@@ -59,6 +59,7 @@ void flash::write(uint32_t address, const uint8_t *buffer, size_t length) {
     csHigh();
 
     wait_us(5000); // Allow time for write cycle
+    return address + length;
 }
 
 /**
@@ -186,6 +187,43 @@ float flash::readNum(uint32_t address) {
     return bytes2float(rData);
 }
 
+// Write entire data packet
+uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
+    return write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
+}
+// Read packet
+void flash::readPacket(uint32_t address, FlightPacket& pkt) {
+    read(address, reinterpret_cast<uint8_t*>(&pkt), sizeof(FlightPacket));
+}
+
+// UNFINISHED
+void flash::printCSVHeader() {
+    pc.printf("timestamp_ms,latitude,longitude,altitude,groundspeed,temp_c,status,id\n");
+}
+
+// UNFINISHED
+void flash::printPacketAsCSV(const FlightPacket& pkt) {
+    pc.printf("%lu,%.7f,%.7f,%.2f,%.2f,%d,%u,%s\n",
+        pkt.timestamp_utc,
+        pkt.latitude_deg,
+        pkt.longitude_deg,
+        pkt.altitude_m,
+        pkt.groundspeed_m_s,
+        pkt.temp_c,
+        pkt.fsm_mode,
+        pkt.id);
+}
+
+// UNFINISHED
+void flash::dumpAllPackets(flash& fc, uint32_t numPackets) {
+    FlightPacket pkt;
+    printCSVHeader();
+    for (uint32_t i = 0; i < numPackets; ++i) {
+        fc.readPacket(i * sizeof(FlightPacket), pkt);
+        printPacketAsCSV(pkt);
+    }
+}
+
 /**
  * Converts a float value into a byte array (little endian).
  * @param ftoa_bytes_temp - Output byte array
@@ -213,3 +251,11 @@ float bytes2float(uint8_t *ftoa_bytes_temp) {
     memcpy(conv.b, ftoa_bytes_temp, 4);
     return conv.f;
 }
+
+/* Implement this? (written by perplexity)...
+bool verifyWrite(flash& fc, uint32_t addr, const FlightData& expected) {
+    FlightData actual;
+    fc.readPacket(addr, actual);
+    return memcmp(&expected, &actual, sizeof(FlightData)) == 0;
+}
+*/

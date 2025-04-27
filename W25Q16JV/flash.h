@@ -1,7 +1,12 @@
 #ifndef FLASH_H
 #define FLASH_H
-
+#include "flight_packet.h" // contains FlightData struct definition
 #include "mbed.h"
+#include "EUSBSerial.h"
+
+const uint32_t STORAGE_BYTES = 2097152;
+const uint32_t PACKET_SIZE = sizeof(FlightPacket);
+const uint32_t MAX_PACKETS = floor(STORAGE_BYTES / PACKET_SIZE);
 
 class flash {
 public:
@@ -12,11 +17,18 @@ public:
     void read(uint32_t address, uint8_t *buffer, size_t length);
     uint8_t readByte(uint32_t address);
     float readNum(uint32_t address);
+    void readPacket(uint32_t address, FlightPacket& pkt);
+
+    // Read data to CSV
+    void printPacketAsCSV(const FlightPacket& pkt);
+    void dumpAllPackets(flash& fc, uint32_t numPackets);
 
     // Write operations
-    void write(uint32_t address, const uint8_t *buffer, size_t length);
+    uint32_t write(uint32_t address, const uint8_t *buffer, size_t length);
     void writeByte(uint32_t address, uint8_t data);
     uint32_t writeNum(uint32_t address, float data);
+    uint32_t writePacket(uint32_t address, const FlightPacket& pkt);
+    
 
     // Erase operations
     void eraseSector(uint32_t address);
@@ -29,6 +41,10 @@ public:
 private:
     SPI _spi;       // SPI communication interface
     DigitalOut _cs; // Chip Select (CS) pin
+    EUSBSerial pc;
+
+    // to help read data to CSV
+    void printCSVHeader();
 
     // Helper functions for SPI communication
     void csLow();
