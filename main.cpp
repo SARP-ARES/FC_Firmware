@@ -3,8 +3,8 @@
 #include "mbed.h"
 #include "EUSBSerial.h"
 #include "flash.h"
+#include "flight_packet.h"
 #include <cstdint>
-
 
 int main() {
     
@@ -13,69 +13,74 @@ int main() {
 
     EUSBSerial pc(true);
     DigitalOut led_B(PA_8);
-    led_B.write(1);
+    led_B.write(0);
 
     pc.printf("CHECK");
     // make test data
     float lat = 90.0;
     float lon = 180.0;
-    int pSize_float_bytes = 8; // 2 floats = 8 bytes
+    // int pSize_float_bytes = 8; // 2 floats = 8 bytes
 
-    int packetSize = 8;
-
+    FlightPacket packet;
+    int packetSize = sizeof(FlightPacket);
+    uint32_t readAddress = 0;
     // uint32_t flashAddress = 0; // start writing at address 0
     pc.printf("Starting flash chip testing...");
     while (true){
         // TESTING...
         // THIS IS IN THE LOOP ON PURPOSE TO ONLY WRITE TO THE FIRST [packetSize] BYTES
         uint32_t flashAddress = 0; // start writing at address 0
-
-        // // initialize packet buffer
-        // uint8_t dataLog[packetSize];
-
-        // // initialize arrays to store floats as bytes
-        // uint8_t lat_bytes[4];
-        // uint8_t lon_bytes[4];
-
-        // // turn all float data into bytes
-        // float2Byte(lat_bytes, lat);
-        // float2Byte(lon_bytes, lon);
-
-        // // store all bytes in dataLog
-        // int index = 0;
-        // for (int i=0; i<4; i++){
-        //     dataLog[index] = lat_bytes[i];
-        //     index++;
-        // }
-        // for (int i=0; i<4; i++){
-        //     dataLog[index] = lon_bytes[i];
-        //     index++;
-        // }
-
-        // // write datalog and bump flashAddress to the next empty address
-        // fc.write(flashAddress, dataLog, packetSize);
-        // flashAddress = flashAddress + packetSize;
+        fc.eraseSector(flashAddress); // to not overwrite stuff
 
 
-        // OR I CAN JUST USE WRITENUM
+        /* FLIGHT PACKET STRUCT FOR REFERENCE
+        struct FlightPacket {
+        uint32_t timestamp_utc;     // 4 bytes
+        uint8_t fsm_mode;           // 1
+        float heading_deg;          // 4
+        float target_heading_deg;   // 4
+        float groundspeed_m_s;      // 4
+        float v_speed_m_s;          // 4
+        float latitude_deg;         // 4
+        float longitude_deg;        // 4
+        float altitude_m;           // 4
+        float pos_east_m;           // 4
+        float pos_north_m;          // 4
+        float pos_up_m;             // 4
+        float temp_c;               // 4
+        float pressure_pa;          // 4
+        float delta1;               // 4
+        float delta_1_m;            // 4
+        float delta2;               // 4
+        float delta2_m;             // 4
+        float delta_a;              // 4
+        float delta_s;              // 4
+        float pwm_motor1;           // 4
+        float pwm_motor2;           // 4
+        float fc_cmd;               // 4
+        char id[8];                 // 8 (
+        */
+
+        // store data in the packet struct
+        packet.timestamp_utc = 0;
+        packet.fc_cmd = 0.8;
+        packet.heading_deg = 100;
+        packet.latitude_deg = 47.0;
+        packet.longitude_deg = -122.0;
+        packet.fsm_mode = 3;
+        // packet.pressure_pa = NAN;
+
+        // write the packet to the flash chip
+        flashAddress = fc.writePacket(flashAddress, packet);
+
+        // initialize struct and read one packet from flash chip
+        FlightPacket packet_read; // buffer
+        fc.readPacket(readAddress, packet_read);
+
         pc.printf("\n==================================");
-        flashAddress = fc.writeNum(flashAddress, lat); // bytes 0-3
-        flashAddress = fc.writeNum(flashAddress, lon); // bytes 4-7
-        
-
-        uint8_t buf[packetSize];
-        fc.read(0, buf, packetSize);
-        pc.printf("\nData: %s", (const char*)buf);
+        pc.printf("\nFSM Mode:\t%d \nLat:\t\t%f \nLon:\t\t%f \nPressure:\t%f", \
+                    packet_read.fsm_mode, packet_read.latitude_deg, packet_read.longitude_deg, packet.pressure_pa);
         ThisThread::sleep_for(2s);
-        // fc.write(flashAddress, packet_floats, pSize_floats)
-
-        // flashAddress = flashAddress + pSize_floats // step to the address after the packet
-
-        // fc.write(packet_ints)
-        // flashAddress = flashAddress + pSize_ints
-
-        // fc.write(packet_chars)
-        // flashAddress = flashAddress + pSize_chars
 
     }
 
