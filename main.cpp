@@ -15,16 +15,9 @@ int main() {
     DigitalOut led_B(PA_8);
     led_B.write(1);
 
-    pc.printf("CHECK");
-    // make test data
-    float lat = 90.0;
-    float lon = 180.0;
-    // int pSize_float_bytes = 8; // 2 floats = 8 bytes
-
     FlightPacket packet;
     int packetSize = sizeof(FlightPacket);
     uint32_t readAddress = 0;
-    // uint32_t flashAddress = 0; // start writing at address 0
     pc.printf("Starting flash chip testing...");
     while (true){
         // TESTING...
