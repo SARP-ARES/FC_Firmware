@@ -1,6 +1,7 @@
 // Testing data logging with flash chip
 #include "ThisThread.h"
 #include "mbed.h"
+#include "BMP280.h"
 #include "EUSBSerial.h"
 #include "flash.h"
 #include "flight_packet.h"

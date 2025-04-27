@@ -39,15 +39,8 @@
         ],
         "macros_add": [
             "STM32F401xC",
-            "HSE_VALUE=25000000U"
+            "HSE_VALUE=16000000U"
         ],
-        "config": {
-            "clock_source_usb": {
-                "help": "As 48 Mhz clock is configured for USB, SYSCLK has to be reduced from 100 to 96 MHz",
-                "value": "0",
-                "macro_name": "CLOCK_SOURCE_USB"
-            }
-        },
         "overrides": {
             "lse_available": 1
         },
