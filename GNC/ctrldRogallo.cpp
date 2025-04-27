@@ -2,12 +2,12 @@
 #include <cmath>
 #include "GPS.h"
 
-ctrldRogallo::ctrldRogallo() : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4); {
-    apogeeDetection = false;
+ctrldRogallo::ctrldRogallo() : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4) {
+    apogeeDetected = false;
     apogeeCounter = 0;
-    fsm_mode = 0; // idle
-}
-
+    alphaAlt = .05; // used to determine complimentary filter preference  
+    mode = FSM_IDLE; // idle
+} 
 
 /*  Python Code
 def getTargetHeading(e, n):
@@ -25,13 +25,13 @@ def getThetaErr(actualHeading_deg, targetHeading_deg):
 */
 
 float ctrldRogallo::getTargetHeading(){
-    float targetHeading_rad = atan2(state.posEast, state.posNorth) + pi;
+    float targetHeading_rad = atan2(state.pos_east_m, state.pos_north_m) + pi;
     float targetHeading_deg = targetHeading_rad * 180 / pi;
     return targetHeading_deg;
 }
 
 float ctrldRogallo::getThetaErr(){
-    float thetaErr_deg = this->state.actHeading - this->state.targetHeading;
+    float thetaErr_deg = this->state.actHeading - this->state.actTarget;
     if (thetaErr_deg > 180){
         // if its greater than 180 deg, add 360 deg
         thetaErr_deg = thetaErr_deg - 360;
@@ -45,10 +45,20 @@ float ctrldRogallo::getThetaErr(){
 
 
 void ctrldRogallo::updateFlightPacket(){
+
+    
+
+    state_gps = gps.getState();
+    bmp_state = bmp.getState(); 
+    posLTP ltp = gps.getPosLTP();
+
+    double prevAlt = bmp_state.altitude_m;
+    bmp.updateValues();
+    gps.bigUpdate(); 
+
+    
     // complementary kalman filter here
     // update actual and target heading
-    gpsState state_gps = gps.getState();
-    posLTP ltp = gps.getPosLTP();
 
     state.timestamp_utc = state_gps.utc;
     state.fsm_mode = this->mode;
@@ -63,17 +73,43 @@ void ctrldRogallo::updateFlightPacket(){
     state.pos_east_m = ltp.e;
     state.pos_north_m = ltp.n;
     state.pos_up_m = ltp.u;
-    state.
-
-    state.temp_c = bmp.getTemperatureC();
-    state.pressure_pa = bmp.getPressurePa();
-
-
-
-    
-
+    state.temp_c = bmp_state.temp_c;
+    state.pressure_pa = bmp_state.press_pa;
+    apogeeCounter += apogeeDetection(prevAlt, bmp_state.altitude_m);
+    if(apogeeCounter >= 20){
+        apogeeDetected = true; 
+    }
     
     this->state.actHeading = 0;
-    this->state.targetHeading = 0;
+    this->state.actTarget = 0;
+}
+
+/**
+ * @Brief fuzes the altitude of the GPS and BMP reading using a complimentary filter
+ * @return - the fuzed altitude of the two sensors
+**/ 
+float ctrldRogallo::getFuzedAlt(){
+    float fuzedAlt = bmp_state.altitude_m*(1-alphaAlt) + state_gps.alt*alphaAlt;
+    return fuzedAlt;
+}
+
+void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
+    alphaAlt = newAlphaAlt;
+}
+
+/** 
+ * @breif - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
+ * @param prevAlt - previous altitude 
+ * @param currAlt - current altitude
+ * @return 0 if non apogee 1 if apogee
+**/ 
+int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
+    double interval = .1; 
+    double apogeeVelo = -1.5;
+    double velo = (currAlt - prevAlt)/interval;
+    if(velo <= apogeeVelo){
+        return 1;
+    }
+    return 0; 
 }
 

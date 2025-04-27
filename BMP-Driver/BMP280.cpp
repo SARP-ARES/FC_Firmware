@@ -16,6 +16,10 @@ BMP280::BMP280(PinName SDA, PinName SCL, char addr){
     BMP280::addr = addr; 
 }
 
+BMP280_Values BMP280::getState() const{
+    return values;
+}
+
 /* Destructor
  * Deletes I2C if created in object
  */ 
@@ -200,4 +204,25 @@ double BMP280::getAltitude(){
 double BMP280::getAltitudeM(){
     return values.altitude_m; 
 }
+
+// Filtered result of hypo 1 and 2
+void BMP280::updateAltitudeM(){
+    double univesalGasConst = 8.31432;
+    double staticPress = 101325;
+    double sealvlTemp_K = 58 + 273.15; 
+    double tempLapseRate = -.0065;
+    double gravity = 9.80665;
+    double molarMassAir = .0289655;
+    double h2 = (sealvlTemp_K/tempLapseRate) \
+                        *(pow((values.press_pa/staticPress), \
+                            -((univesalGasConst*tempLapseRate)/(gravity*molarMassAir)))-1.0); 
+
+    double pressRatioTerm = pow((101325/values.press_pa),(1/5.257)) - 1.0;
+    double temp_k = values.temp_c +273.15;
+    double h1 = (pressRatioTerm*temp_k)/.0065; 
+
+    values.altitude_m = .5*h1 + .5*h2;                    
+}
+
+
 

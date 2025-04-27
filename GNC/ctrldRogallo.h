@@ -39,9 +39,11 @@ typedef enum {
     
 // };
 
-const float pi = 3.14159265359;
 
 class ctrldRogallo {
+    
+const float pi = 3.14159265359;
+
     private:
         float getThetaErr();
         float getTargetHeading();
@@ -51,17 +53,23 @@ class ctrldRogallo {
         flash fc;
         FlightPacket state;
         ModeFSM mode;
-        bool apogeeDetection;
+        bool apogeeDetected;
         int apogeeCounter;
+        float alphaAlt;
+        BMP280_Values bmp_state;
+        gpsState state_gps;
+        posLTP ltp;
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt();
+        void setAlphaAlt(float newAlphaAlt);
+        void updateApogeeDetection();
 
     public:
         ctrldRogallo();
         void updateFlightPacket();
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
-
+        int apogeeDetection(double prevAlt, double currAlt);
 };
 
 
