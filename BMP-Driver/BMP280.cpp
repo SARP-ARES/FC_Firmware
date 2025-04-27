@@ -195,7 +195,7 @@ void BMP280::updateAltitudeH1(){
 void BMP280::updateAltitudeH2(){
     double univesalGasConst = 8.31432;
     double staticPress = 101325;
-    double sealvlTemp_K = 58 + 273.15; 
+    double sealvlTemp_K = 15 + 273.15; 
     double tempLapseRate = -.0065;
     double gravity = 9.80665;
     double molarMassAir = .0289655;

@@ -41,7 +41,7 @@ int main() {
 
     DigitalOut led_G(PA_15);
     DigitalOut led_B(PA_8);
-    led_B.write(0);
+    led_B.write(1);
 
     //EUSBSerial pc(true); //instantiate ESUBSerial 
     BMP280 bmp280(PB_7,PB_8,0xEE); //instantiate 
