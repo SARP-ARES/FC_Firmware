@@ -9,7 +9,7 @@ struct FlightPacket {
     uint8_t gps_fix;            // 1
     float heading_deg;          // 4
     float target_heading_deg;   // 4
-    float groundspeed_m_s;      // 4
+    float h_speed_m_s;      // 4
     float v_speed_m_s;          // 4
     float latitude_deg;         // 4
     float longitude_deg;        // 4
