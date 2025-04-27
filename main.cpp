@@ -13,7 +13,7 @@ int main() {
 
     EUSBSerial pc(true);
     DigitalOut led_B(PA_8);
-    led_B.write(0);
+    led_B.write(1);
 
     pc.printf("CHECK");
     // make test data
