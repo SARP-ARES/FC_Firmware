@@ -2,13 +2,12 @@
 #include <cmath>
 #include "GPS.h"
 
-ctrldRogallo::ctrldRogallo() : GPS gps(PA_2, PA_3), BMP280 bmp(PB_7, PB_8, 0xEE), BNO055 bno(PB_7, PB_8, 0x51) {}
-
-// GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
-
-filteredState ctrldRogallo::getState() const{
-    return this->state;
+ctrldRogallo::ctrldRogallo() : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4); {
+    apogeeDetection = false;
+    apogeeCounter = 0;
+    fsm_mode = 0; // idle
 }
+
 
 /*  Python Code
 def getTargetHeading(e, n):
@@ -45,11 +44,33 @@ float ctrldRogallo::getThetaErr(){
 
 
 
-void ctrldRogallo::updateState(gpsState* stateGPS, bmpState* stateBMP, imuState* stateIMU){
+void ctrldRogallo::updateFlightPacket(){
     // complementary kalman filter here
-
-    // if data (ex. gps lat lon) is the same, pass in a null pointer
     // update actual and target heading
+    gpsState state_gps = gps.getState();
+    posLTP ltp = gps.getPosLTP();
+
+    state.timestamp_utc = state_gps.utc;
+    state.fsm_mode = this->mode;
+    state.gps_fix = state_gps.fix;
+    state.heading_deg = state_gps.heading;
+    state.target_heading_deg = getTargetHeading();
+    // state.groundspeed_m_s = getVSpeed();
+    // state.h_speed_m_s = getHSpeed();
+    state.latitude_deg = state_gps.lat;
+    state.longitude_deg = state_gps.lon;
+    state.altitude_m = getFuzedAlt();
+    state.pos_east_m = ltp.e;
+    state.pos_north_m = ltp.n;
+    state.pos_up_m = ltp.u;
+    state.
+
+    state.temp_c = bmp.getTemperatureC();
+    state.pressure_pa = bmp.getPressurePa();
+
+
+
+    
 
     
     this->state.actHeading = 0;
