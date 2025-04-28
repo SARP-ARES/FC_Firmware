@@ -187,10 +187,11 @@ float flash::readNum(uint32_t address) {
     return bytes2float(rData);
 }
 
-// Write entire data packet
+// Write entire data packet (struct)
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     return write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
 }
+
 // Read packet
 void flash::readPacket(uint32_t address, FlightPacket& pkt) {
     read(address, reinterpret_cast<uint8_t*>(&pkt), sizeof(FlightPacket));
@@ -208,10 +209,10 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.latitude_deg,
         pkt.longitude_deg,
         pkt.altitude_m,
-        pkt.groundspeed_m_s,
+        pkt.h_speed_m_s,
         pkt.temp_c,
         pkt.fsm_mode,
-        pkt.id);
+        pkt.flight_id);
 }
 
 // UNFINISHED
