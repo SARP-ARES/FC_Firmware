@@ -2,6 +2,10 @@
 #include <cmath>
 #include "GPS.h"
 
+
+/**
+ * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
+ */ 
 ctrldRogallo::ctrldRogallo() : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4) {
     apogeeDetected = false;
     apogeeCounter = 0;
@@ -24,12 +28,20 @@ def getThetaErr(actualHeading_deg, targetHeading_deg):
     return error_deg
 */
 
+/**
+ * @brief calculates target heading to point towards the origin in local tangent plane coords
+ * @return target heading 
+ */ 
 float ctrldRogallo::getTargetHeading(){
     float targetHeading_rad = atan2(state.pos_east_m, state.pos_north_m) + pi;
     float targetHeading_deg = targetHeading_rad * 180 / pi;
     return targetHeading_deg;
 }
 
+/**
+ * @brief calculates heading error to feed into controller
+ * @return heading error (current - target)
+ */ 
 float ctrldRogallo::getThetaErr(){
     float thetaErr_deg = this->state.heading_deg - this->state.target_heading_deg;
     if (thetaErr_deg > 180){
@@ -43,10 +55,11 @@ float ctrldRogallo::getThetaErr(){
 }
 
 
-
+/**
+ * @brief updates the state of the system to log as a packet of data
+ */ 
 void ctrldRogallo::updateFlightPacket(){
 
-    
     gps_state = gps.getState();
     bmp_state = bmp.getState(); 
     posLTP ltp = gps.getPosLTP();
@@ -89,7 +102,7 @@ void ctrldRogallo::updateFlightPacket(){
 /**
  * @Brief fuzes the altitude of the GPS and BMP reading using a complimentary filter
  * @return - the fuzed altitude of the two sensors
-**/ 
+ */ 
 float ctrldRogallo::getFuzedAlt(){
     float fuzedAlt = NAN; 
     if(!isnan(gps_state.alt) && !isnan(bmp_state.altitude_m)){
@@ -113,7 +126,7 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  * @param prevAlt - previous altitude 
  * @param currAlt - current altitude
  * @return 0 if non apogee 1 if apogee
-**/ 
+ */ 
 int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     if(isnan(prevAlt) || isnan(currAlt)){
         return 0; 
