@@ -144,7 +144,7 @@ int GPS::update_GGA(const char* msg){ // TODO: NEEDS TESTING
     char latNS = 'O';
     float lon = NAN;
     char lonEW = 'O';
-    int fix = -1;
+    int fix = 404;
     int nsats = -1;
     float alt = NAN;
     float hdop = NAN;
