@@ -39,8 +39,6 @@ typedef enum {
     
 // };
 
-const float pi = 3.14159265359;
-
 class ctrldRogallo {
 
     private:
