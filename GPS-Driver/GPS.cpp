@@ -144,7 +144,7 @@ int GPS::update_GGA(const char* msg){ // TODO: NEEDS TESTING
     char latNS = 'O';
     float lon = NAN;
     char lonEW = 'O';
-    int fix = -1;
+    int fix = 404;
     int nsats = -1;
     float alt = NAN;
     float hdop = NAN;
@@ -415,15 +415,9 @@ void GPS::setOriginECEFr(float lat_deg, float lon_deg, float h) { // uses curren
 
 void GPS::updatePosLTP() {
     // state.lat = ddmm.mmmm ... state.lat/100 = dd.mmmmmm
-    // North = positive 'n', South = negative 'n'
-    // East = positive 'e', West = negative 'e'
-    // Up = positive 'u', Down = negative 'u' 
-
-    // initialize as NANs before updating
-    pos.e = NAN;
-    pos.n = NAN;
-    pos.u = NAN;
-
+    // North = positive, South = negative
+    // East = positive, West = negative 
+    
     // get longitude and latitude into radians
     float lat_rad = lat2rad(state.lat);
     float lon_rad = lon2rad(state.lon);
