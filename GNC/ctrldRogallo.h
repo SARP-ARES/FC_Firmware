@@ -5,6 +5,7 @@
 #include "BNO055.h"
 #include "flash.h"
 #include "flight_packet.h"
+#include <cstdint>
 
 // Finite State Machine Modes
 typedef enum {
@@ -47,7 +48,6 @@ class ctrldRogallo {
         GPS gps;
         BMP280 bmp;
         BNO055 bno;
-        flash fc;
         FlightPacket state;
         ModeFSM mode;
         bool apogeeDetected;
@@ -56,17 +56,22 @@ class ctrldRogallo {
         BMP280_Values bmp_state;
         gpsState gps_state;
         posLTP ltp;
+        
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt();
         void setAlphaAlt(float newAlphaAlt);
         void updateApogeeDetection();
 
     public:
+        flash fc;
+        uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();
         void updateFlightPacket();
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
         int apogeeDetection(double prevAlt, double currAlt);
+        void logData();
+        void logDataTEST();
 };
 
 

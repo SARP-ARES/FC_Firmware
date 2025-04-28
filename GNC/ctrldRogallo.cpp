@@ -1,16 +1,20 @@
 #include "ctrldRogallo.h"
 #include <cmath>
 #include "GPS.h"
+#include "BMP280.h"
+#include "BNO055.h"
 
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
-ctrldRogallo::ctrldRogallo() : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4) {
+ctrldRogallo::ctrldRogallo() 
+    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4) {
     apogeeDetected = false;
     apogeeCounter = 0;
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
-    mode = FSM_IDLE; // idle
+    mode = FSM_IDLE; // initialize in idle mode
+    currentFlashAddress = 0; // start writing to address zero TODO: maybe pass as param?
 } 
 
 /*  Python Code
@@ -66,11 +70,8 @@ void ctrldRogallo::updateFlightPacket(){
 
     double prevAlt = bmp_state.altitude_m;
     bmp.updateValues();
-    gps.bigUpdate(); 
+    int success = gps.bigUpdate(); 
 
-    
-    // complementary kalman filter here
-    // update actual and target heading
 
     state.timestamp_utc = gps_state.utc;
     state.fsm_mode = this->mode;
@@ -91,7 +92,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.pressure_pa = bmp_state.press_pa;
 
 
-    apogeeCounter += apogeeDetection(prevAlt, bmp_state.altitude_m);
+    apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
     if(apogeeCounter >= 20){
         apogeeDetected = true; 
     }
@@ -139,5 +140,20 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
         return 1;
     }
     return 0; 
+}
+
+/**
+ * @brief logs current state as a flight packet to the flash chip
+ */
+void ctrldRogallo::logData() {
+    currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+}
+
+/**
+ * @brief logs current state as a flight packet to address 0 only
+ */
+void ctrldRogallo::logDataTEST() {
+    currentFlashAddress = 0;
+    currentFlashAddress = fc.writePacket(currentFlashAddress, state);
 }
 
