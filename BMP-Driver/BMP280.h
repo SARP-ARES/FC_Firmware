@@ -58,6 +58,8 @@ class BMP280 {
         double getAltitude(); // Returns the current altitude in Ft
         double getAltitudeM(); // Returns the current altitude in m
         int updateValues(); // updates the current pressure and temperature values 
+        void updateAltitudeM(); // updates altitude using hypsometric h1
+        BMP280_Values getState() const;
 
         int start(); // Awakens the BMP from slumber 
         int sleep(); // Sleeps the BMP 
