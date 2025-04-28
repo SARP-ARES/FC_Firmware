@@ -5,7 +5,7 @@
 ctrldRogallo::ctrldRogallo() : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4) {
     apogeeDetected = false;
     apogeeCounter = 0;
-    alphaAlt = .05; // used to determine complimentary filter preference  
+    alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // idle
 } 
 
@@ -31,7 +31,7 @@ float ctrldRogallo::getTargetHeading(){
 }
 
 float ctrldRogallo::getThetaErr(){
-    float thetaErr_deg = this->state.actHeading - this->state.actTarget;
+    float thetaErr_deg = this->state.heading_deg - this->state.target_heading_deg;
     if (thetaErr_deg > 180){
         // if its greater than 180 deg, add 360 deg
         thetaErr_deg = thetaErr_deg - 360;
@@ -47,8 +47,7 @@ float ctrldRogallo::getThetaErr(){
 void ctrldRogallo::updateFlightPacket(){
 
     
-
-    state_gps = gps.getState();
+    gps_state = gps.getState();
     bmp_state = bmp.getState(); 
     posLTP ltp = gps.getPosLTP();
 
@@ -60,28 +59,31 @@ void ctrldRogallo::updateFlightPacket(){
     // complementary kalman filter here
     // update actual and target heading
 
-    state.timestamp_utc = state_gps.utc;
+    state.timestamp_utc = gps_state.utc;
     state.fsm_mode = this->mode;
-    state.gps_fix = state_gps.fix;
-    state.heading_deg = state_gps.heading;
+    state.gps_fix = gps_state.fix;
+    state.heading_deg = gps_state.heading;
     state.target_heading_deg = getTargetHeading();
     // state.groundspeed_m_s = getVSpeed();
     // state.h_speed_m_s = getHSpeed();
-    state.latitude_deg = state_gps.lat;
-    state.longitude_deg = state_gps.lon;
+    state.latitude_deg = gps_state.lat;
+    state.longitude_deg = gps_state.lon;
+    state.altitude_gps_m = gps_state.alt;
+    state.altitude_bmp_m = bmp_state.altitude_m;
     state.altitude_m = getFuzedAlt();
     state.pos_east_m = ltp.e;
     state.pos_north_m = ltp.n;
     state.pos_up_m = ltp.u;
     state.temp_c = bmp_state.temp_c;
     state.pressure_pa = bmp_state.press_pa;
+
+
     apogeeCounter += apogeeDetection(prevAlt, bmp_state.altitude_m);
     if(apogeeCounter >= 20){
         apogeeDetected = true; 
     }
     
-    this->state.actHeading = 0;
-    this->state.actTarget = 0;
+
 }
 
 /**
@@ -89,15 +91,15 @@ void ctrldRogallo::updateFlightPacket(){
  * @return - the fuzed altitude of the two sensors
 **/ 
 float ctrldRogallo::getFuzedAlt(){
-    float fuzedAlt; 
-    if(isnan(state_gps.alt) && isnan(bmp_state.altitude_m)){
-        fuzedAlt = -1; 
-    } else if(isnan(state_gps.alt)){
+    float fuzedAlt = NAN; 
+    if(!isnan(gps_state.alt) && !isnan(bmp_state.altitude_m)){
+        fuzedAlt = bmp_state.altitude_m*(1-alphaAlt) + gps_state.alt*alphaAlt;
+    } else if(isnan(gps_state.alt)){
         fuzedAlt = bmp_state.altitude_m;
     }else if(isnan(bmp_state.altitude_m)){
-        fuzedAlt = state_gps.alt; 
+        fuzedAlt = gps_state.alt; 
     } else {
-        fuzedAlt = bmp_state.altitude_m*(1-alphaAlt) + state_gps.alt*alphaAlt;
+        fuzedAlt = NAN; 
     }
     return fuzedAlt;
 }

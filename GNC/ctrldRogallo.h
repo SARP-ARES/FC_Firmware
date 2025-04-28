@@ -39,10 +39,9 @@ typedef enum {
     
 // };
 
+const float pi = 3.14159265359;
 
 class ctrldRogallo {
-    
-const float pi = 3.14159265359;
 
     private:
         float getThetaErr();
@@ -57,7 +56,7 @@ const float pi = 3.14159265359;
         int apogeeCounter;
         float alphaAlt;
         BMP280_Values bmp_state;
-        gpsState state_gps;
+        gpsState gps_state;
         posLTP ltp;
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt();
