@@ -13,6 +13,8 @@ struct FlightPacket {
     float v_speed_m_s;          // 4
     float latitude_deg;         // 4
     float longitude_deg;        // 4
+    float altitude_gps_m;       // 4
+    float altitude_bmp_m;       // 4
     float altitude_m;           // 4
     float pos_east_m;           // 4
     float pos_north_m;          // 4
@@ -28,7 +30,8 @@ struct FlightPacket {
     float pwm_motor1;           // 4
     float pwm_motor2;           // 4
     float fc_cmd;               // 4
-    char id[8];                 // 8 (null-terminated string, e.g. "FLIGHT1\0")
+    bool apogeeDetected;        // 1
+    char flight_id[8];          // 8 (null-terminated string, e.g. "FLIGHT1\0")
     // Add more fields as needed
 };
 #pragma pack(pop)
