@@ -48,6 +48,7 @@ struct offset {
     uint16_t offsetZ;
 };
 
+
 class BNO055 {
 public:
     /**

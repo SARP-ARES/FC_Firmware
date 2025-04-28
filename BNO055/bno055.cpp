@@ -2,7 +2,10 @@
 #include "BNO055.h"
 #include "bno055_const.h"
 #include <map>
-#include "func.h"
+
+void wait (int time_ms){
+    ThisThread::sleep_for(time_ms);
+}
 
 /**
  * @brief Constructor that owns and creates an I2C object internally.
