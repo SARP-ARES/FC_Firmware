@@ -14,6 +14,8 @@ struct FlightPacket {
     float latitude_deg;         // 4
     float longitude_deg;        // 4
     float altitude_m;           // 4
+    float altitude_gps_m;      // 4
+    float altitude_bmp_m;       // 4
     float pos_east_m;           // 4
     float pos_north_m;          // 4
     float pos_up_m;             // 4
