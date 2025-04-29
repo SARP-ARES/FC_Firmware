@@ -1,4 +1,5 @@
 #include "mbed.h"
+#include <string>
 #ifndef FLIGHT_PACKET_H
 #define FLIGHT_PACKET_H
 
@@ -35,6 +36,7 @@ struct FlightPacket {
     float yaw;                  // 4
     float pitch;                // 4 
     float roll;                 // 4
+    string compassDirecton;
     // Add more fields as needed
 };
 #pragma pack(pop)

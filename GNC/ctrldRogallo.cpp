@@ -3,6 +3,7 @@
 #include "GPS.h"
 #include "BMP280.h"
 #include "BNO055.h"
+#include <string>
 
 
 /**
@@ -105,6 +106,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.yaw = bno.getGyroscope().x;
     state.pitch = bno.getGyroscope().y;
     state.roll = bno.getGyroscope().z;
+    state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
@@ -157,6 +159,35 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     }
     return 0; 
 }
+
+string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){
+    string direction;
+    float heading = atan2(rollMag, pitchMag) * 180/pi;
+    if(heading < 0) heading += 360; 
+    if(heading > 360) heading -= 360;
+    if(heading > 360-22.5 || heading <= 22.5 ) {
+        return "N";
+    } 
+    if(heading < 67.5){
+        return "NE";
+    }
+    if(heading < 117.5){
+        return "E";
+    }
+    if(heading < 167.5 ){
+        return "SE";
+    }
+    if(heading < 217.5){
+        return "S";
+    }
+    if(heading < 267.5){
+        return "SW";
+    }
+    if(heading < 317.5){
+        return "W";
+    }
+    return "NW";
+}   
 
 // /**
 //  * @brief logs current state as a flight packet to the flash chip
