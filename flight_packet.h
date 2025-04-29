@@ -4,12 +4,12 @@
 
 #pragma pack(push, 1) // remove padding to ensure correct memory layout
 struct FlightPacket {
-    uint32_t timestamp_utc;     // 4 bytes
+    float timestamp_utc;        // 4 bytes
     uint8_t fsm_mode;           // 1
     uint16_t gps_fix;           // 2
     float heading_deg;          // 4
     float target_heading_deg;   // 4
-    float h_speed_m_s;      // 4
+    float h_speed_m_s;          // 4
     float v_speed_m_s;          // 4
     float latitude_deg;         // 4
     float longitude_deg;        // 4
@@ -30,7 +30,7 @@ struct FlightPacket {
     float pwm_motor1;           // 4
     float pwm_motor2;           // 4
     float fc_cmd;               // 4
-    bool apogeeDetected;        // 1
+    bool apogee_detected;       // 1
     char flight_id[8];          // 8 (null-terminated string, e.g. "FLIGHT1\0")
     // Add more fields as needed
 };
