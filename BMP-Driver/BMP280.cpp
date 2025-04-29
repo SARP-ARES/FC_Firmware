@@ -17,6 +17,9 @@ BMP280::BMP280(PinName SDA, PinName SCL, char addr){
     BMP280::addr = addr; 
 }
 
+ BMP280_Values BMP280::getState() const{
+     return values;
+}
 /* Destructor
  * Deletes I2C if created in object
  */ 
@@ -75,6 +78,7 @@ int BMP280::updateTemperatureData(){
     msbErr = readData(BMP280_TEMP_MSB, &msb, 1);
     
     int totalErr = xlsbErr + lsbErr + msbErr;
+
     //Shifts each byte into useful position
     int32_t rawTemperature = ((int32_t)msb << 12) | ((int32_t)lsb << 4 ) | ((int32_t)xlsb >> 4);
     values.temp_c = convert_temp(rawTemperature) - 3.5; // offsets temperature by experimentally gathered amount
@@ -138,13 +142,12 @@ double BMP280::convert_press(int32_t adc_P){
 int BMP280::updateValues(){
     int errTemp = updateTemperatureData();
     int errPress  = updatePressureData();
-    updateAltitudeH1();
-    updateAltitudeH2();
+    updateAltitudeM();
     return(errPress + errTemp);
 }
 
 
-//@breif calibrates temperature values
+//  @breif calibrates temperature values
 // - Array Calib: each calibration number comes in a lsb and msb pair 
 int BMP280::BMP280_CalibrateTemp(){
     char calib[6];
@@ -154,6 +157,7 @@ int BMP280::BMP280_CalibrateTemp(){
     c.dig_T3 = (calib[5] << 8 | calib[4]);
     return 0;
 }
+
 
 int BMP280::BMP280_CalibratePress(){
     char calib[18];
@@ -175,33 +179,23 @@ int BMP280::BMP280_CalibratePress(){
     return 0;
 }
 
-// Shorthand hyposometric
-// @ Brief updates Altitude using hyposometric equation for altitude
-void BMP280::updateAltitudeH1(){
-    double pressRatioTerm = pow((101325/values.press_pa),(1/5.257)) - 1.0;
-    double temp_k = values.temp_c +273.15;
-    values.altitude_h1 = (pressRatioTerm*temp_k)/.0065; 
-}
 
-
-// Barometric 
-// double BMP280::updateAltitudeB1(){
-//     double lnPress = log(values.press_pa/101325);
-//     values.altitude_b1 = -lnPress/(9.8105*.02896);
-//     return values.altitude_b1; 
-// }
-
-// Advanced hypsometric
-void BMP280::updateAltitudeH2(){
+// Advanced hypsometric mixed with standard hyposometric
+void BMP280::updateAltitudeM(){
     double univesalGasConst = 8.31432;
     double staticPress = 101325;
     double sealvlTemp_K = 15 + 273.15; 
     double tempLapseRate = -.0065;
     double gravity = 9.80665;
     double molarMassAir = .0289655;
-    values.altitude_h2 = (sealvlTemp_K/tempLapseRate) \
+    double h2 = (sealvlTemp_K/tempLapseRate) \
                         *(pow((values.press_pa/staticPress), \
                             -((univesalGasConst*tempLapseRate)/(gravity*molarMassAir)))-1.0); 
+
+    double pressRatioTerm = pow((101325/values.press_pa),(1/5.257)) - 1.0;
+    double temp_k = values.temp_c +273.15;
+    double h1 = (pressRatioTerm*temp_k)/.0065; 
+    values.altitude_m = .5*h1 +.5*h2;
 }
 
 

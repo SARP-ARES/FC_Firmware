@@ -15,10 +15,6 @@ struct BMP280_Values {
     double altitude_m; // Altitude from Sea Level in m
     double press_psi; // Pressure in Psi
     double temp_f; // temp in farenheit
-    double altitude_ft; // alt in ft 
-    double altitude_h1; // alt from hypsometric 1 (m)
-    double altitude_h2; // alt from hypsometric 2 (m)
-    double altitude_b1; // alt from barometic (m)
 };
 
 struct BMP280_Calibration {
@@ -62,27 +58,26 @@ class BMP280 {
 
     public: 
 
-        int updatePressureData(); // updates the pressure value 
-        int updateTemperatureData(); // updates the temperature value 
-        void updateAltitudeH1();
-        void updateAltitudeH2();
-        // double updateAltitudeB1();
-         // updates the current altitude based on temp and pressure
+         BMP280_Values getState() const;      // retruns the state struct of BMP 
 
-        BMP280_Values values; // Stores the nessecary values to be returned 
-        BMP280_Calibration c; // Stores the calibration data nessecary for the sensor 
+        int updatePressureData();       // updates the pressure value 
+        int updateTemperatureData();    // updates the temperature value 
+        void updateAltitudeM();         // updates the current altitude based on temp and pressure
+
+        BMP280_Values values;           // Stores the nessecary values to be returned 
+        BMP280_Calibration c;           // Stores the calibration data nessecary for the sensor 
 
         bool owned;
-        char addr; // Address of BMP280 
-        I2C* i2c; // Initialize i2c object
-        int32_t t_fine; // Nesscary temperature for calibration
+        char addr;                      // Address of BMP280 
+        I2C* i2c;                       // Initialize i2c object
+        int32_t t_fine;                 // Nesscary temperature for calibration
 
-        float readTemperatureData(); // Reads the temperature data from the register 
-        float readPressureData();   // Reads the pressure data from the register
-        double convert_temp(int32_t adc_T);  // Converts the raw temperature data to useable data
-        double convert_press(int32_t adc_T); // converts the raw pressure data to usable data 
-        int BMP280_CalibrateTemp(); // Calibrates the temperature values from the raw data collection 
-        int BMP280_CalibratePress(); // Calibrates the pressure values from the raw data collection
+        float readTemperatureData();            // Reads the temperature data from the register 
+        float readPressureData();               // Reads the pressure data from the register
+        double convert_temp(int32_t adc_T);     // Converts the raw temperature data to useable data
+        double convert_press(int32_t adc_T);    // converts the raw pressure data to usable data 
+        int BMP280_CalibrateTemp();             // Calibrates the temperature values from the raw data collection 
+        int BMP280_CalibratePress();            // Calibrates the pressure values from the raw data collection
 
 };
 
