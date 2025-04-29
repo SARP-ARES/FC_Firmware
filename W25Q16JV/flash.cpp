@@ -17,7 +17,22 @@
  * @param csPin - Chip Select pin
  */
 flash::flash(PinName mosi, PinName miso, PinName sclk, PinName csPin)
-    : _spi(mosi, miso, sclk), _cs(csPin, 1), pc(true) {
+    : _spi(mosi, miso, sclk), _cs(csPin, 1) {
+    _spi.format(8, 0);           // 8-bit frame, mode 0
+    _spi.frequency(1000000);     // 1 MHz SPI clock
+}
+
+
+/**
+ * Constructor: Initializes SPI interface, chip select pin, and EUSBSerial object.
+ * @param mosi - SPI MOSI pin
+ * @param miso - SPI MISO pin
+ * @param sclk - SPI Clock pin
+ * @param csPin - Chip Select pin
+ * @param pc - pointer to EUSBSerial object for printing data
+ */
+flash::flash(PinName mosi, PinName miso, PinName sclk, PinName csPin, EUSBSerial* pc)
+    : _spi(mosi, miso, sclk), _cs(csPin, 1), pc(pc) {
     _spi.format(8, 0);           // 8-bit frame, mode 0
     _spi.frequency(1000000);     // 1 MHz SPI clock
 }
@@ -193,34 +208,114 @@ uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
 }
 
 // Read packet
-void flash::readPacket(uint32_t address, FlightPacket& pkt) {
+uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
     read(address, reinterpret_cast<uint8_t*>(&pkt), sizeof(FlightPacket));
+    return address + sizeof(FlightPacket);
 }
 
-// UNFINISHED
+//UNFINISHED
 void flash::printCSVHeader() {
-    pc.printf("timestamp_ms,latitude,longitude,altitude,groundspeed,temp_c,status,id\n");
+    pc->printf(
+        "timestamp_utc,"
+        "fsm_mode,"
+        "gps_fix,"
+        "heading_deg,"
+        "target_heading_deg,"
+        "h_speed_m_s,"
+        "v_speed_m_s,"
+        "latitude_deg,"
+        "longitude_deg,"
+        "altitude_gps_m,"
+        "altitude_bmp_m,"
+        "altitude_m,"
+        "pos_east_m,"
+        "pos_north_m,"
+        "pos_up_m,"
+        "temp_c,"
+        "pressure_pa,"
+        "delta1,"
+        "delta_1_m,"
+        "delta2,"
+        "delta2_m,"
+        "delta_a,"
+        "delta_s,"
+        "pwm_motor1,"
+        "pwm_motor2,"
+        "fc_cmd,"
+        "apogee_detected,"
+        "flight_id\n"
+    );
 }
 
-// UNFINISHED
+//UNFINISHED
 void flash::printPacketAsCSV(const FlightPacket& pkt) {
-    pc.printf("%lu,%.7f,%.7f,%.2f,%.2f,%d,%u,%s\n",
+    pc->printf(
+        "%lu,"        // timestamp_utc
+        "%u,"         // fsm_mode
+        "%u,"         // gps_fix
+        "%.4f,"       // heading_deg
+        "%.4f,"       // target_heading_deg
+        "%.4f,"       // h_speed_m_s
+        "%.4f,"       // v_speed_m_s
+        "%.7f,"       // latitude_deg (higher precision for lat/lon)
+        "%.7f,"       // longitude_deg
+        "%.4f,"       // altitude_gps_m
+        "%.4f,"       // altitude_bmp_m
+        "%.4f,"       // altitude_m
+        "%.4f,"       // pos_east_m
+        "%.4f,"       // pos_north_m
+        "%.4f,"       // pos_up_m
+        "%.4f,"       // temp_c
+        "%.4f,"       // pressure_pa
+        "%.4f,"       // delta1
+        "%.4f,"       // delta_1_m
+        "%.4f,"       // delta2
+        "%.4f,"       // delta2_m
+        "%.4f,"       // delta_a
+        "%.4f,"       // delta_s
+        "%.4f,"       // pwm_motor1
+        "%.4f,"       // pwm_motor2
+        "%.4f,"       // fc_cmd
+        "%u,"         // apogeeDetected (print bool as unsigned)
+        "%s\n",       // flight_id (null-terminated string)
         pkt.timestamp_utc,
+        pkt.fsm_mode,
+        pkt.gps_fix,
+        pkt.heading_deg,
+        pkt.target_heading_deg,
+        pkt.h_speed_m_s,
+        pkt.v_speed_m_s,
         pkt.latitude_deg,
         pkt.longitude_deg,
+        pkt.altitude_gps_m,
+        pkt.altitude_bmp_m,
         pkt.altitude_m,
-        pkt.h_speed_m_s,
+        pkt.pos_east_m,
+        pkt.pos_north_m,
+        pkt.pos_up_m,
         pkt.temp_c,
-        pkt.fsm_mode,
-        pkt.flight_id);
+        pkt.pressure_pa,
+        pkt.delta1,
+        pkt.delta_1_m,
+        pkt.delta2,
+        pkt.delta2_m,
+        pkt.delta_a,
+        pkt.delta_s,
+        pkt.pwm_motor1,
+        pkt.pwm_motor2,
+        pkt.fc_cmd,
+        static_cast<unsigned>(pkt.apogee_detected),
+        pkt.flight_id
+    );
 }
 
+
 // UNFINISHED
-void flash::dumpAllPackets(flash& fc, uint32_t numPackets) {
+void flash::dumpAllPackets(uint32_t numPackets) {
     FlightPacket pkt;
     printCSVHeader();
     for (uint32_t i = 0; i < numPackets; ++i) {
-        fc.readPacket(i * sizeof(FlightPacket), pkt);
+        readPacket(i * sizeof(FlightPacket), pkt);
         printPacketAsCSV(pkt);
     }
 }
