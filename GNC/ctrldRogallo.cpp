@@ -77,6 +77,7 @@ void ctrldRogallo::updateFlightPacket(){
     int success = gps.bigUpdate(); 
 
 
+    // GPS 
     state.timestamp_utc = gps_state.utc;
     state.fsm_mode = this->mode;
     state.gps_fix = gps_state.fix;
@@ -92,10 +93,19 @@ void ctrldRogallo::updateFlightPacket(){
     state.pos_east_m = ltp.e;
     state.pos_north_m = ltp.n;
     state.pos_up_m = ltp.u;
+
+    // BMP 
     state.temp_c = bmp_state.temp_c;
     state.pressure_pa = bmp_state.press_pa;
     state.apogee_detected = apogeeDetected;
+
     strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
+
+    // BNO
+    state.yaw = bno.getGyroscope().x;
+    state.pitch = bno.getGyroscope().y;
+    state.roll = bno.getGyroscope().z;
+
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
     if(apogeeCounter >= 20){

@@ -32,6 +32,9 @@ struct FlightPacket {
     float fc_cmd;               // 4
     bool apogee_detected;       // 1
     char flight_id[8];          // 8 (null-terminated string, e.g. "FLIGHT1\0")
+    float yaw;                  // 4
+    float pitch;                // 4 
+    float roll;                 // 4
     // Add more fields as needed
 };
 #pragma pack(pop)
