@@ -73,6 +73,7 @@ class GPS {
         posECEFr origin;
         int getLatSign();
         int getLonSign();
+        float utc2sec(float utc);
 
         // NMEA message readers
         int update_GGA(const char* msg);
@@ -91,8 +92,7 @@ class GPS {
         gpsState getState() const;
         posLTP getPosLTP() const;
         posECEFr getOriginECEFr() const;
-        float lat2rad(float lat_ddmm);
-        float lon2rad(float lon_dddmm);
+        float deg2rad(float deg);
         float lat2deg(float lat_ddmm);
         float lon2deg(float lon_dddmm);
         NMEA_Type getMsgType(const char* msg); // TODO: make private and make wrapper

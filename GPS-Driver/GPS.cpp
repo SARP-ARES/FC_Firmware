@@ -114,22 +114,36 @@ float GPS::lon2deg(float lon_dddmm){
 
 
 /*
-converts lattitude coordinates in ddmm.mmmm to radians
+converts degrees to radians
 */
-float GPS::lat2rad(float lat_ddmm) {
-    float lat_deg = lat2deg(lat_ddmm); 
-    float lat_rad = lat_deg * pi/180; 
-    return lat_rad;
+float GPS::deg2rad(float deg) {
+    float rad = deg * pi/180; 
+    return rad;
 }
 
-/*
-converts longitude coordinates in dddmm.mmmm to radians
-*/
-float GPS::lon2rad(float lon_dddmm) {
-    float lon_deg = lon2deg(lon_dddmm);      // extract degrees
-    float lon_rad = lon_deg * pi/180; 
-    return lon_rad;
+// /*
+// converts longitude coordinates in dddmm.mmmm to radians
+// */
+// float GPS::lon2rad(float lon_dddmm) {
+//     float lon_deg = lon2deg(lon_dddmm);      // extract degrees
+//     float lon_rad = lon_deg * pi/180; 
+//     return lon_rad;
+// }
+
+/**
+ * @brief converts UTC time in hhmmss.sss to seconds
+ * @param utc - time in UTC with forma hhmmss.sss
+ * @return time in seconds (UTC)
+ */
+float GPS::utc2sec(float utc) {
+    // hhmmss.sss
+    int hours = (int)(utc / 10000);
+    int minutes = (int)((utc - hours * 10000) / 100);
+    float seconds = utc - hours * 10000 - minutes * 100;
+    float total_seconds = hours * 3600 + minutes * 60 + seconds;
+    return total_seconds;
 }
+
 
 /*
 
@@ -155,10 +169,10 @@ int GPS::update_GGA(const char* msg){ // TODO: NEEDS TESTING
                         &lonEW, &fix, &nsats, &hdop, &alt);
               
     // assign values to the state
-    this->state.utc = utc;
-    this->state.lat = lat;
+    this->state.utc = utc2sec(utc);
+    this->state.lat = lat2deg(lat);
     this->state.latNS = latNS;
-    this->state.lon = lon;
+    this->state.lon = lon2deg(lon);
     this->state.lonEW = lonEW;
     this->state.fix = fix;
     this->state.hdop = hdop;
@@ -276,11 +290,11 @@ int GPS::update_RMC(const char* msg){ // TODO: NEEDS TESTING
                         &magneticVariation, &mode, &checksum);
 
     // Assign values to the state
-    this->state.utc = utc;
+    this->state.utc = utc2sec(utc);
     this->state.rmcStatus = status;
-    this->state.lat = lat;
+    this->state.lat = lat2deg(lat);
     this->state.latNS = latNS;
-    this->state.lon = lon;
+    this->state.lon = lon2deg(lon);
     this->state.lonEW = lonEW;
     this->state.gspeed = gspeed*KNOT_TO_M_S; // convert knots to m/s
     this->state.heading = heading;
@@ -361,8 +375,8 @@ ADD DESCRIPTION
 */
 void GPS::setOriginECEFr() { // uses current position to set origin if nothing is passed
     // get longitude and latitude into radians
-    float lat_rad = lat2rad(state.lat);
-    float lon_rad = lon2rad(state.lon);
+    float lat_rad = state.lat * pi/180;
+    float lon_rad = state.lon * pi/180;
 
     const float a = 6378137; // earth semi-major axis        (m)
     const float b = 6356752.3142; // earth semi-minor axis   (m)
@@ -418,9 +432,9 @@ void GPS::updatePosLTP() {
     // North = positive, South = negative
     // East = positive, West = negative 
     
-    // get longitude and latitude into radians
-    float lat_rad = lat2rad(state.lat);
-    float lon_rad = lon2rad(state.lon);
+    // get longitude and latitude from degrees into radians
+    float lat_rad = deg2rad(state.lat);
+    float lon_rad = deg2rad(state.lon);
 
     // distance from the earth's surface to the z-axis along the ellipsoid normal
     float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
