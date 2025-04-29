@@ -63,7 +63,6 @@ class ctrldRogallo {
         void updateApogeeDetection();
 
     public:
-        flash fc;
         uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();
         void updateFlightPacket();
@@ -72,6 +71,7 @@ class ctrldRogallo {
         int apogeeDetection(double prevAlt, double currAlt);
         void logData();
         void logDataTEST();
+        const FlightPacket getState();
 };
 
 

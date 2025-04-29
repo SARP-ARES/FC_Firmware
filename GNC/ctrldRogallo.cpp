@@ -9,7 +9,7 @@
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
 ctrldRogallo::ctrldRogallo() 
-    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4) {
+    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
     apogeeDetected = false;
     apogeeCounter = 0;
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
@@ -17,6 +17,10 @@ ctrldRogallo::ctrldRogallo()
     currentFlashAddress = 0; // start writing to address zero TODO: maybe pass as param?
 } 
 
+
+const FlightPacket ctrldRogallo::getState() {
+    return this->state;
+}
 /*  Python Code
 def getTargetHeading(e, n):
     targetHeading_rad = np.arctan2(e,n) + np.pi
@@ -90,14 +94,16 @@ void ctrldRogallo::updateFlightPacket(){
     state.pos_up_m = ltp.u;
     state.temp_c = bmp_state.temp_c;
     state.pressure_pa = bmp_state.press_pa;
-
+    state.apogee_detected = apogeeDetected;
+    strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
     if(apogeeCounter >= 20){
-        apogeeDetected = true; 
+        apogeeDetected = true;
+        // trigger seeking mode
+        mode = FSM_SEEKING; // 1
     }
     
-
 }
 
 /**
@@ -142,18 +148,18 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     return 0; 
 }
 
-/**
- * @brief logs current state as a flight packet to the flash chip
- */
-void ctrldRogallo::logData() {
-    currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-}
+// /**
+//  * @brief logs current state as a flight packet to the flash chip
+//  */
+// void ctrldRogallo::logData() {
+//     currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+// }
 
-/**
- * @brief logs current state as a flight packet to address 0 only
- */
-void ctrldRogallo::logDataTEST() {
-    currentFlashAddress = 0;
-    currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-}
+// /**
+//  * @brief logs current state as a flight packet to address 0 only
+//  */
+// void ctrldRogallo::logDataTEST() {
+//     currentFlashAddress = 0;
+//     currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+// }
 
