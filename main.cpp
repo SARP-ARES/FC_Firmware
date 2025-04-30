@@ -32,7 +32,7 @@ int main() {
     ThisThread::sleep_for(2s); // wait for serial port to connect?
     pc.printf("\nStarting flash chip testing...");
     // fc.eraseSector(currentFlashAddress); // to not overwrite stuff
-    // uint32_t numPacketDump = 37; // 37 packets
+    uint32_t numPacketDump = 100;
 
     while (true){
         // TESTING...
@@ -44,19 +44,19 @@ int main() {
         
         // get updated values from all sensors 
         // and store them in the flight packet
-        pc.printf("\nUpdating flight packet...");
-        ARES.updateFlightPacket();
+        // pc.printf("\nUpdating flight packet...");
+        // ARES.updateFlightPacket();
 
-        // write the packet to the flash chip
+        // // write the packet to the flash chip
         // pc.printf("\nWriting packet to address: %d (Packet Size: %d)", currentFlashAddress, packetSize);
         // ARES.logDataTEST();
-        currentFlashAddress = fc.writePacket(currentFlashAddress, ARES.getState());
-        pc.printf("\nData written... New flash address: %d", currentFlashAddress);
+        // currentFlashAddress = fc.writePacket(currentFlashAddress, ARES.getState());
+        // pc.printf("\nData written... New flash address: %d", currentFlashAddress);
         
 
-        // initialize struct and read one packet from flash chip
-        FlightPacket packet_read; // buffer
-        uint32_t nextAddress = fc.readPacket(readAddress, packet_read);
+        // // initialize struct and read one packet from flash chip
+        // FlightPacket packet_read; // buffer
+        // uint32_t nextAddress = fc.readPacket(readAddress, packet_read);
 
         // pc.printf("\nReading packet at address: %d", readAddress);
         // pc.printf("\n==================================\n");
@@ -64,23 +64,32 @@ int main() {
         // fc.printPacketAsCSV(packet_read);
         // pc.printf("\n==================================");
 
+        // big write
+        pc.printf("\n\n Collecting 100 packets at 10Hz (~10s)...");
+        for (uint32_t i = 0; i < numPacketDump; i++) {
+            ARES.updateFlightPacket();
+            FlightPacket packet = ARES.getState();
+            currentFlashAddress = fc.writePacket(currentFlashAddress, packet);
+            ThisThread::sleep_for(100ms); // 10Hz
+        }
+
+        // big dumpy
+        pc.printf("\nDumping %d packets...", numPacketDump);
+        pc.printf("\n==================================\n");
+        fc.dumpAllPackets(numPacketDump);
+        pc.printf("\n==================================\n");
+        break;
 
 
         // // erase it
         // pc.printf("\n Erasing sector at address: %d", eraseAddr);
         // fc.eraseSector(eraseAddr); // erase the sector
 
-        // pc.printf("\nDumping %d packets...", numPacketDump);
-        // pc.printf("\n==================================\n");
-        // fc.dumpAllPackets(numPacketDump);
-        // pc.printf("\n==================================\n");
-        // break;
-
-        pc.printf("\nReading packet at address: %d", readAddress);
-        pc.printf("\n==================================");
-        pc.printf("\nFSM Mode\t:%d \nFix\t\t:%d \nLat Lon\t\t:%f, %f \nPressure\t:%f Pa \nTemperature\t:%f C", \
-                    packet_read.fsm_mode, packet_read.gps_fix, packet_read.latitude_deg, packet_read.longitude_deg, packet_read.pressure_pa, packet_read.temp_c);
-        pc.printf("\n==================================");
+        // pc.printf("\nReading packet at address: %d", readAddress);
+        // pc.printf("\n==================================");
+        // pc.printf("\nFSM Mode\t:%d \nFix\t\t:%d \nLat Lon\t\t:%f, %f \nPressure\t:%f Pa \nTemperature\t:%f C", \
+        //             packet_read.fsm_mode, packet_read.gps_fix, packet_read.latitude_deg, packet_read.longitude_deg, packet_read.pressure_pa, packet_read.temp_c);
+        // pc.printf("\n==================================");
         ThisThread::sleep_for(5s);
 
 
