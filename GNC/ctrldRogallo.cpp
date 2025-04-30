@@ -86,7 +86,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.gps_fix = gps_state.fix;
     state.heading_deg = gps_state.heading;
     state.target_heading_deg = getTargetHeading();
-    // state.groundspeed_m_s = getVSpeed();
+    state.h_speed_m_s = gps_state.gspeed;
     // state.h_speed_m_s = getHSpeed();
     state.latitude_deg = gps_state.lat;
     state.longitude_deg = gps_state.lon;
@@ -108,7 +108,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.yaw = bno.getGyroscope().x; // Confirmed
     state.pitch = bno.getGyroscope().y; // Confirmed
     state.roll = bno.getGyroscope().z;  // Confirmed
-    state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
+    // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
