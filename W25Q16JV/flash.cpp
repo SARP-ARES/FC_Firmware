@@ -250,7 +250,7 @@ void flash::printCSVHeader() {
 //UNFINISHED
 void flash::printPacketAsCSV(const FlightPacket& pkt) {
     pc->printf(
-        "%lu,"        // timestamp_utc
+        "%f,"        // timestamp_utc
         "%u,"         // fsm_mode
         "%u,"         // gps_fix
         "%.4f,"       // heading_deg
