@@ -32,9 +32,9 @@ struct FlightPacket {
     float pwm_motor2;           // 4
     float fc_cmd;               // 4
     bool apogee_detected;       // 1
-    float yaw;                  // 4
-    float pitch;                // 4 
-    float roll;                 // 4
+    float yaw_rate;             // 4
+    float pitch_rate;           // 4 
+    float roll_rate;            // 4
     // Add more fields here
     // string compassDirecton;
     
