@@ -152,10 +152,10 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     if(isnan(prevAlt) || isnan(currAlt)){
         return 0; 
     }
-    double interval = .1; 
-    double apogeeVelo = -1.5;
+    double interval = .1;       // 0.1 seconds (10Hz)
+    double apogeeVelo = -1.5;   // m/s
     double velo = (currAlt - prevAlt)/interval;
-    if(velo <= apogeeVelo){
+    if(velo <= apogeeVelo && currAlt >= 600){ // 600m threshold altitude
         return 1;
     }
     return 0; 
