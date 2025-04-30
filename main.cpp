@@ -13,9 +13,13 @@
 
 int main() {
     
-    // instantiate flash chip
-    // Instantiates: GPS gps(PA_2, PA_3), BMP280 bmp(PB_7, PB_8, 0xEE), BNO055 bno(PB_7, PB_8, 0x51), fc(PA_7, PA_6, PA_5, PA_4)
-    // Q: should make objects in main and pass pointers instead?
+    /*
+     * Instantiates:    GPS gps(PA_2, PA_3), BMP280 bmp(PB_7, PB_8, 0xEE),
+     *                  BNO055 bno(PB_7, PB_8, 0x51)
+     * 
+     * TODO:    should instantiate objects in main and pass pointers 
+     *          OR just pass pins & stuff instead of hardcoading
+     */
     ctrldRogallo ARES;
     EUSBSerial pc(true);
     flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
@@ -52,13 +56,13 @@ int main() {
 
         // initialize struct and read one packet from flash chip
         FlightPacket packet_read; // buffer
-        readAddress = fc.readPacket(readAddress, packet_read);
+        uint32_t nextAddress = fc.readPacket(readAddress, packet_read);
 
-        pc.printf("\nReading packet at address: %d", readAddress);
-        pc.printf("\n==================================\n");
-        fc.printCSVHeader();
-        fc.printPacketAsCSV(packet_read);
-        pc.printf("\n==================================");
+        // pc.printf("\nReading packet at address: %d", readAddress);
+        // pc.printf("\n==================================\n");
+        // fc.printCSVHeader();
+        // fc.printPacketAsCSV(packet_read);
+        // pc.printf("\n==================================");
 
 
 
@@ -72,11 +76,11 @@ int main() {
         // pc.printf("\n==================================\n");
         // break;
 
-        // pc.printf("\nReading packet at address: %d", readAddress);
-        // pc.printf("\n==================================");
-        // pc.printf("\nFSM Mode\t:%d \nFix\t\t:%d \nLat Lon\t\t:%f, %f \nPressure\t:%f Pa \nTemperature\t:%f C", \
-        //             packet_read.fsm_mode, packet_read.gps_fix, packet_read.latitude_deg, packet_read.longitude_deg, packet_read.pressure_pa, packet_read.temp_c);
-        // pc.printf("\n==================================");
+        pc.printf("\nReading packet at address: %d", readAddress);
+        pc.printf("\n==================================");
+        pc.printf("\nFSM Mode\t:%d \nFix\t\t:%d \nLat Lon\t\t:%f, %f \nPressure\t:%f Pa \nTemperature\t:%f C", \
+                    packet_read.fsm_mode, packet_read.gps_fix, packet_read.latitude_deg, packet_read.longitude_deg, packet_read.pressure_pa, packet_read.temp_c);
+        pc.printf("\n==================================");
         ThisThread::sleep_for(5s);
 
 
