@@ -11,6 +11,7 @@
  */ 
 ctrldRogallo::ctrldRogallo() 
     : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
+    bmp.start();
     apogeeDetected = false;
     apogeeCounter = 0;
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
@@ -22,6 +23,7 @@ ctrldRogallo::ctrldRogallo()
 const FlightPacket ctrldRogallo::getState() {
     return this->state;
 }
+
 /*  Python Code
 def getTargetHeading(e, n):
     targetHeading_rad = np.arctan2(e,n) + np.pi
@@ -103,9 +105,9 @@ void ctrldRogallo::updateFlightPacket(){
     strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
     // BNO
-    state.yaw = bno.getGyroscope().x;
-    state.pitch = bno.getGyroscope().y;
-    state.roll = bno.getGyroscope().z;
+    state.yaw = bno.getGyroscope().x; // Confirmed
+    state.pitch = bno.getGyroscope().y; // Confirmed
+    state.roll = bno.getGyroscope().z;  // Confirmed
     state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
 
@@ -150,7 +152,6 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     if(isnan(prevAlt) || isnan(currAlt)){
         return 0; 
     }
-
     double interval = .1; 
     double apogeeVelo = -1.5;
     double velo = (currAlt - prevAlt)/interval;
@@ -161,7 +162,6 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
 }
 
 string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){
-    string direction;
     float heading = atan2(rollMag, pitchMag) * 180/pi;
     if(heading < 0) heading += 360; 
     if(heading > 360) heading -= 360;

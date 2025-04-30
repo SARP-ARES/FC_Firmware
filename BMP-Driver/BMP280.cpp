@@ -16,10 +16,6 @@ BMP280::BMP280(PinName SDA, PinName SCL, char addr){
     BMP280::i2c = new I2C(SDA,SCL);
     BMP280::addr = addr; 
 }
-
- BMP280_Values BMP280::getState() const{
-     return values;
-}
 /* Destructor
  * Deletes I2C if created in object
  */ 
@@ -62,7 +58,7 @@ int BMP280::start(){
 }
 
 int BMP280::sleep(){
-    int result = writeData(BMP280_CTRL_MEAS, 0b00);
+    int result = writeData(BMP280_CTRL_MEAS, 0b11101011);
     // 00 = sleep mode
     return result;
 }
@@ -196,6 +192,10 @@ void BMP280::updateAltitudeM(){
     double temp_k = values.temp_c +273.15;
     double h1 = (pressRatioTerm*temp_k)/.0065; 
     values.altitude_m = .5*h1 +.5*h2;
+}
+
+BMP280_Values BMP280::getState() const{
+     return values;
 }
 
 
