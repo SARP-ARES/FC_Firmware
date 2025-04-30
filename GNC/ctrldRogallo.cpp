@@ -105,9 +105,9 @@ void ctrldRogallo::updateFlightPacket(){
     strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
     // BNO
-    state.yaw = bno.getGyroscope().x; // Confirmed
-    state.pitch = bno.getGyroscope().y; // Confirmed
-    state.roll = bno.getGyroscope().z;  // Confirmed
+    state.yaw_rate = bno.getGyroscope().x; // Confirmed
+    state.pitch_rate = bno.getGyroscope().y; // Confirmed
+    state.roll_rate = bno.getGyroscope().z;  // Confirmed
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
 
