@@ -58,7 +58,7 @@ int BMP280::start(){
 }
 
 int BMP280::sleep(){
-    int result = writeData(BMP280_CTRL_MEAS, 0b11101011);
+    int result = writeData(BMP280_CTRL_MEAS, 0b11101000);
     // 00 = sleep mode
     return result;
 }
