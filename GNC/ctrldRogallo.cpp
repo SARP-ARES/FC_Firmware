@@ -70,7 +70,7 @@ float ctrldRogallo::getThetaErr(){
  * @brief updates the state of the system to log as a packet of data
  */ 
 void ctrldRogallo::updateFlightPacket(){
-
+    
     gps_state = gps.getState();
     bmp_state = bmp.getState(); 
     posLTP ltp = gps.getPosLTP();
