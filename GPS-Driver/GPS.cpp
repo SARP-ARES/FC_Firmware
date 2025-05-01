@@ -160,7 +160,7 @@ int GPS::update_GGA(const char* msg){ // TODO: NEEDS TESTING
     char lonEW = 'O';
     int fix = 404;
     int nsats = -1;
-    float alt = NAN;
+    float alt = -87;
     float hdop = NAN;
     int result = -999;
     

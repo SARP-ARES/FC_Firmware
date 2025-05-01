@@ -126,15 +126,19 @@ void ctrldRogallo::updateFlightPacket(){
  * @return - the fuzed altitude of the two sensors
  */ 
 float ctrldRogallo::getFuzedAlt(){
-    if(!isnan(gps_state.alt) && !isnan(bmp_state.altitude_m)){
-        return bmp_state.altitude_m*(1-alphaAlt) + gps_state.alt*alphaAlt;
-    } else if(gps_state.fix <= 0 || isnan(gps_state.alt)){
-        return bmp_state.altitude_m;
-    }else if(isnan(bmp_state.altitude_m)){
-        return gps_state.alt; 
-    }else{
-        return NAN; 
+     if (!isnan(bmp_state.altitude_m) && !isnan(gps_state.alt) && gps_state.alt > -86) {
+        return bmp_state.altitude_m * (1 - alphaAlt) + gps_state.alt * alphaAlt;
     }
+
+    if (!isnan(bmp_state.altitude_m)) {
+        return bmp_state.altitude_m;
+    }
+
+    if (!isnan(gps_state.alt)) {
+        return gps_state.alt;
+    }
+
+    return NAN;
 }
 
 
