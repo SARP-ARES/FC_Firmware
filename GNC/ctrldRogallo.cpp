@@ -70,14 +70,15 @@ float ctrldRogallo::getThetaErr(){
  * @brief updates the state of the system to log as a packet of data
  */ 
 void ctrldRogallo::updateFlightPacket(){
-
-    gps_state = gps.getState();
-    bmp_state = bmp.getState(); 
-    posLTP ltp = gps.getPosLTP();
-
+    BMP280_Values bmp_state = bmp.getState();
     double prevAlt = bmp_state.altitude_m;
+    
     bmp.updateValues();
     int success = gps.bigUpdate(); 
+
+    gpsState gps_state = gps.getState();
+    bmp_state = bmp.getState(); 
+    posLTP ltp = gps.getPosLTP();
 
 
     // GPS 
@@ -92,7 +93,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.longitude_deg = gps_state.lon;
     state.altitude_gps_m = gps_state.alt;
     state.altitude_bmp_m = bmp_state.altitude_m;
-    state.altitude_m = getFuzedAlt();
+    state.altitude_m = getFuzedAlt(bmp_state.altitude_m, gps_state.alt);
     state.pos_east_m = ltp.e;
     state.pos_north_m = ltp.n;
     state.pos_up_m = ltp.u;
@@ -124,16 +125,17 @@ void ctrldRogallo::updateFlightPacket(){
  * @Brief fuzes the altitude of the GPS and BMP reading using a complimentary filter
  * @return - the fuzed altitude of the two sensors
  */ 
-float ctrldRogallo::getFuzedAlt(){
+float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
     float fuzedAlt = NAN; 
-    if(!isnan(gps_state.alt) && !isnan(bmp_state.altitude_m)){
-        fuzedAlt = bmp_state.altitude_m*(1-alphaAlt) + gps_state.alt*alphaAlt;
-    } else if(isnan(gps_state.alt)){
-        fuzedAlt = bmp_state.altitude_m;
-    }else if(isnan(bmp_state.altitude_m)){
-        fuzedAlt = gps_state.alt; 
+    // check for NANs (they will not equal themselves)
+    if (alt1 == alt1 && alt2 == alt2){
+        fuzedAlt = alt1*alphaAlt + alt2*(1-alphaAlt);
+    } else if (alt1 == alt1) {
+        fuzedAlt = alt1;
+    }else if (alt2 == alt2){
+        fuzedAlt = alt2; 
     } else {
-        fuzedAlt = NAN; 
+        fuzedAlt = NAN; // both bmp and gps are giving nans
     }
     return fuzedAlt;
 }

@@ -54,12 +54,12 @@ class ctrldRogallo {
         bool apogeeDetected;
         int apogeeCounter;
         float alphaAlt;
-        BMP280_Values bmp_state;
-        gpsState gps_state;
+        // BMP280_Values bmp_state;
+        // gpsState gps_state;
         posLTP ltp;
         
         void setModeFSM(ModeFSM mode);
-        float getFuzedAlt();
+        float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
         void updateApogeeDetection();
         string getCompassDirection(float rollMag, float pitchMag);
