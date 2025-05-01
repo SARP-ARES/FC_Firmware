@@ -1,4 +1,3 @@
-// Testing data logging with flash chip
 #include "mbed.h"
 #include "EUSBSerial.h"
 #include "I2CSerial.h"
@@ -9,7 +8,7 @@ int main() {
     EUSBSerial pc(true);
     I2CSerial slave(PB_7, PB_8, 0x32, true);
     DigitalOut led_R(PC_14);
-    led_R.write(1);
+    led_R.write(0);
 
     // // DEFINE CONTROL SEQUENCE
     // int32_t ctrl[100, -100, 0, 25, 50, 100];
