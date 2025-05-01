@@ -12,6 +12,7 @@
 ctrldRogallo::ctrldRogallo() 
     : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
     bmp.start();
+    bno.setup();
     apogeeDetected = false;
     apogeeCounter = 0;
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
@@ -105,10 +106,10 @@ void ctrldRogallo::updateFlightPacket(){
     strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
     // BNO
-    state.yaw_rate = bno.getGyroscope().x; // Confirmed
-    state.pitch_rate = bno.getGyroscope().y; // Confirmed
-    state.roll_rate = bno.getGyroscope().z;  // Confirmed
-    // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
+    state.yaw_rate = bno.getGyroscope().x;
+    state.pitch_rate = bno.getGyroscope().y;
+    state.roll_rate = bno.getGyroscope().z; 
+    state.compassDirection = getCompassDirection();
 
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
@@ -125,17 +126,21 @@ void ctrldRogallo::updateFlightPacket(){
  * @return - the fuzed altitude of the two sensors
  */ 
 float ctrldRogallo::getFuzedAlt(){
-    float fuzedAlt = NAN; 
     if(!isnan(gps_state.alt) && !isnan(bmp_state.altitude_m)){
-        fuzedAlt = bmp_state.altitude_m*(1-alphaAlt) + gps_state.alt*alphaAlt;
-    } else if(isnan(gps_state.alt)){
-        fuzedAlt = bmp_state.altitude_m;
+        return bmp_state.altitude_m*(1-alphaAlt) + gps_state.alt*alphaAlt;
+    } else if(gps_state.fix <= 0 || isnan(gps_state.alt)){
+        return bmp_state.altitude_m;
     }else if(isnan(bmp_state.altitude_m)){
-        fuzedAlt = gps_state.alt; 
-    } else {
-        fuzedAlt = NAN; 
+        return gps_state.alt; 
+    }else{
+        return NAN; 
     }
-    return fuzedAlt;
+}
+
+
+float ctrldRogallo::getHeading(){
+    bno055_vector_t e = bno.getEuler();
+    return e.x; 
 }
 
 void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
@@ -161,10 +166,15 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     return 0; 
 }
 
-string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){
-    float heading = atan2(rollMag, pitchMag) * 180/pi;
-    if(heading < 0) heading += 360; 
-    if(heading > 360) heading -= 360;
+string ctrldRogallo::getCompassDirection(){
+    float heading = getHeading();
+    while(heading < 0){
+        heading += 360; 
+    }
+    while(heading > 360){
+        heading -= 360;
+    }
+    state.headingTemp = heading; 
     if(heading > 360-22.5 || heading <= 22.5 ) {
         return "N";
     } 

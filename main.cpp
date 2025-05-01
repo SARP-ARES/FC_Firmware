@@ -18,7 +18,7 @@ int main() {
      *                  BNO055 bno(PB_7, PB_8, 0x51)
      * 
      * TODO:    should instantiate objects in main and pass pointers 
-     *          OR just pass pins & stuff instead of hardcoading
+     *          OR just pass pins & stuff instead of hardcoding
      */
     ctrldRogallo ARES;
     EUSBSerial pc(true);
@@ -44,8 +44,31 @@ int main() {
         
         // get updated values from all sensors 
         // and store them in the flight packet
-        // pc.printf("\nUpdating flight packet...");
-        // ARES.updateFlightPacket();
+        pc.printf("\nUpdating flight packet...");
+        ARES.updateFlightPacket();
+
+        // get state and print values directly
+        FlightPacket packet = ARES.getState();
+        pc.printf("\nPrinting State Direclty (No Flash Chip)");
+        pc.printf("\n==================================");
+        pc.printf("\nUTC\t\t:%f"
+                    // "\n P, H, V DOP\t%f, %f, %f"
+                    "\nPressure\t:%f Pa"
+                    "\nTemperature\t:%f C"
+                    "\nBMP Altitude\t:%f M"
+                    "\nGPS Altitude\t:%f M"
+                    "\nAltitude\t:%f M"
+                    "\nYaw rate\t:%f rad/s"
+                    "\nPitch rate\t:%f rad/s"
+                    "\nRoll rate\t:%f rad/s", \
+                    packet.timestamp_utc, packet.pressure_pa, packet.temp_c, packet.altitude_bmp_m, packet.altitude_gps_m, packet.altitude_m, packet.yaw_rate, packet.pitch_rate, packet.roll_rate);
+                    pc.printf("\nCompass Direction\t: %s"
+                    "\nHeading deg\t %f",packet.compassDirection.c_str(), packet.headingTemp);
+        pc.printf("\n==================================");
+        ThisThread::sleep_for(100ms);
+
+
+
 
         // // write the packet to the flash chip
         // pc.printf("\nWriting packet to address: %d (Packet Size: %d)", currentFlashAddress, packetSize);
@@ -64,24 +87,26 @@ int main() {
         // fc.printPacketAsCSV(packet_read);
         // pc.printf("\n==================================");
 
-        // big write
-        pc.printf("\n\n Collecting 100 packets at 10Hz (~10s)...");
-        for (uint32_t i = 0; i < numPacketDump; i++) {
-            ARES.updateFlightPacket();
-            FlightPacket packet = ARES.getState();
-            currentFlashAddress = fc.writePacket(currentFlashAddress, packet);
-            ThisThread::sleep_for(100ms); // 10Hz
-        }
-
-        // big dumpy
-        pc.printf("\nDumping %d packets...", numPacketDump);
-        pc.printf("\n==================================\n");
-        fc.dumpAllPackets(numPacketDump);
-        pc.printf("\n==================================\n");
-        break;
 
 
-        // // erase it
+        // // big write
+        // pc.printf("\n\n Collecting 100 packets at 10Hz (~10s)...");
+        // for (uint32_t i = 0; i < numPacketDump; i++) {
+        //     ARES.updateFlightPacket();
+        //     FlightPacket packet = ARES.getState();
+        //     currentFlashAddress = fc.writePacket(currentFlashAddress, packet);
+        //     ThisThread::sleep_for(100ms); // 10Hz
+        // }
+
+        // // big dumpy
+        // pc.printf("\nDumping %d packets...", numPacketDump);
+        // pc.printf("\n==================================\n");
+        // fc.dumpAllPackets(numPacketDump);
+        // pc.printf("\n==================================\n");
+        // break;
+
+
+        // // erase
         // pc.printf("\n Erasing sector at address: %d", eraseAddr);
         // fc.eraseSector(eraseAddr); // erase the sector
 
