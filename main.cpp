@@ -30,17 +30,17 @@ int main() {
     int packetSize = sizeof(FlightPacket);
     uint32_t eraseAddr = 0;
     ThisThread::sleep_for(2s); // wait for serial port to connect?
-    pc.printf("\nStarting flash chip testing...");
+    // pc.printf("\nStarting flash chip testing...");
     // fc.eraseSector(currentFlashAddress); // to not overwrite stuff
     uint32_t numPacketDump = 100;
 
     while (true){
         // TESTING...
         // THIS IS IN THE LOOP ON PURPOSE TO ONLY WRITE TO THE FIRST [packetSize] BYTES
-        uint32_t readAddress = 0;
-        uint32_t currentFlashAddress = 0; // start writing at address 0
-        pc.printf("\n\nErasing first sector of flash chip...");
-        fc.eraseSector(currentFlashAddress);
+        // uint32_t readAddress = 0;
+        // uint32_t currentFlashAddress = 0; // start writing at address 0
+        // pc.printf("\n\nErasing first sector of flash chip...");
+        // fc.eraseSector(currentFlashAddress);
         
         // get updated values from all sensors 
         // and store them in the flight packet
@@ -55,11 +55,22 @@ int main() {
                     "\nFSM Mode\t:%d"
                     "\nFix\t\t:%d"
                     "\nLat, Lon, Alt\t:%f, %f, %f"
-                    "\n e, n, u\t:%f, %f, %f"
+                    "\ne, n, u\t\t:%f, %f, %f"
+                    "\nBMP alt, GPS alt\t: %f, %f"
                     // "\n P, H, V DOP\t%f, %f, %f"
                     "\nPressure\t:%f Pa"
-                    "\nTemperature\t:%f C", \
-                    packet.timestamp_utc, packet.fsm_mode, packet.gps_fix, packet.latitude_deg, packet.longitude_deg, packet.altitude_m, packet.pos_east_m, packet.pos_north_m, packet.pos_up_m, packet.pressure_pa, packet.temp_c);
+                    "\nTemperature\t:%f C"
+                    "\nyaw, pitch, roll rates: %f, %f, %f",
+                    packet.timestamp_utc,
+                    packet.fsm_mode,
+                    packet.gps_fix,
+                    packet.latitude_deg, packet.longitude_deg, packet.altitude_m,
+                    packet.pos_east_m, packet.pos_north_m, packet.pos_up_m,
+                    packet.altitude_bmp_m,
+                    packet.altitude_gps_m,
+                    packet.pressure_pa,
+                    packet.temp_c,
+                    packet.yaw_rate, packet.pitch_rate, packet.roll_rate);
         pc.printf("\n==================================");
 
 
