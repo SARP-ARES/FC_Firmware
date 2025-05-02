@@ -137,6 +137,21 @@ void flash::eraseSector(uint32_t address) {
 }
 
 /**
+ * Erases a all sectors.
+ */
+void flash::eraseAll() {
+    enableWrite();
+
+    uint8_t cmd = 0xC7; 
+
+    csLow();
+    _spi.write((const char *)&cmd, 1, NULL, 0);
+    csHigh();
+
+    wait_us(100000000);
+}
+
+/**
  * Sends Write Enable command to allow write/erase operations.
  */
 void flash::enableWrite() {
@@ -247,37 +262,39 @@ void flash::printCSVHeader() {
     );
 }
 
-//UNFINISHED
 void flash::printPacketAsCSV(const FlightPacket& pkt) {
     pc->printf(
-        "%f,"        // timestamp_utc
-        "%u,"         // fsm_mode
-        "%u,"         // gps_fix
-        "%.4f,"       // heading_deg
-        "%.4f,"       // target_heading_deg
-        "%.4f,"       // h_speed_m_s
-        "%.4f,"       // v_speed_m_s
-        "%.7f,"       // latitude_deg (higher precision for lat/lon)
-        "%.7f,"       // longitude_deg
-        "%.4f,"       // altitude_gps_m
-        "%.4f,"       // altitude_bmp_m
-        "%.4f,"       // altitude_m
-        "%.4f,"       // pos_east_m
-        "%.4f,"       // pos_north_m
-        "%.4f,"       // pos_up_m
-        "%.4f,"       // temp_c
-        "%.4f,"       // pressure_pa
-        "%.4f,"       // delta1
-        "%.4f,"       // delta_1_m
-        "%.4f,"       // delta2
-        "%.4f,"       // delta2_m
-        "%.4f,"       // delta_a
-        "%.4f,"       // delta_s
-        "%.4f,"       // pwm_motor1
-        "%.4f,"       // pwm_motor2
-        "%.4f,"       // fc_cmd
-        "%u,"         // apogeeDetected (print bool as unsigned)
-        "%s\n",       // flight_id (null-terminated string)
+        "%.3f,"      // timestamp_utc (print with 3 decimal places for sub-second precision)
+        "%u,"        // fsm_mode
+        "%u,"        // gps_fix
+        "%.4f,"      // heading_deg
+        "%.4f,"      // target_heading_deg
+        "%.4f,"      // h_speed_m_s
+        "%.4f,"      // v_speed_m_s
+        "%.7f,"      // latitude_deg (higher precision for lat/lon)
+        "%.7f,"      // longitude_deg
+        "%.4f,"      // altitude_gps_m
+        "%.4f,"      // altitude_bmp_m
+        "%.4f,"      // altitude_m
+        "%.4f,"      // pos_east_m
+        "%.4f,"      // pos_north_m
+        "%.4f,"      // pos_up_m
+        "%.4f,"      // temp_c
+        "%.4f,"      // pressure_pa
+        "%.4f,"      // delta1
+        "%.4f,"      // delta_1_m
+        "%.4f,"      // delta2
+        "%.4f,"      // delta2_m
+        "%.4f,"      // delta_a
+        "%.4f,"      // delta_s
+        "%.4f,"      // pwm_motor1
+        "%.4f,"      // pwm_motor2
+        "%.4f,"      // fc_cmd
+        "%u,"        // apogee_detected (print bool as unsigned)
+        "%.4f,"      // yaw_rate
+        "%.4f,"      // pitch_rate
+        "%.4f,"      // roll_rate
+        "%s\n",      // flight_id (null-terminated string)
         pkt.timestamp_utc,
         pkt.fsm_mode,
         pkt.gps_fix,
@@ -305,9 +322,13 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.pwm_motor2,
         pkt.fc_cmd,
         static_cast<unsigned>(pkt.apogee_detected),
+        pkt.yaw_rate,
+        pkt.pitch_rate,
+        pkt.roll_rate,
         pkt.flight_id
     );
 }
+
 
 
 // UNFINISHED
