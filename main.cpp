@@ -25,6 +25,7 @@ int main() {
     flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
     DigitalOut led_B(PA_8);
     led_B.write(1);
+    Timer t;
 
     // FlightPacket packet;
     int packetSize = sizeof(FlightPacket);
@@ -37,11 +38,15 @@ int main() {
     while (true){
         // TESTING...
         // THIS IS IN THE LOOP ON PURPOSE TO ONLY WRITE TO THE FIRST [packetSize] BYTES
-        // uint32_t readAddress = 0;
-        // uint32_t currentFlashAddress = 0; // start writing at address 0
-        // pc.printf("\n\nErasing first sector of flash chip...");
-        // fc.eraseSector(currentFlashAddress);
-        
+        uint32_t readAddress = 0;
+        uint32_t currentFlashAddress = 0; // start writing at address 0
+        pc.printf("\n\nErasing first sector of flash chip...");
+        fc.eraseSector(currentFlashAddress);
+
+        // pc.printf("\nErasing EVERYTHING...\n\n");
+        // fc.eraseAll();    
+        // pc.printf("...Finished Erasing...\n");
+
         // get updated values from all sensors 
         // and store them in the flight packet
         pc.printf("\nUpdating flight packet...");
@@ -75,7 +80,6 @@ int main() {
 
 
 
-
         // // write the packet to the flash chip
         // pc.printf("\nWriting packet to address: %d (Packet Size: %d)", currentFlashAddress, packetSize);
         // ARES.logDataTEST();
@@ -94,9 +98,19 @@ int main() {
         // pc.printf("\n==================================");
 
 
-
         // // big write
-        // pc.printf("\n\n Collecting 100 packets at 10Hz (~10s)...");
+        // pc.printf("\n\nCollecting %d packets at 10Hz...", numPacketDump);
+        // t.start();
+        // uint32_t count_packets = 0;
+        // while (count_packets < numPacketDump) { // break at 10 seconds
+        //     if (t.read_ms() >= 100) { // update and log at 10Hz
+        //         ARES.updateFlightPacket();
+        //         FlightPacket packet = ARES.getState();
+        //         currentFlashAddress = fc.writePacket(currentFlashAddress, packet);
+        //         count_packets++;
+        //     }
+        // }
+
         // for (uint32_t i = 0; i < numPacketDump; i++) {
         //     ARES.updateFlightPacket();
         //     FlightPacket packet = ARES.getState();
@@ -121,7 +135,7 @@ int main() {
         // pc.printf("\nFSM Mode\t:%d \nFix\t\t:%d \nLat Lon\t\t:%f, %f \nPressure\t:%f Pa \nTemperature\t:%f C", \
         //             packet_read.fsm_mode, packet_read.gps_fix, packet_read.latitude_deg, packet_read.longitude_deg, packet_read.pressure_pa, packet_read.temp_c);
         // pc.printf("\n==================================");
-        ThisThread::sleep_for(5s);
+        ThisThread::sleep_for(500ms);
 
 
     }
