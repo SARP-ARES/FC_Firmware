@@ -228,7 +228,6 @@ uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
     return address + sizeof(FlightPacket);
 }
 
-//UNFINISHED
 void flash::printCSVHeader() {
     pc->printf(
         "timestamp_utc,"
@@ -262,21 +261,43 @@ void flash::printCSVHeader() {
         "yaw_rate,"
         "pitch_rate,"
         "roll_rate,"
-        "flight_id\n"
+        "bno_acc_x,"
+        "bno_acc_y,"
+        "bno_acc_z,"
+        "bno_mag_x,"
+        "bno_mag_y,"
+        "bno_mag_z,"
+        "bno_eul_x,"
+        "bno_eul_y,"
+        "bno_eul_z,"
+        "bno_lin_x,"
+        "bno_lin_y,"
+        "bno_lin_z,"
+        "bno_grav_x,"
+        "bno_grav_y,"
+        "bno_grav_z,"
+        "bno_quat_w,"
+        "bno_quat_x,"
+        "bno_quat_y,"
+        "bno_quat_z\n"
+        // "flight_id\n"
     );
 }
 
 
 void flash::printPacketAsCSV(const FlightPacket& pkt) {
+    // if (pkt.timestamp_utc == 0.0f) {
+    //     return; // garbage packet, skip.
+    // }
     pc->printf(
-        "%.3f,"      // timestamp_utc (print with 3 decimal places for sub-second precision)
+        "%.3f,"      // timestamp_utc
         "%u,"        // fsm_mode
         "%u,"        // gps_fix
         "%.4f,"      // heading_deg
         "%.4f,"      // target_heading_deg
         "%.4f,"      // h_speed_m_s
         "%.4f,"      // v_speed_m_s
-        "%.7f,"      // latitude_deg (higher precision for lat/lon)
+        "%.7f,"      // latitude_deg
         "%.7f,"      // longitude_deg
         "%.4f,"      // altitude_gps_m
         "%.4f,"      // altitude_bmp_m
@@ -296,11 +317,30 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // pwm_motor2
         "%.4f,"      // fc_cmd
         "%u,"        // apogee_counter
-        "%u,"        // apogee_detected (print bool as unsigned)
+        "%u,"        // apogee_detected
         "%.4f,"      // yaw_rate
         "%.4f,"      // pitch_rate
         "%.4f,"      // roll_rate
-        "%s\n",      // flight_id (null-terminated string)
+        "%.4f,"      // bno_acc_x
+        "%.4f,"      // bno_acc_y
+        "%.4f,"      // bno_acc_z
+        "%.4f,"      // bno_mag_x
+        "%.4f,"      // bno_mag_y
+        "%.4f,"      // bno_mag_z
+        "%.4f,"      // bno_eul_x
+        "%.4f,"      // bno_eul_y
+        "%.4f,"      // bno_eul_z
+        "%.4f,"      // bno_lin_x
+        "%.4f,"      // bno_lin_y
+        "%.4f,"      // bno_lin_z
+        "%.4f,"      // bno_grav_x
+        "%.4f,"      // bno_grav_y
+        "%.4f,"      // bno_grav_z
+        "%.4f,"      // bno_quat_w
+        "%.4f,"      // bno_quat_x
+        "%.4f,"      // bno_quat_y
+        "%.4f\n",    // bno_quat_z
+        // "%s\n",   // pkt.flight_id (uncomment if you add it back)
         pkt.timestamp_utc,
         pkt.fsm_mode,
         pkt.gps_fix,
@@ -332,7 +372,26 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.yaw_rate,
         pkt.pitch_rate,
         pkt.roll_rate,
-        pkt.flight_id
+        pkt.bno_acc_x,
+        pkt.bno_acc_y,
+        pkt.bno_acc_z,
+        pkt.bno_mag_x,
+        pkt.bno_mag_y,
+        pkt.bno_mag_z,
+        pkt.bno_eul_x,
+        pkt.bno_eul_y,
+        pkt.bno_eul_z,
+        pkt.bno_lin_x,
+        pkt.bno_lin_y,
+        pkt.bno_lin_z,
+        pkt.bno_grav_x,
+        pkt.bno_grav_y,
+        pkt.bno_grav_z,
+        pkt.bno_quat_w,
+        pkt.bno_quat_x,
+        pkt.bno_quat_y,
+        pkt.bno_quat_z
+        // ,pkt.flight_id // Uncomment if you add flight_id back!
     );
 }
 
