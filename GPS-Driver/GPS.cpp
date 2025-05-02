@@ -121,14 +121,6 @@ float GPS::deg2rad(float deg) {
     return rad;
 }
 
-// /*
-// converts longitude coordinates in dddmm.mmmm to radians
-// */
-// float GPS::lon2rad(float lon_dddmm) {
-//     float lon_deg = lon2deg(lon_dddmm);      // extract degrees
-//     float lon_rad = lon_deg * pi/180; 
-//     return lon_rad;
-// }
 
 /**
  * @brief converts UTC time in hhmmss.sss to seconds
