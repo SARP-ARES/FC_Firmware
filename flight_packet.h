@@ -36,11 +36,42 @@ struct FlightPacket {
     float yaw_rate;             // 4
     float pitch_rate;           // 4 
     float roll_rate;            // 4
-    // Add more fields here
-    // string compassDirecton;
-    
-    char flight_id[8];          // 8 (null-terminated string, e.g. "FLIGHT1\0")
 
+    // --- BNO055 Sensor Fields ---
+    // Accelerometer
+    float bno_acc_x;
+    float bno_acc_y;
+    float bno_acc_z;
+
+    // Magnetometer
+    float bno_mag_x;
+    float bno_mag_y;
+    float bno_mag_z;
+
+    // Euler Angles
+    float bno_eul_x;
+    float bno_eul_y;
+    float bno_eul_z;
+
+    // Linear Acceleration
+    float bno_lin_x;
+    float bno_lin_y;
+    float bno_lin_z;
+
+    // Gravity Vector
+    float bno_grav_x;
+    float bno_grav_y;
+    float bno_grav_z;
+
+    // Quaternion (if available)
+    float bno_quat_w;
+    float bno_quat_x;
+    float bno_quat_y;
+    float bno_quat_z;
+
+    // --- END BNO055 Sensor Fields ---
+
+    // char flight_id[8];          // 8 (null-terminated string, e.g. "FLIGHT1\0")
 };
 #pragma pack(pop)
 
