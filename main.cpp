@@ -67,8 +67,11 @@ int main(){
     // trying to turn on antenna status messages
     // const char* buffy1 = "$CDCMD,33,1*7C\r\n";
     // const char* buffy2 = "$PGCMD,33,1*6C"; 
+    const char* buffy3 = "$PMTK300,200,0,0,0,0*2F";
     // int rslt1 = gps.serial.write(buffy1, 17);
     // int rslt2 = gps.serial.write(buffy2, 15);
+    int rslt3 = gps.serial.write(buffy3, 25);
+    pc.printf("\n\n...Wrote 10Hz cmd... result: %d", rslt3);
     // pc.printf("\nsent command to enable antenna status messages... result: %d", rslt1);
 
     while(true){
@@ -162,8 +165,8 @@ int main(){
         posLTP pos = gps.getPosLTP();
         posECEFr origin = gps.getOriginECEFr();
         
-        float lat_deg = gps.lat2deg(state.lat);
-        float lon_deg = gps.lon2deg(state.lon);
+        float lat_deg = state.lat;
+        float lon_deg = state.lon;
         float lat_rad = state.lat * pi / 180;
         float lon_rad = state.lon * pi / 180;
 
