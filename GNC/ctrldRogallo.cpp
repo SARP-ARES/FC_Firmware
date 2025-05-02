@@ -3,7 +3,6 @@
 #include "GPS.h"
 #include "BMP280.h"
 #include "BNO055.h"
-#include <string>
 
 
 /**
@@ -158,7 +157,7 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  * @return 0 if non apogee 1 if apogee
  */ 
 int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
-    if(isnan(prevAlt) || isnan(currAlt)){
+    if(prevAlt != prevAlt || currAlt != currAlt){
         return 0; 
     }
     double interval = .1;       // 0.1 seconds (10Hz)
@@ -170,8 +169,9 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     return 0; 
 }
 
-string ctrldRogallo::getCompassDirection(){
+char* ctrldRogallo::getCompassDirection(){
     float heading = getHeading();
+    char* direction = new char[3];
     while(heading < 0){
         heading += 360; 
     }
@@ -180,26 +180,47 @@ string ctrldRogallo::getCompassDirection(){
     }
     state.headingTemp = heading; 
     if(heading > 360-22.5 || heading <= 22.5 ) {
-        return "N";
+        direction[0] = 'N';
+        direction[1] = '\0';
+        return direction;
     } 
     if(heading < 67.5){
-        return "NE";
+        direction[0] = 'N';
+        direction[1] = 'E';
+        direction[2] = '\0';
+        return direction;
     }
     if(heading < 117.5){
+        direction[0] = 'E';
+        direction[1] = '\0';
         return "E";
     }
     if(heading < 167.5 ){
+        direction[0] = 'S';
+        direction[1] = 'E';
+        direction[2] = '\0';
         return "SE";
     }
     if(heading < 217.5){
+        direction[0] = 'S';
+        direction[1] = '\0';
         return "S";
     }
     if(heading < 267.5){
+        direction[0] = 'S';
+        direction[1] = 'W';
+        direction[2] = '\0';
         return "SW";
     }
     if(heading < 317.5){
+        direction[0] = 'W';
+        direction[1] = '\0';
         return "W";
     }
+    direction[0] = 'N';
+    direction[1] = 'W';
+    direction[2] = '\0';
+    return direction;
     return "NW";
 }   
 

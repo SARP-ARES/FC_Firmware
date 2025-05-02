@@ -64,7 +64,7 @@ int main() {
                     "\nRoll rate\t:%f rad/s", \
                     packet.timestamp_utc, packet.pressure_pa, packet.temp_c, packet.altitude_bmp_m, packet.altitude_gps_m, packet.altitude_m, packet.yaw_rate, packet.pitch_rate, packet.roll_rate);
                     pc.printf("\nCompass Direction\t: %s"
-                    "\nHeading deg\t %f",packet.compassDirection.c_str(), packet.headingTemp);
+                    "\nHeading deg\t %f",packet.compassDirection, packet.headingTemp);
                     pc.printf("\nIs GPS alt Nan?\t: %d"
                     "\n is bmp alt nan?\t: %d", isnan(packet.altitude_gps_m),isGPSnan);
         pc.printf("\n==================================");

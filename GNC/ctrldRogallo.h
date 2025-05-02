@@ -6,7 +6,6 @@
 #include "flash.h"
 #include "flight_packet.h"
 #include <cstdint>
-#include <string>
 
 // Finite State Machine Modes
 typedef enum {
@@ -62,7 +61,7 @@ class ctrldRogallo {
         float getFuzedAlt();
         void setAlphaAlt(float newAlphaAlt);
         void updateApogeeDetection();
-        string getCompassDirection();
+        char* getCompassDirection();
         float getHeading();
 
     public:

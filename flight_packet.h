@@ -37,7 +37,7 @@ struct FlightPacket {
     float roll_rate;            // 4
     // Add more fields here
     float headingTemp; 
-    string compassDirection;
+    char* compassDirection;
     
     char flight_id[8];          // 8 (null-terminated string, e.g. "FLIGHT1\0")
 
