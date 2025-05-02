@@ -69,6 +69,9 @@ void mcp_log() {
     Timer t;
     size_t count = 0;
 
+    DigitalOut led(PA_8);
+    led.write(1);
+
     I2CSerial master(PB_3, PB_10, 0x32, false);
     EUSBSerial pc(0x3232, 0x1);
 
@@ -106,5 +109,5 @@ void mcp() {
 }
 
 int main() {
-    flightComputer();
+    mcp();
 }
