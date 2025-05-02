@@ -257,10 +257,15 @@ void flash::printCSVHeader() {
         "pwm_motor1,"
         "pwm_motor2,"
         "fc_cmd,"
+        "apogee_counter,"
         "apogee_detected,"
+        "yaw_rate,"
+        "pitch_rate,"
+        "roll_rate,"
         "flight_id\n"
     );
 }
+
 
 void flash::printPacketAsCSV(const FlightPacket& pkt) {
     pc->printf(
@@ -290,6 +295,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // pwm_motor1
         "%.4f,"      // pwm_motor2
         "%.4f,"      // fc_cmd
+        "%u,"        // apogee_counter
         "%u,"        // apogee_detected (print bool as unsigned)
         "%.4f,"      // yaw_rate
         "%.4f,"      // pitch_rate
@@ -321,6 +327,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.pwm_motor1,
         pkt.pwm_motor2,
         pkt.fc_cmd,
+        pkt.apogee_counter,
         static_cast<unsigned>(pkt.apogee_detected),
         pkt.yaw_rate,
         pkt.pitch_rate,

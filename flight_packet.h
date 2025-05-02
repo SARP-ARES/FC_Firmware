@@ -31,7 +31,8 @@ struct FlightPacket {
     float pwm_motor1;           // 4
     float pwm_motor2;           // 4
     float fc_cmd;               // 4
-    bool apogee_detected;       // 1
+    uint32_t apogee_counter;    // 4
+    uint8_t apogee_detected;    // 1
     float yaw_rate;             // 4
     float pitch_rate;           // 4 
     float roll_rate;            // 4
@@ -40,7 +41,6 @@ struct FlightPacket {
     
     char flight_id[8];          // 8 (null-terminated string, e.g. "FLIGHT1\0")
 
-    
 };
 #pragma pack(pop)
 

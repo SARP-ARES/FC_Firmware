@@ -52,7 +52,7 @@ class ctrldRogallo {
         FlightPacket state;
         ModeFSM mode;
         bool apogeeDetected;
-        int apogeeCounter;
+        uint32_t apogeeCounter;
         float alphaAlt;
         // BMP280_Values bmp_state;
         // gpsState gps_state;
@@ -68,9 +68,10 @@ class ctrldRogallo {
         uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();
         void updateFlightPacket();
+        void resetFlightPacket();
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
-        int apogeeDetection(double prevAlt, double currAlt);
+        uint32_t apogeeDetection(double prevAlt, double currAlt);
         void logData();
         void logDataTEST();
         const FlightPacket getState();
