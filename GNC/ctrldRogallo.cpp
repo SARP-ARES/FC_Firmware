@@ -13,6 +13,10 @@ ctrldRogallo::ctrldRogallo()
     : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
     bmp.start();
     bno.setup();
+
+    char* gps_cmd = "$PMTK300,100,0,0,0,0*18"; // 100ms = 10hz
+    gps.serial.write(gps_cmd, 23); // send command to enable 10Hz updates
+
     apogeeDetected = 0; // false
     apogeeCounter = 0;
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
@@ -98,6 +102,27 @@ void ctrldRogallo::resetFlightPacket() {
     state.yaw_rate           = NAN;
     state.pitch_rate         = NAN;
     state.roll_rate          = NAN;
+    
+    // BNO055 sensor fields
+    state.bno_acc_x          = NAN;
+    state.bno_acc_y          = NAN;
+    state.bno_acc_z          = NAN;
+    state.bno_mag_x          = NAN;
+    state.bno_mag_y          = NAN;
+    state.bno_mag_z          = NAN;
+    state.bno_eul_x          = NAN;
+    state.bno_eul_y          = NAN;
+    state.bno_eul_z          = NAN;
+    state.bno_lin_x          = NAN;
+    state.bno_lin_y          = NAN;
+    state.bno_lin_z          = NAN;
+    state.bno_grav_x         = NAN;
+    state.bno_grav_y         = NAN;
+    state.bno_grav_z         = NAN;
+    state.bno_quat_w         = NAN;
+    state.bno_quat_x         = NAN;
+    state.bno_quat_y         = NAN;
+    state.bno_quat_z         = NAN;
 
     // Set all integer fields to 0xFF (invalid/unknown)
     state.fsm_mode           = 0xFF;
@@ -106,8 +131,9 @@ void ctrldRogallo::resetFlightPacket() {
     state.apogee_detected    = 0xFF;
 
     // Set flight_id to empty string (or fill with 0xFF if you prefer)
-    std::memset(state.flight_id, 0, sizeof(state.flight_id));
+    // std::memset(state.flight_id, 0, sizeof(state.flight_id));
 }
+
 
 
 /**
@@ -148,12 +174,46 @@ void ctrldRogallo::updateFlightPacket(){
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
 
-    strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
+    // strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
-    // BNO
-    state.yaw_rate = bno.getGyroscope().x; // Confirmed
-    state.pitch_rate = bno.getGyroscope().y; // Confirmed
-    state.roll_rate = bno.getGyroscope().z;  // Confirmed
+    // BNO 
+    bno055_vector_t acc = bno.getAccelerometer();
+    state.bno_acc_x = acc.x;
+    state.bno_acc_y = acc.y;
+    state.bno_acc_z = acc.z;
+
+    bno055_vector_t gyr = bno.getGyroscope();
+    state.yaw_rate = gyr.x;
+    state.pitch_rate = gyr.y;
+    state.roll_rate = gyr.z;
+
+    bno055_vector_t mag = bno.getMagnetometer();
+    state.bno_mag_x = mag.x;
+    state.bno_mag_y = mag.y;
+    state.bno_mag_z = mag.z;
+
+    bno055_vector_t eul = bno.getEuler();
+    state.bno_eul_x = eul.x;
+    state.bno_eul_y = eul.y;
+    state.bno_eul_z = eul.z;
+
+    bno055_vector_t lin = bno.getLinearAccel();
+    state.bno_lin_x = lin.x;
+    state.bno_lin_y = lin.y;
+    state.bno_lin_z = lin.z;
+
+    bno055_vector_t grav = bno.getGravity();
+    state.bno_grav_x = grav.x;
+    state.bno_grav_y = grav.y;
+    state.bno_grav_z = grav.z;
+
+    bno055_vector_t quat = bno.getQuaternion();
+    state.bno_quat_w = quat.w;
+    state.bno_quat_x = quat.x;
+    state.bno_quat_y = quat.y;
+    state.bno_quat_z = quat.z;
+
+
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
 
@@ -195,7 +255,7 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  * @param currAlt - current altitude
  * @return 0 if non apogee 1 if apogee
  */ 
-int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
+uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     // if(isnan(prevAlt) || isnan(currAlt)){
     //     return 0; 
     // }
@@ -209,33 +269,33 @@ int ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     return 0; 
 }
 
-string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){
-    float heading = atan2(rollMag, pitchMag) * 180/pi;
-    if(heading < 0) heading += 360; 
-    if(heading > 360) heading -= 360;
-    if(heading > 360-22.5 || heading <= 22.5 ) {
-        return "N";
-    } 
-    if(heading < 67.5){
-        return "NE";
-    }
-    if(heading < 117.5){
-        return "E";
-    }
-    if(heading < 167.5 ){
-        return "SE";
-    }
-    if(heading < 217.5){
-        return "S";
-    }
-    if(heading < 267.5){
-        return "SW";
-    }
-    if(heading < 317.5){
-        return "W";
-    }
-    return "NW";
-}   
+// string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){
+//     float heading = atan2(rollMag, pitchMag) * 180/pi;
+//     if(heading < 0) heading += 360; 
+//     if(heading > 360) heading -= 360;
+//     if(heading > 360-22.5 || heading <= 22.5 ) {
+//         return "N";
+//     } 
+//     if(heading < 67.5){
+//         return "NE";
+//     }
+//     if(heading < 117.5){
+//         return "E";
+//     }
+//     if(heading < 167.5 ){
+//         return "SE";
+//     }
+//     if(heading < 217.5){
+//         return "S";
+//     }
+//     if(heading < 267.5){
+//         return "SW";
+//     }
+//     if(heading < 317.5){
+//         return "W";
+//     }
+//     return "NW";
+// }   
 
 // /**
 //  * @brief logs current state as a flight packet to the flash chip
