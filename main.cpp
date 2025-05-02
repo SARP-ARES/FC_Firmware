@@ -61,7 +61,7 @@ int main(){
     int index = 0;
     int success;
 
-    ThisThread::sleep_for(1000ms); // Wait for serial port to connect
+    ThisThread::sleep_for(1s); // Wait for serial port to connect
     pc.printf("\n\nStarting GPS Testing...");
 
     // trying to turn on antenna status messages
@@ -126,7 +126,7 @@ int main(){
         // BELOW GETS AND PRINTS REAL GPS DATA USING LEGACY UPDATE METHOD
         
 
-        // // read each character of the message and send to the corresponding buffer index
+        // read each character of the message and send to the corresponding buffer index
         // if (gps.serial.readable()) {
         //     gps.serial.read(&buf[index], 1);
         //     index ++;
@@ -148,15 +148,15 @@ int main(){
         //     pc.printf("\nitems matched\t: %d", result);
         //     index = 0; // reset 
 
-        //     // int rslt2 = gps.serial.write(buffy2, 15);
-        //     // pc.printf("\nsent command to enable antenna status messages... result: %d", rslt2);
+            // int rslt2 = gps.serial.write(buffy2, 15);
+            // pc.printf("\nsent command to enable antenna status messages... result: %d", rslt2);
         // }
 
 
         //====================================================================================================
         // BELOW GETS AND PRINTS REAL GPS DATA USING bigUpdate();
 
-        
+
         success = gps.bigUpdate();
         gpsState state = gps.getState();
         posLTP pos = gps.getPosLTP();
@@ -175,7 +175,7 @@ int main(){
         pc.printf("\nNumber of messages parsed with information: %d", success);
         pc.printf("\n-----------------------------------------------");
         pc.printf("\nUTC\t\t: %.3f \nFix\t\t: %d \nHeading\t\t: %.3f \nLattitude\t: %.3f \tdeg \nLongitude\t: %.3f \tdeg \nAltitude\t: %.3f \tm \nposEast\t\t: %.3f \tm \nposNorth\t: %.3f \tm \nposUp\t\t: %.3f \tm \nOrigin x\t: %.3f \nOrigin y\t: %.3f \nOrigin z\t: %.3f \nmode1\t\t: %c \nmode2\t\t: %d \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f", \
-                state.utc, state.fix, state.heading, gps.lat2deg(state.lat), gps.lon2deg(state.lon), state.alt, pos.e, pos.n, pos.u, origin.x, origin.y, origin.z, state.mode1, state.mode2, state.pdop, state.hdop, state.vdop);
+                state.utc, state.fix, state.heading, state.lat, state.lon, state.alt, pos.e, pos.n, pos.u, origin.x, origin.y, origin.z, state.mode1, state.mode2, state.pdop, state.hdop, state.vdop);
         pc.printf("\n===============================================\n\n");
 
 

@@ -311,27 +311,6 @@ int GPS::update_VTG(const char* msg){ // TODO: NEEDS TESTING
 // legacy method
 int GPS::update(NMEA_Type msgType, const char* msg){
 
-    // initialize state variables
-    int _;
-    float utc;
-    float lat;
-    char latNS;
-    float lon;
-    char lonEW;
-    int fix;
-    float alt;
-    float hdop;
-    float heading; 
-    float gspeed;
-
-    // currently unused vars
-    int nsats;
-    char altUnits;
-    float gsep;
-    char gsepUnits;
-    float ageCorrection;
-    int checksum;
-
     switch(msgType) {
         
         case NMEA_NA: { // type not recognized
