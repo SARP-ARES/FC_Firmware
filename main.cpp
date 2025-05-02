@@ -156,7 +156,7 @@ int main(){
         //====================================================================================================
         // BELOW GETS AND PRINTS REAL GPS DATA USING bigUpdate();
 
-
+        
         success = gps.bigUpdate();
         gpsState state = gps.getState();
         posLTP pos = gps.getPosLTP();
@@ -164,8 +164,8 @@ int main(){
         
         float lat_deg = gps.lat2deg(state.lat);
         float lon_deg = gps.lon2deg(state.lon);
-        float lat_rad = gps.lat2rad(state.lat);
-        float lon_rad = gps.lon2rad(state.lon);
+        float lat_rad = state.lat * pi / 180;
+        float lon_rad = state.lon * pi / 180;
 
         // pc.printf("\n-----------------------------------------------");
         // pc.printf("\nLat (deg)\t: %.4f \nLon (deg)\t: %.4f \nLat (rad)\t: %.4f \nLon (rad)\t: %.4f", lat_deg, lon_deg, lat_rad, lon_rad);
