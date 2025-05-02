@@ -50,6 +50,8 @@ int main() {
         // get updated values from all sensors 
         // and store them in the flight packet
         pc.printf("\nUpdating flight packet...");
+
+        // ARES.resetFlightPacket(); // Set everything to nans
         ARES.updateFlightPacket();
 
         // get state and print values directly

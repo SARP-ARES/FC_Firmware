@@ -12,6 +12,7 @@
 ctrldRogallo::ctrldRogallo() 
     : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
     bmp.start();
+    bno.setup();
     apogeeDetected = false;
     apogeeCounter = 0;
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
@@ -65,6 +66,9 @@ float ctrldRogallo::getThetaErr(){
     return thetaErr_deg;
 }
 
+// void ctrldRogallo::resetFlightPacket() {
+
+// }
 
 /**
  * @brief updates the state of the system to log as a packet of data
