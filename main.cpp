@@ -21,10 +21,10 @@ uint32_t eraseAddr = 0;
 /*
  * SET NUMBER OF PACKETS TO LOG
  */
-uint32_t numPacketDump = 30;
+uint32_t numPacketDump = 100;
 
 
-void reset(){
+void startup(){
     DigitalOut led_B(PA_8);
     led_B.write(0);
     // flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
@@ -57,22 +57,24 @@ void dump(){
  *          OR just pass pins & stuff instead of hardcoding
  */
 int main() {
-    ThisThread::sleep_for(1s);
+    ThisThread::sleep_for(1s); // wait for serial port to connect
     pc.printf("Entering main program...");
+    ThisThread::sleep_for(5s);
 
-
-    // reset();
-
-    fc.eraseSector(0);
+    startup();
+    // fc.eraseSector(0);
 
     // flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
     ctrldRogallo ARES;
     
 
-    // start high, write low once apogee is detected
-    // to trigger control sequence
+    /* 
+     * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
+     * to trigger control sequence
+     */
     DigitalOut ctrl_trigger(PB_3); 
     ctrl_trigger.write(1); 
+
 
     Timer t;
     
@@ -82,12 +84,20 @@ int main() {
 
     pc.printf("\n\nCollecting %d %d-byte packets at 1Hz...", numPacketDump, packetSize);
     
+
+
     // big write
     for (uint32_t i = 0; i < numPacketDump; i++) {
         ARES.resetFlightPacket();
         ARES.updateFlightPacket();
-        FlightPacket packet = ARES.getState();
-        currentFlashAddress = fc.writePacket(currentFlashAddress, packet);
+        FlightPacket state = ARES.getState();
+
+        if (state.fsm_mode == FSM_SEEKING) {
+            ctrl_trigger.write(0); // its go time
+        }
+
+        currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+
         ThisThread::sleep_for(100ms); 
     }
 
