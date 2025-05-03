@@ -51,47 +51,47 @@ int main() {
 
     while (true){
         // uint32_t readAddress = 0;
-        uint32_t currentFlashAddress = 0; // start writing at address 0
-        pc.printf("\n\nErasing first sector of flash chip...");
-        fc.eraseSector(currentFlashAddress);
+        // uint32_t currentFlashAddress = 0; // start writing at address 0
+        // pc.printf("\n\nErasing first sector of flash chip...");
+        // fc.eraseSector(currentFlashAddress);
 
 
         // get updated values from all sensors 
         // and store them in the flight packet
-        // pc.printf("\nUpdating flight packet...");
+        pc.printf("\nUpdating flight packet...");
+        
+        ARES.resetFlightPacket(); // Set everything to nans
+        ARES.updateFlightPacket(); // Update with sensor values
 
-        // ARES.resetFlightPacket(); // Set everything to nans
-        // ARES.updateFlightPacket();
-
-        // // get state and print values directly
-        // FlightPacket packet = ARES.getState();
-        // pc.printf("\nPrinting State Direclty (No Flash Chip)");
-        // pc.printf("\n================================================");
-        // pc.printf("\nUTC\t\t\t:%f"
-        //             "\nFSM Mode\t\t:%d"
-        //             "\nFix\t\t\t:%d"
-        //             "\nLat, Lon, Alt\t\t:%f, %f, %f"
-        //             "\ne, n, u\t\t\t:%f, %f, %f"
-        //             "\nBMP alt, GPS alt\t:%f, %f"
-        //             // "\n P, H, V DOP\t%f, %f, %f"
-        //             "\nPressure\t\t:%f Pa"
-        //             "\nTemperature\t\t:%f C"
-        //             "\nyaw, pitch, roll rates\t:%f, %f, %f"
-        //             "\nApogee Counter\t\t:%d"
-        //             "\nAPOGEE DETECTED\t\t:%d",
-        //             packet.timestamp_utc,
-        //             packet.fsm_mode,
-        //             packet.gps_fix,
-        //             packet.latitude_deg, packet.longitude_deg, packet.altitude_m,
-        //             packet.pos_east_m, packet.pos_north_m, packet.pos_up_m,
-        //             packet.altitude_bmp_m,
-        //             packet.altitude_gps_m,
-        //             packet.pressure_pa,
-        //             packet.temp_c,
-        //             packet.yaw_rate, packet.pitch_rate, packet.roll_rate,
-        //             packet.apogee_counter,
-        //             packet.apogee_detected);
-        // pc.printf("\n================================================");
+        // get state and print values directly
+        FlightPacket packet = ARES.getState();
+        pc.printf("\nPrinting State Direclty (No Flash Chip)");
+        pc.printf("\n================================================");
+        pc.printf("\nUTC\t\t\t:%f"
+                    "\nFSM Mode\t\t:%d"
+                    "\nFix\t\t\t:%d"
+                    "\nLat, Lon, Alt\t\t:%f, %f, %f"
+                    "\ne, n, u\t\t\t:%f, %f, %f"
+                    "\nBMP alt, GPS alt\t:%f, %f"
+                    // "\n P, H, V DOP\t%f, %f, %f"
+                    "\nPressure\t\t:%f Pa"
+                    "\nTemperature\t\t:%f C"
+                    "\nyaw, pitch, roll rates\t:%f, %f, %f"
+                    "\nApogee Counter\t\t:%d"
+                    "\nAPOGEE DETECTED\t\t:%d",
+                    packet.timestamp_utc,
+                    packet.fsm_mode,
+                    packet.gps_fix,
+                    packet.latitude_deg, packet.longitude_deg, packet.altitude_m,
+                    packet.pos_east_m, packet.pos_north_m, packet.pos_up_m,
+                    packet.altitude_bmp_m,
+                    packet.altitude_gps_m,
+                    packet.pressure_pa,
+                    packet.temp_c,
+                    packet.yaw_rate, packet.pitch_rate, packet.roll_rate,
+                    packet.apogee_counter,
+                    packet.apogee_detected);
+        pc.printf("\n================================================");
 
 
 
@@ -113,8 +113,9 @@ int main() {
         // pc.printf("\n==================================");
 
 
-        // big write
-        pc.printf("\n\nCollecting %d %d-byte packets at 1Hz...", numPacketDump, packetSize);
+        // // big write
+        // pc.printf("\n\nCollecting %d %d-byte packets at 1Hz...", numPacketDump, packetSize);
+
         // t.start();
         // uint32_t count_packets = 0;
         // while (count_packets < numPacketDump) { // break at 10 seconds
@@ -128,20 +129,20 @@ int main() {
         // }
         
 
-        for (uint32_t i = 0; i < numPacketDump; i++) {
-            ARES.resetFlightPacket();
-            ARES.updateFlightPacket();
-            FlightPacket packet = ARES.getState();
-            currentFlashAddress = fc.writePacket(currentFlashAddress, packet);
-            ThisThread::sleep_for(100ms); 
-        }
+        // for (uint32_t i = 0; i < numPacketDump; i++) {
+        //     ARES.resetFlightPacket();
+        //     ARES.updateFlightPacket();
+        //     FlightPacket packet = ARES.getState();
+        //     currentFlashAddress = fc.writePacket(currentFlashAddress, packet);
+        //     ThisThread::sleep_for(100ms); 
+        // }
 
-        // big dumpy
-        pc.printf("\nDumping %d packets...", numPacketDump);
-        pc.printf("\n==================================\n");
-        fc.dumpAllPackets(numPacketDump);
-        pc.printf("\n==================================\n");
-        break;
+        // // big dumpy
+        // pc.printf("\nDumping %d packets...", numPacketDump);
+        // pc.printf("\n==================================\n");
+        // fc.dumpAllPackets(numPacketDump);
+        // pc.printf("\n==================================\n");
+        // break;
 
 
         // // erase
@@ -153,6 +154,7 @@ int main() {
         // pc.printf("\nFSM Mode\t:%d \nFix\t\t:%d \nLat Lon\t\t:%f, %f \nPressure\t:%f Pa \nTemperature\t:%f C", \
         //             packet_read.fsm_mode, packet_read.gps_fix, packet_read.latitude_deg, packet_read.longitude_deg, packet_read.pressure_pa, packet_read.temp_c);
         // pc.printf("\n==================================");
+
         // ThisThread::sleep_for(100ms);
 
 
