@@ -13,15 +13,19 @@ public:
     // Constructor
     flash(PinName mosi, PinName miso, PinName sclk, PinName csPin);
 
+    // Constructs flash chip with pointer to EUSBSerial object for printing 
+    flash(PinName mosi, PinName miso, PinName sclk, PinName csPin, EUSBSerial* pc);
+
     // Read operations
     void read(uint32_t address, uint8_t *buffer, size_t length);
     uint8_t readByte(uint32_t address);
     float readNum(uint32_t address);
-    void readPacket(uint32_t address, FlightPacket& pkt);
+    uint32_t readPacket(uint32_t address, FlightPacket& pkt);
 
     // Read data to CSV
+    void printCSVHeader();
     void printPacketAsCSV(const FlightPacket& pkt);
-    void dumpAllPackets(flash& fc, uint32_t numPackets);
+    void dumpAllPackets(uint32_t numPackets);
 
     // Write operations
     uint32_t write(uint32_t address, const uint8_t *buffer, size_t length);
@@ -32,6 +36,7 @@ public:
 
     // Erase operations
     void eraseSector(uint32_t address);
+    void eraseAll();
 
     // Control operations
     void enableWrite();
@@ -41,10 +46,8 @@ public:
 private:
     SPI _spi;       // SPI communication interface
     DigitalOut _cs; // Chip Select (CS) pin
-    EUSBSerial pc;
+    EUSBSerial* pc;
 
-    // to help read data to CSV
-    void printCSVHeader();
 
     // Helper functions for SPI communication
     void csLow();
