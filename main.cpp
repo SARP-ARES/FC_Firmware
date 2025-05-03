@@ -33,24 +33,28 @@ int main() {
     Timer t;
 
     // FlightPacket packet;
-    int packetSize = sizeof(FlightPacket);
+    uint32_t packetSize = sizeof(FlightPacket);
+    uint32_t MAX_NUM_PACKETS = 16384; // = # of pages, 4.55 hours at 1Hz
+    // 16 pages per sector
     uint32_t eraseAddr = 0;
     ThisThread::sleep_for(2s); // wait for serial port to connect?
     // pc.printf("\nStarting flash chip testing...");
     // fc.eraseSector(currentFlashAddress); // to not overwrite stuff
-    uint32_t numPacketDump = 20;
+
+    uint32_t numPacketDump = 30;
+
+    // pc.printf("\nErasing flash chip memory...\n\n");
+    // fc.eraseAll();    
+    // pc.printf("...Erasing Complete...\n\n");
+    // ThisThread::sleep_for(1s);
+    // pc.printf("ARES READY FOR FLIGHT")
 
     while (true){
-        // TESTING...
-        // THIS IS IN THE LOOP ON PURPOSE TO ONLY WRITE TO THE FIRST [packetSize] BYTES
-        uint32_t readAddress = 0;
+        // uint32_t readAddress = 0;
         uint32_t currentFlashAddress = 0; // start writing at address 0
         pc.printf("\n\nErasing first sector of flash chip...");
         fc.eraseSector(currentFlashAddress);
 
-        // pc.printf("\nErasing EVERYTHING...\n\n");
-        // fc.eraseAll();    
-        // pc.printf("...Finished Erasing...\n");
 
         // get updated values from all sensors 
         // and store them in the flight packet
@@ -110,7 +114,7 @@ int main() {
 
 
         // big write
-        pc.printf("\n\nCollecting %d packets at 10Hz...", numPacketDump);
+        pc.printf("\n\nCollecting %d %d-byte packets at 1Hz...", numPacketDump, packetSize);
         // t.start();
         // uint32_t count_packets = 0;
         // while (count_packets < numPacketDump) { // break at 10 seconds
@@ -122,12 +126,14 @@ int main() {
         //         count_packets++;
         //     }
         // }
+        
 
         for (uint32_t i = 0; i < numPacketDump; i++) {
+            ARES.resetFlightPacket();
             ARES.updateFlightPacket();
             FlightPacket packet = ARES.getState();
             currentFlashAddress = fc.writePacket(currentFlashAddress, packet);
-            ThisThread::sleep_for(100ms); // 10Hz
+            ThisThread::sleep_for(100ms); 
         }
 
         // big dumpy

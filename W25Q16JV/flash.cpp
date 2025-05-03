@@ -219,13 +219,14 @@ float flash::readNum(uint32_t address) {
 
 // Write entire data packet (struct)
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
-    return write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
+    write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
+    return address + 256;
 }
 
 // Read packet
 uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
     read(address, reinterpret_cast<uint8_t*>(&pkt), sizeof(FlightPacket));
-    return address + sizeof(FlightPacket);
+    return address + 256; // next page
 }
 
 void flash::printCSVHeader() {
@@ -396,13 +397,11 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
 }
 
 
-
-// UNFINISHED
 void flash::dumpAllPackets(uint32_t numPackets) {
     FlightPacket pkt;
     printCSVHeader();
     for (uint32_t i = 0; i < numPackets; ++i) {
-        readPacket(i * sizeof(FlightPacket), pkt);
+        readPacket(i * 256, pkt);
         printPacketAsCSV(pkt);
     }
 }
