@@ -3,6 +3,10 @@
 #include "EUSBSerial.h"
 #include "I2CSerial.h"
 
+#include "Motor.h"
+#include "PID.h"
+#include "Distributor.h"
+
 
 
 void flightComputer() {
@@ -108,6 +112,26 @@ void mcp() {
     }
 }
 
+void motor_control() {
+    DigitalOut led1(PC_14);
+    led1.write(0);
+
+    PID pid(0.1, 0, 0);
+
+    Motor motor1(PB_3, PA_14, PA_11, PA_10, PA_12, PA_9, &pid); // left motor WITH PA_14 SUBSTITUTION
+    Motor motor2(PA_6, PA_5, PB_14, PB_15, PB_13, PA_8, &pid); // right motor
+
+    // Now with no input!
+    Distributor distributor;
+
+    // DEBUG CODE
+    motor1.motorPower(0.2);
+
+    while (true) {
+        ThisThread::sleep_for(1s);
+    }
+}
+
 int main() {
-    mcp();
+    motor_control();
 }
