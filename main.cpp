@@ -42,7 +42,6 @@ int main(){
     
     // setup timer for use in secondary actions
     Timer t;
-    t.start();
 
     GPS gps(PA_2, PA_3); // instantiate
     gps.setOriginECEFr(47.664612, -122.303568, 60); // set lat/lon/alt origin 
@@ -61,19 +60,20 @@ int main(){
     int index = 0;
     int success;
 
-    ThisThread::sleep_for(1s); // Wait for serial port to connect
+    ThisThread::sleep_for(2s); // Wait for serial port to connect
     pc.printf("\n\nStarting GPS Testing...");
 
     // trying to turn on antenna status messages
     const char* buffy1 = "$CDCMD,33,1*7C\r\n";
     // const char* buffy2 = "$PGCMD,33,1*6C"; 
-    const char* buffy3 = "$PMTK300,200,0,0,0,0*2F";
+    const char* antenna_status_cmd = "$PMTK300,200,0,0,0,0*2F";
     int rslt1 = gps.serial.write(buffy1, 17);
     // int rslt2 = gps.serial.write(buffy2, 15);
-    int rslt3 = gps.serial.write(buffy3, 25);
+    int rslt3 = gps.serial.write(antenna_status_cmd, 25);
     pc.printf("\n\n...Wrote antenna status cmd... result: %d", rslt1);
     // pc.printf("\nsent command to enable antenna status messages... result: %d", rslt1);
-
+    ThisThread::sleep_for(5s);
+    t.start();
     while(true){
         // // BELOW SENDS FAKE MESSAGES TO TEST UPDATES
 
@@ -128,7 +128,7 @@ int main(){
         //====================================================================================================
         // BELOW GETS AND PRINTS REAL GPS DATA USING LEGACY UPDATE METHOD
         
-
+        
         //read each character of the message and send to the corresponding buffer index
         if (gps.serial.readable()) {
             gps.serial.read(&buf[index], 1);
@@ -146,13 +146,18 @@ int main(){
             const char* msgTypeStr = getTypeStr(msgType);
             pc.printf("Message Type\t: %s", msgTypeStr); // write the message type
             gpsState state = gps.getState();
-            pc.printf("\nUTC\t\t: %f \nFix\t\t: %d \nmode2\t\t: %d \nLattitude\t: %f %c \nLongitude\t: %f %c\nAltitude\t: %f\nHeading\t\t: %.3f degrees \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f", \
-                            state.utc, state.fix, state.mode2, state.lat, state.latNS, state.lon, state.lonEW, state.alt, state.heading, state.pdop, state.hdop, state.vdop);
+            pc.printf("\nUTC\t\t: %f \nFix\t\t: %d \nmode2\t\t: %d \nLattitude\t: %f %c \nLongitude\t: %f %c\nAltitude\t: %f\nHeading\t\t: %.3f degrees \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f \nAntenna Status\t: %d", \
+                            state.utc, state.fix, state.mode2, state.lat, state.latNS, state.lon, state.lonEW, state.alt, state.heading, state.pdop, state.hdop, state.vdop, state.antenna_status);
             pc.printf("\nitems matched\t: %d", result);
-            index = 0; // reset 
+            index = 0; // reset    
 
-            
+            if (t.read_ms() > 5000) { // get antenna status every 5s
+                gps.serial.write(antenna_status_cmd, 25);
+            } 
         }
+
+        
+
 
 
         //====================================================================================================

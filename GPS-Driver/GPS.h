@@ -43,6 +43,7 @@ struct gpsState{
     int date;
     char mode1;
     char mode2;
+    int antenna_status;
 };
 
 
@@ -52,7 +53,8 @@ typedef enum {
     NMEA_GSA,   // 2
     NMEA_GSV,   // 3
     NMEA_RMC,   // 4
-    NMEA_VTG    // 5
+    NMEA_VTG,   // 5
+    NMEA_ANT    // 6 
 } NMEA_Type;
 
 
@@ -81,6 +83,7 @@ class GPS {
         int update_GSV(const char* msg);
         int update_RMC(const char* msg);
         int update_VTG(const char* msg);
+        int update_antenna_status(const char* msg);
 
         void updatePosLTP();
         
