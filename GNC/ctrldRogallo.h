@@ -15,30 +15,7 @@ typedef enum {
     FSM_GROUNDED,   // 3
 } ModeFSM;
 
-// struct gpsState{ // Do I have to define this here again??
-//     double lat;
-//     double lon;
-//     double alt;
-//     double hdop;
-//     double heading; 
-//     double gspeed;
-//     double utc;
-//     char latNS;
-//     char lonEW;
-//     int fix;
-// };
 
-// struct bmpState{ // Do I have to define this here again??
-//     double alt;
-//     double press;
-//     double temp;
-// };
-
-// struct imuState{ // Do I have to define this here again??
-//     double theta_deg;
-//     double x;
-    
-// };
 
 class ctrldRogallo {
 
@@ -53,8 +30,6 @@ class ctrldRogallo {
         bool apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
-        // BMP280_Values bmp_state;
-        // gpsState gps_state;
         posLTP ltp;
         
         void setModeFSM(ModeFSM mode);

@@ -3,7 +3,6 @@
 #include "GPS.h"
 #include "BMP280.h"
 #include "BNO055.h"
-#include <string>
 
 
 /**
@@ -13,10 +12,7 @@ ctrldRogallo::ctrldRogallo()
     : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
     bmp.start();
     bno.setup();
-
-    char* gps_cmd = "$PMTK300,100,0,0,0,0*18"; // 100ms = 10hz
-    gps.serial.write(gps_cmd, 23); // send command to enable 10Hz updates
-
+    resetFlightPacket();
     apogeeDetected = 0; // false
     apogeeCounter = 0;
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
@@ -70,8 +66,7 @@ float ctrldRogallo::getThetaErr(){
     return thetaErr_deg;
 }
 
-#include <cmath>    // for NAN
-#include <cstring>  // for memset, strcpy
+
 
 void ctrldRogallo::resetFlightPacket() {
     // Set all float fields to NAN
