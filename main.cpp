@@ -21,7 +21,7 @@ uint32_t eraseAddr = 0;
 /*
  * SET NUMBER OF PACKETS TO LOG
  */
-uint32_t numPacketDump = 100;
+uint32_t numPacketDump = 5;
 
 
 void startup(){
@@ -58,11 +58,11 @@ void dump(){
  */
 int main() {
     ThisThread::sleep_for(1s); // wait for serial port to connect
-    pc.printf("Entering main program...");
+    pc.printf("\nEntering main program...\n");
     ThisThread::sleep_for(5s);
 
-    startup();
-    // fc.eraseSector(0);
+    // startup();
+    fc.eraseSector(0);
 
     // flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
     ctrldRogallo ARES;
@@ -82,7 +82,7 @@ int main() {
     ThisThread::sleep_for(1s);
     uint32_t currentFlashAddress = 0;
 
-    pc.printf("\n\nCollecting %d %d-byte packets at 1Hz...", numPacketDump, packetSize);
+    pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketDump, packetSize);
     
 
 

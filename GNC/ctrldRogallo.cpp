@@ -219,7 +219,7 @@ void ctrldRogallo::updateFlightPacket(){
     }
 
 
-    strncpy(state.flight_id, "FLIGHT01", sizeof(state.flight_id));
+    strncpy(state.flight_id, "ARES-01\0", sizeof(state.flight_id));
 
     
 }
