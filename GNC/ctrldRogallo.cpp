@@ -122,6 +122,7 @@ void ctrldRogallo::resetFlightPacket() {
     // Set all integer fields to 0xFF (invalid/unknown)
     state.fsm_mode           = 0xFF;
     state.gps_fix            = 0xFFFF;
+    state.gps_antenna_status = 0xFF;
     state.apogee_counter     = 0xFFFFFFFF;
     state.apogee_detected    = 0xFF;
 
@@ -149,6 +150,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.timestamp_utc = gps_state.utc;
     state.fsm_mode = this->mode;
     state.gps_fix = gps_state.fix;
+    state.gps_antenna_status = gps_state.antenna_status;
     state.heading_deg = gps_state.heading;
     state.target_heading_deg = getTargetHeading();
     state.h_speed_m_s = gps_state.gspeed;

@@ -234,6 +234,7 @@ void flash::printCSVHeader() {
         "timestamp_utc,"
         "fsm_mode,"
         "gps_fix,"
+        "gps_antenna_status,"
         "heading_deg,"
         "target_heading_deg,"
         "h_speed_m_s,"
@@ -294,6 +295,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.3f,"      // timestamp_utc
         "%u,"        // fsm_mode
         "%u,"        // gps_fix
+        "%u,"        // gps_antenna_status
         "%.4f,"      // heading_deg
         "%.4f,"      // target_heading_deg
         "%.4f,"      // h_speed_m_s
@@ -345,6 +347,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.timestamp_utc,
         pkt.fsm_mode,
         pkt.gps_fix,
+        pkt.gps_antenna_status,
         pkt.heading_deg,
         pkt.target_heading_deg,
         pkt.h_speed_m_s,

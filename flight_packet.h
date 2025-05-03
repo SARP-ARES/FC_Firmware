@@ -8,6 +8,7 @@ struct FlightPacket {
     float timestamp_utc;        // 4 bytes
     uint8_t fsm_mode;           // 1
     uint16_t gps_fix;           // 2
+    uint8_t gps_antenna_status; // 1
     float heading_deg;          // 4
     float target_heading_deg;   // 4
     float h_speed_m_s;          // 4

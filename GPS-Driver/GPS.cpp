@@ -66,6 +66,9 @@ NMEA_Type GPS::getMsgType(const char* msg) {
             return NMEA_VTG;
             break;
         }
+        case ',': { // PCD (antenna status)
+            return NMEA_ANT;
+        }  
     }
     return NMEA_NA; // No type found
 }
@@ -142,7 +145,7 @@ float GPS::utc2sec(float utc) {
 ADD DESCRIPTION
 
 */
-int GPS::update_GGA(const char* msg){ // TODO: NEEDS TESTING
+int GPS::update_GGA(const char* msg){
     int _;
     char subtype = 'O';
     float utc = NAN;
@@ -215,7 +218,7 @@ int GPS::update_GSV(const char* msg){ // don't care
     return 0;
 }
 
-int GPS::update_GSA(const char* msg){ // TODO: NEEDS TESTING
+int GPS::update_GSA(const char* msg){
     // GSA - GPS DOP and Active Satellites
     char subtype = 'O';
     char mode1 = 'O';           // Operating mode (M=Manual, A=Automatic)
@@ -261,7 +264,7 @@ int GPS::update_GSA(const char* msg){ // TODO: NEEDS TESTING
     return result;
 }
 
-int GPS::update_RMC(const char* msg){ // TODO: NEEDS TESTING
+int GPS::update_RMC(const char* msg){
     float utc = NAN;
     char status = 'O';
     float lat = NAN;
@@ -295,8 +298,18 @@ int GPS::update_RMC(const char* msg){ // TODO: NEEDS TESTING
     return result;
 }
 
-int GPS::update_VTG(const char* msg){ // TODO: NEEDS TESTING
+int GPS::update_VTG(const char* msg){
     return 0;
+}
+
+int GPS::update_antenna_status(const char* msg){
+    uint8_t antenna_status = 0;
+    // Parse the RMC message
+    int result = sscanf(msg, "$PCD,11,%d",
+                        &antenna_status);
+    this->state.antenna_status = antenna_status;
+    
+    return result;
 }
 
 
@@ -333,6 +346,10 @@ int GPS::update(NMEA_Type msgType, const char* msg){
         case NMEA_VTG: { // VTG
             // don't care
             return 0;
+        }
+
+        case NMEA_ANT: {
+            int result = update_antenna_status(msg);
         }
     }
     return 0;
@@ -500,7 +517,7 @@ int GPS::bigUpdate(){
             break; // break out once all message types have been processed
         }
 
-        if (t.read_ms() > 3000) { // something fishy is going on
+        if (t.read_ms() > 2000) { // something fishy is going on
             break;
         }
     }
