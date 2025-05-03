@@ -341,7 +341,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // bno_quat_x
         "%.4f,"      // bno_quat_y
         "%.4f\n",    // bno_quat_z
-        // "%s\n",   // pkt.flight_id (uncomment if you add it back)
+        "%s\n",   // pkt.flight_id (uncomment if you add it back)
         pkt.timestamp_utc,
         pkt.fsm_mode,
         pkt.gps_fix,
@@ -391,8 +391,8 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.bno_quat_w,
         pkt.bno_quat_x,
         pkt.bno_quat_y,
-        pkt.bno_quat_z
-        // ,pkt.flight_id // Uncomment if you add flight_id back!
+        pkt.bno_quat_z,
+        pkt.flight_id
     );
 }
 

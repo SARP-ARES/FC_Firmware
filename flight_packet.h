@@ -71,7 +71,7 @@ struct FlightPacket {
 
     // --- END BNO055 Sensor Fields ---
 
-    // char flight_id[8];          // 8 (null-terminated string, e.g. "FLIGHT1\0")
+    char flight_id[8];          // 8 (null-terminated string
 };
 #pragma pack(pop)
 

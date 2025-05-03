@@ -169,7 +169,6 @@ void ctrldRogallo::updateFlightPacket(){
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
 
-    // strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
     // BNO 
     bno055_vector_t acc = bno.getAccelerometer();
@@ -213,11 +212,15 @@ void ctrldRogallo::updateFlightPacket(){
 
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
-    if(apogeeCounter >= 20){
+    if(apogeeCounter >= 15){
         apogeeDetected = 1; // true
         // trigger seeking mode
         mode = FSM_SEEKING; // 1
     }
+
+
+    strncpy(state.flight_id, "FLIGHT01", sizeof(state.flight_id));
+
     
 }
 
@@ -251,14 +254,10 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  * @return 0 if non apogee 1 if apogee
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
-    // if(isnan(prevAlt) || isnan(currAlt)){
-    //     return 0; 
-    // }
-    double interval = .5;       // 0.1 seconds (10Hz)
-    // double apogeeVelo = -1.5;   // m/s
-    double apogeeVelo = -2;   // m/s
+    double interval = 1; // seconds
+    double apogeeVelo = -1.2; // m/s
     double velo = (currAlt - prevAlt)/interval;
-    if(velo <= apogeeVelo && currAlt) { // >= 600){ // 600m threshold altitude
+    if(velo <= apogeeVelo && currAlt >= 600) { // 600m threshold altitude
         return 1;
     }
     return 0; 
