@@ -9,7 +9,7 @@
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
 ctrldRogallo::ctrldRogallo() 
-    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
+    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), fc_mcps(PB_3, PB_10, 0x32, false){
     bmp.start();
     bno.setup();
     resetFlightPacket();
@@ -67,6 +67,13 @@ float ctrldRogallo::getThetaErr(){
 }
 
 
+MotorData ctrldRogallo::getMotorData(){
+    MotorData motor_state;
+    fc_mcps.read(reinterpret_cast<char*>(&motor_state), sizeof(MotorData));
+
+    return motor_state;
+}
+
 
 void ctrldRogallo::resetFlightPacket() {
     // Set all float fields to NAN
@@ -85,12 +92,10 @@ void ctrldRogallo::resetFlightPacket() {
     state.pos_up_m           = NAN;
     state.temp_c             = NAN;
     state.pressure_pa        = NAN;
-    state.delta1             = NAN;
-    state.delta_1_m          = NAN;
-    state.delta2             = NAN;
+    state.delta1_deg         = NAN;
+    state.delta1_m           = NAN;
+    state.delta2_deg         = NAN;
     state.delta2_m           = NAN;
-    state.delta_a            = NAN;
-    state.delta_s            = NAN;
     state.pwm_motor1         = NAN;
     state.pwm_motor2         = NAN;
     state.fc_cmd             = NAN;
@@ -144,7 +149,17 @@ void ctrldRogallo::updateFlightPacket(){
 
     gpsState gps_state = gps.getState();
     bmp_state = bmp.getState(); 
+    MotorData motor_state = getMotorData();
     posLTP ltp = gps.getPosLTP();
+
+    // MCPS
+    state.delta1_deg = motor_state.delta1_deg;
+    state.delta2_deg = motor_state.delta2_deg;
+    state.delta1_m = state.delta1_deg / 360 * SPOOL_CIRC;
+    state.delta2_m = state.delta2_deg / 360 * SPOOL_CIRC;
+    state.pwm_motor1 = motor_state.pwm_motor1;
+    state.pwm_motor2 = motor_state.pwm_motor2;
+
 
     // GPS 
     state.timestamp_utc = gps_state.utc;
@@ -210,7 +225,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.bno_quat_z = quat.z;
 
 
-    // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
+    state.compass_heading = getCompassDirection();
 
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
@@ -249,8 +264,8 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
     alphaAlt = newAlphaAlt;
 }
 
-/** 
- * @breif - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
+/**
+ * @breif - detects if rocket has reached apogee based upon current velocity * (-1.5 m/s constitutes as apogee)
  * @param prevAlt - previous altitude 
  * @param currAlt - current altitude
  * @return 0 if non apogee 1 if apogee
@@ -265,46 +280,59 @@ uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     return 0; 
 }
 
-// string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){
-//     float heading = atan2(rollMag, pitchMag) * 180/pi;
-//     if(heading < 0) heading += 360; 
-//     if(heading > 360) heading -= 360;
-//     if(heading > 360-22.5 || heading <= 22.5 ) {
-//         return "N";
-//     } 
-//     if(heading < 67.5){
-//         return "NE";
-//     }
-//     if(heading < 117.5){
-//         return "E";
-//     }
-//     if(heading < 167.5 ){
-//         return "SE";
-//     }
-//     if(heading < 217.5){
-//         return "S";
-//     }
-//     if(heading < 267.5){
-//         return "SW";
-//     }
-//     if(heading < 317.5){
-//         return "W";
-//     }
-//     return "NW";
-// }   
 
-// /**
-//  * @brief logs current state as a flight packet to the flash chip
-//  */
-// void ctrldRogallo::logData() {
-//     currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-// }
+char* ctrldRogallo::getCompassDirection(){
+    float heading = state.heading_deg;
+    char* direction = new char[3];
+    while(heading < 0){
+        heading += 360; 
+    }
+    while(heading > 360){
+        heading -= 360;
+    } 
+    if(heading > 360-22.5 || heading <= 22.5 ) {
+        direction[0] = 'N';
+        direction[1] = '\0';
+        return direction;
+    } 
+    if(heading < 67.5){
+        direction[0] = 'N';
+        direction[1] = 'E';
+        direction[2] = '\0';
+        return direction;
+    }
+    if(heading < 117.5){
+        direction[0] = 'E';
+        direction[1] = '\0';
+        return "E";
+    }
+    if(heading < 167.5 ){
+        direction[0] = 'S';
+        direction[1] = 'E';
+        direction[2] = '\0';
+        return "SE";
+    }
+    if(heading < 217.5){
+        direction[0] = 'S';
+        direction[1] = '\0';
+        return "S";
+    }
+    if(heading < 267.5){
+        direction[0] = 'S';
+        direction[1] = 'W';
+        direction[2] = '\0';
+        return "SW";
+    }
+    if(heading < 317.5){
+        direction[0] = 'W';
+        direction[1] = '\0';
+        return "W";
+    }
+    direction[0] = 'N';
+    direction[1] = 'W';
+    direction[2] = '\0';
+    return direction;
+    return "NW";
+}   
 
-// /**
-//  * @brief logs current state as a flight packet to address 0 only
-//  */
-// void ctrldRogallo::logDataTEST() {
-//     currentFlashAddress = 0;
-//     currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-// }
 
