@@ -17,7 +17,6 @@ ctrldRogallo::ctrldRogallo()
     apogeeCounter = 0;
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
-    currentFlashAddress = 0; // start writing to address zero TODO: maybe pass as param?
 } 
 
 
