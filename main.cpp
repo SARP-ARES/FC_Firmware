@@ -21,10 +21,10 @@ uint32_t eraseAddr = 0;
 /*
  * SET NUMBER OF PACKETS TO LOG
  */
-uint32_t numPacketDump = 5;
+uint32_t numPacketDump = 50;
 
 
-void startup(){
+void startup() {
     DigitalOut led_B(PA_8);
     led_B.write(0);
     // flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
@@ -34,10 +34,42 @@ void startup(){
     pc.printf("...Erasing Complete...\n\n");
     ThisThread::sleep_for(1s);
     led_B.write(1);
-    pc.printf("ARES READY FOR FLIGHT");
+    pc.printf("ARES READY FOR FLIGHT (flash 'flight_log()'\n";
 }
 
 
+/* 
+*  start ctrl_trigger high, write low once apogee is detected and fsm_mode =
+* to trigger control sequence
+*/
+void flight_log() {
+
+    ctrldRogallo ARES; 
+
+    /* 
+     * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
+     * to trigger control sequence
+     */
+    DigitalOut ctrl_trigger(PB_3); 
+    ctrl_trigger.write(1); 
+    
+    ThisThread::sleep_for(1s);
+    uint32_t currentFlashAddress = 0;
+
+    pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketDump, packetSize);
+    
+    // big write
+    for (uint32_t i = 0; i < numPacketDump; i++) {
+        ARES.resetFlightPacket();   // set all state variables to NAN or equivalent
+        ARES.updateFlightPacket();  // update all state variables with sensor data
+        FlightPacket state = ARES.getState();   // extract state variables
+        currentFlashAddress = fc.writePacket(currentFlashAddress, state);   // write state variables to flash chip
+
+        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+            ctrl_trigger.write(0); // signal to control sequence on MCPS 
+        }
+    }
+}
 
 
 void dump(){
@@ -49,58 +81,18 @@ void dump(){
 }
 
 
-/*
- * Instantiates:    GPS gps(PA_2, PA_3), BMP280 bmp(PB_7, PB_8, 0xEE),
- *                  BNO055 bno(PB_7, PB_8, 0x51)
- * 
- * TODO:    should instantiate objects in main and pass pointers 
- *          OR just pass pins & stuff instead of hardcoding
- */
+
 int main() {
     ThisThread::sleep_for(1s); // wait for serial port to connect
+    pc.printf("30s to flash before main program begins..\n");
+    ThisThread::sleep_for(30s);
     pc.printf("\nEntering main program...\n");
-    ThisThread::sleep_for(5s);
 
-    // startup();
-    fc.eraseSector(0);
-
-    // flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
-    ctrldRogallo ARES;
-    
-
-    /* 
-     * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
-     * to trigger control sequence
+    /*
+     * PROCEDURE
+     * 1) startup()     - erases all chip memory
+     * 2) flight_log()  - logs data during flight
+     * 3) dump()        - prints all data on flash chip as a CSV
      */
-    DigitalOut ctrl_trigger(PB_3); 
-    ctrl_trigger.write(1); 
-
-
-    Timer t;
-    
-
-    ThisThread::sleep_for(1s);
-    uint32_t currentFlashAddress = 0;
-
-    pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketDump, packetSize);
-    
-
-
-    // big write
-    for (uint32_t i = 0; i < numPacketDump; i++) {
-        ARES.resetFlightPacket();
-        ARES.updateFlightPacket();
-        FlightPacket state = ARES.getState();
-
-        if (state.fsm_mode == FSM_SEEKING) {
-            ctrl_trigger.write(0); // its go time
-        }
-
-        currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-
-        ThisThread::sleep_for(100ms); 
-    }
-
-    dump();
-    
+    flight_log();
 }
