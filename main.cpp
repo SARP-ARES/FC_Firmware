@@ -20,8 +20,9 @@ uint32_t eraseAddr = 0;
 
 /*
  * SET NUMBER OF PACKETS TO LOG
+ * for for 1.5 hours of logging, log 5400 packets
  */
-uint32_t numPacketDump = 50;
+uint32_t numPackets = 1000; 
 
 
 void startup() {
@@ -34,15 +35,12 @@ void startup() {
     pc.printf("...Erasing Complete...\n\n");
     ThisThread::sleep_for(1s);
     led_B.write(1);
-    pc.printf("ARES READY FOR FLIGHT (flash 'flight_log()'\n";
+    pc.printf("ARES IS READY TO BEGIN FLIGHT LOG\n");
 }
 
 
-/* 
-*  start ctrl_trigger high, write low once apogee is detected and fsm_mode =
-* to trigger control sequence
-*/
-void flight_log() {
+
+void flight_log(uint32_t numPacketLog) {
 
     ctrldRogallo ARES; 
 
@@ -56,10 +54,11 @@ void flight_log() {
     ThisThread::sleep_for(1s);
     uint32_t currentFlashAddress = 0;
 
-    pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketDump, packetSize);
-    
+    pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketLog, packetSize);
+    pc.printf("\nARES IS READY TO INSTALL\n");
+
     // big write
-    for (uint32_t i = 0; i < numPacketDump; i++) {
+    for (uint32_t i = 0; i < numPacketLog; i++) {
         ARES.resetFlightPacket();   // set all state variables to NAN or equivalent
         ARES.updateFlightPacket();  // update all state variables with sensor data
         FlightPacket state = ARES.getState();   // extract state variables
@@ -72,7 +71,7 @@ void flight_log() {
 }
 
 
-void dump(){
+void dump(uint32_t numPacketDump){
     // big dumpy
     pc.printf("\nDumping %d packets...", numPacketDump);
     pc.printf("\n==================================\n");
@@ -84,7 +83,7 @@ void dump(){
 
 int main() {
     ThisThread::sleep_for(1s); // wait for serial port to connect
-    pc.printf("30s to flash before main program begins..\n");
+    pc.printf("\n30s to flash before main program begins..\n");
     ThisThread::sleep_for(30s);
     pc.printf("\nEntering main program...\n");
 
@@ -94,5 +93,5 @@ int main() {
      * 2) flight_log()  - logs data during flight
      * 3) dump()        - prints all data on flash chip as a CSV
      */
-    flight_log();
+    dump(numPackets);
 }
