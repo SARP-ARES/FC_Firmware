@@ -39,6 +39,34 @@ void startup() {
 }
 
 
+// void mcp_log() {
+//     Timer t;
+//     size_t count = 0;
+
+//     DigitalOut led(PA_8);
+//     led.write(1);
+
+//     I2CSerial master(PB_3, PB_10, 0x32, false);
+//     EUSBSerial pc(0x3232, 0x1);
+
+//     ThisThread::sleep_for(1s);
+
+//     t.start();
+//     while (true) {
+//         char buf[256] = {0};
+//         if (master.readline(buf, 256)) {
+//             pc.printf("(MCP) %s", buf);
+//             t.reset();
+//         }
+
+//         if (t.read_ms() > 5000) {
+//             pc.printf("(FC) KeepAlive %d\n", count);
+//             count ++;
+//             t.reset();
+//         }
+//     }
+// }
+
 
 void flight_log(uint32_t numPacketLog) {
 
@@ -93,5 +121,5 @@ int main() {
      * 2) flight_log()  - logs data during flight
      * 3) dump()        - prints all data on flash chip as a CSV
      */
-    dump(numPackets);
+    startup();
 }
