@@ -1,5 +1,4 @@
 #include "mbed.h"
-#include <string>
 #ifndef FLIGHT_PACKET_H
 #define FLIGHT_PACKET_H
 
@@ -23,9 +22,9 @@ struct FlightPacket {
     float pos_up_m;             // 4
     float temp_c;               // 4
     float pressure_pa;          // 4
-    float delta1;               // 4
-    float delta_1_m;            // 4
-    float delta2;               // 4
+    float delta1_deg;           // 4
+    float delta1_m;             // 4
+    float delta2_deg;           // 4
     float delta2_m;             // 4
     float delta_a;              // 4
     float delta_s;              // 4
@@ -69,6 +68,8 @@ struct FlightPacket {
     float bno_quat_x;
     float bno_quat_y;
     float bno_quat_z;
+
+    char* compass_heading;    // 3
 
     // --- END BNO055 Sensor Fields ---
 
