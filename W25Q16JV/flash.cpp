@@ -249,9 +249,9 @@ void flash::printCSVHeader() {
         "pos_up_m,"
         "temp_c,"
         "pressure_pa,"
-        "delta1,"
-        "delta_1_m,"
-        "delta2,"
+        "delta1_deg,"
+        "delta1_m,"
+        "delta2_deg,"
         "delta2_m,"
         "delta_a,"
         "delta_s,"
@@ -282,6 +282,7 @@ void flash::printCSVHeader() {
         "bno_quat_x,"
         "bno_quat_y,"
         "bno_quat_z,"
+        "compass_heading,"
         "flight_id\n"
     );
 }
@@ -310,9 +311,9 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // pos_up_m
         "%.4f,"      // temp_c
         "%.4f,"      // pressure_pa
-        "%.4f,"      // delta1
-        "%.4f,"      // delta_1_m
-        "%.4f,"      // delta2
+        "%.4f,"      // delta1_deg
+        "%.4f,"      // delta1_m
+        "%.4f,"      // delta2_deg
         "%.4f,"      // delta2_m
         "%.4f,"      // delta_a
         "%.4f,"      // delta_s
@@ -343,6 +344,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // bno_quat_x
         "%.4f,"      // bno_quat_y
         "%.4f,"       // bno_quat_z
+        "%s,"           // compass_heading
         "%s\n",      // pkt.flight_id (uncomment if you add it back)
         pkt.timestamp_utc,
         pkt.fsm_mode,
@@ -362,9 +364,9 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.pos_up_m,
         pkt.temp_c,
         pkt.pressure_pa,
-        pkt.delta1,
-        pkt.delta_1_m,
-        pkt.delta2,
+        pkt.delta1_deg,
+        pkt.delta1_m,
+        pkt.delta2_deg,
         pkt.delta2_m,
         pkt.delta_a,
         pkt.delta_s,
@@ -395,6 +397,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.bno_quat_x,
         pkt.bno_quat_y,
         pkt.bno_quat_z,
+        pkt.compass_heading,
         pkt.flight_id
     );
 }
