@@ -13,7 +13,7 @@ typedef enum {
     FSM_IDLE,       // 0
     FSM_SEEKING,    // 1
     FSM_SPIRAL,     // 2
-    FSM_GROUNDED,   // 3
+    FSM_GROUNDED    // 3
 } ModeFSM;
 
 #pragma pack(push, 1) // remove padding to ensure correct memory layout
@@ -47,7 +47,7 @@ class ctrldRogallo {
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
-        char* getCompassDirection();
+        // char* getCompassDirection();
 
     public:
         uint32_t currentFlashAddress; // move to private after testing

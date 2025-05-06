@@ -33,11 +33,15 @@ struct FlightPacket {
     float fc_cmd;               // 4
     uint32_t apogee_counter;    // 4
     uint8_t apogee_detected;    // 1
-    float yaw_rate;             // 4
-    float pitch_rate;           // 4 
-    float roll_rate;            // 4
+
 
     // --- BNO055 Sensor Fields ---
+
+    // Gyroscope
+    float yaw_rate;           
+    float pitch_rate;           
+    float roll_rate;           
+
     // Accelerometer
     float bno_acc_x;
     float bno_acc_y;
@@ -69,7 +73,7 @@ struct FlightPacket {
     float bno_quat_y;
     float bno_quat_z;
 
-    char* compass_heading;    // 3
+    // char* compass_heading;    // 3
 
     // --- END BNO055 Sensor Fields ---
 

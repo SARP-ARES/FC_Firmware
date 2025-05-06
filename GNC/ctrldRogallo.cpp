@@ -68,8 +68,17 @@ float ctrldRogallo::getThetaErr(){
 
 
 MotorData ctrldRogallo::getMotorData(){
-    MotorData motor_state;
-    fc_mcps.read(reinterpret_cast<char*>(&motor_state), sizeof(MotorData));
+    MotorData motor_state_temp;
+    MotorData motor_state {
+            0.0,
+            0.0,
+            0.0,
+            0.0
+    };
+
+    if (fc_mcps.read(reinterpret_cast<char*>(&motor_state_temp), sizeof(MotorData))){
+        motor_state = motor_state_temp;
+    }
 
     return motor_state;
 }
@@ -103,6 +112,14 @@ void ctrldRogallo::resetFlightPacket() {
     state.pitch_rate         = NAN;
     state.roll_rate          = NAN;
     
+    // Motor Data
+    state.delta1_deg         = NAN;
+    state.delta1_m           = NAN;
+    state.delta2_deg         = NAN;
+    state.delta2_m           = NAN;
+    state.pwm_motor1         = NAN;
+    state.pwm_motor2         = NAN;
+
     // BNO055 sensor fields
     state.bno_acc_x          = NAN;
     state.bno_acc_y          = NAN;
@@ -130,6 +147,7 @@ void ctrldRogallo::resetFlightPacket() {
     state.gps_antenna_status = 0xFF;
     state.apogee_counter     = 0xFFFFFFFF;
     state.apogee_detected    = 0xFF;
+
 
     // Set flight_id to empty string (or fill with 0xFF if you prefer)
     // std::memset(state.flight_id, 0, sizeof(state.flight_id));
@@ -225,7 +243,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.bno_quat_z = quat.z;
 
 
-    state.compass_heading = getCompassDirection();
+    // state.compass_heading = getCompassDirection();
 
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
@@ -281,58 +299,61 @@ uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
 }
 
 
-char* ctrldRogallo::getCompassDirection(){
-    float heading = state.heading_deg;
-    char* direction = new char[3];
-    while(heading < 0){
-        heading += 360; 
-    }
-    while(heading > 360){
-        heading -= 360;
-    } 
-    if(heading > 360-22.5 || heading <= 22.5 ) {
-        direction[0] = 'N';
-        direction[1] = '\0';
-        return direction;
-    } 
-    if(heading < 67.5){
-        direction[0] = 'N';
-        direction[1] = 'E';
-        direction[2] = '\0';
-        return direction;
-    }
-    if(heading < 117.5){
-        direction[0] = 'E';
-        direction[1] = '\0';
-        return "E";
-    }
-    if(heading < 167.5 ){
-        direction[0] = 'S';
-        direction[1] = 'E';
-        direction[2] = '\0';
-        return "SE";
-    }
-    if(heading < 217.5){
-        direction[0] = 'S';
-        direction[1] = '\0';
-        return "S";
-    }
-    if(heading < 267.5){
-        direction[0] = 'S';
-        direction[1] = 'W';
-        direction[2] = '\0';
-        return "SW";
-    }
-    if(heading < 317.5){
-        direction[0] = 'W';
-        direction[1] = '\0';
-        return "W";
-    }
-    direction[0] = 'N';
-    direction[1] = 'W';
-    direction[2] = '\0';
-    return direction;
-    return "NW";
-}   
+// char* ctrldRogallo::getCompassDirection(){
+//     float heading = state.heading_deg;
+//     char* direction = new char[3];
+//     // while(heading < 0){
+//     //     heading += 360; 
+//     // }
+//     // while(heading > 360){
+//     //     heading -= 360;
+//     // } 
+//     if(heading > 360-22.5 || heading <= 22.5 ) {
+//         direction[0] = 'N';
+//         direction[1] = '\0';
+//         direction[2] = '\0';
+//         return direction;
+//     } 
+//     if(heading < 67.5){
+//         direction[0] = 'N';
+//         direction[1] = 'E';
+//         direction[2] = '\0';
+//         return direction;
+//     }
+//     if(heading < 117.5){
+//         direction[0] = 'E';
+//         direction[1] = '\0';
+//         direction[2] = '\0';
+//         return direction;
+//     }
+//     if(heading < 167.5 ){
+//         direction[0] = 'S';
+//         direction[1] = 'E';
+//         direction[2] = '\0';
+//         return direction;
+//     }
+//     if(heading < 217.5){
+//         direction[0] = 'S';
+//         direction[1] = '\0';
+//         direction[2] = '\0';
+//         return direction;
+//     }
+//     if(heading < 267.5){
+//         direction[0] = 'S';
+//         direction[1] = 'W';
+//         direction[2] = '\0';
+//         return direction;
+//     }
+//     if(heading < 317.5){
+//         direction[0] = 'W';
+//         direction[1] = '\0';
+//         direction[2] = '\0';
+//         return direction;
+//     }
+//     direction[0] = 'N';
+//     direction[1] = 'W';
+//     direction[2] = '\0';
+//     return direction;
+// }   
 
 

@@ -10,6 +10,10 @@
 
 EUSBSerial pc;
 flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
+DigitalOut led_B(PA_8);
+DigitalOut led_G(PA_15);
+Thread thread;
+DigitalOut ctrl_trigger(PB_3);
 
 // = # of pages, 4.55 hours at 1Hz
 // 16 pages per sector
@@ -22,14 +26,11 @@ uint32_t eraseAddr = 0;
  * SET NUMBER OF PACKETS TO LOG
  * for for 1.5 hours of logging, log 5400 packets
  */
-uint32_t numPackets = 1000; 
+uint32_t numPackets = 16000; 
 
 
 void startup() {
-    DigitalOut led_B(PA_8);
     led_B.write(0);
-    // flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
-    // EUSBSerial pc;
     pc.printf("\nErasing flash chip memory...\n\n");
     fc.eraseAll();    
     pc.printf("...Erasing Complete...\n\n");
@@ -39,37 +40,8 @@ void startup() {
 }
 
 
-// void mcp_log() {
-//     Timer t;
-//     size_t count = 0;
-
-//     DigitalOut led(PA_8);
-//     led.write(1);
-
-//     I2CSerial master(PB_3, PB_10, 0x32, false);
-//     EUSBSerial pc(0x3232, 0x1);
-
-//     ThisThread::sleep_for(1s);
-
-//     t.start();
-//     while (true) {
-//         char buf[256] = {0};
-//         if (master.readline(buf, 256)) {
-//             pc.printf("(MCP) %s", buf);
-//             t.reset();
-//         }
-
-//         if (t.read_ms() > 5000) {
-//             pc.printf("(FC) KeepAlive %d\n", count);
-//             count ++;
-//             t.reset();
-//         }
-//     }
-// }
-
 
 void flight_log(uint32_t numPacketLog) {
-
     ctrldRogallo ARES; 
 
     /* 
@@ -84,6 +56,7 @@ void flight_log(uint32_t numPacketLog) {
 
     pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketLog, packetSize);
     pc.printf("\nARES IS READY TO INSTALL\n");
+    led_G.write(1);
 
     // big write
     for (uint32_t i = 0; i < numPacketLog; i++) {
@@ -99,6 +72,40 @@ void flight_log(uint32_t numPacketLog) {
 }
 
 
+void flight_log_TEST(uint32_t numPacketLog) {
+    ctrldRogallo ARES; 
+
+    /* 
+     * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
+     * to trigger control sequence
+     */
+    DigitalOut ctrl_trigger(PB_3); 
+    ctrl_trigger.write(1); 
+    
+    ThisThread::sleep_for(1s);
+    uint32_t currentFlashAddress = 0;
+
+    pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketLog, packetSize);
+    pc.printf("\nARES IS READY TO INSTALL\n");
+    led_G.write(1);
+
+    // big write
+    for (uint32_t i = 0; i < numPacketLog; i++) {
+        ARES.resetFlightPacket();   // set all state variables to NAN or equivalent
+        ARES.updateFlightPacket();  // update all state variables with sensor data
+        FlightPacket state = ARES.getState();   // extract state variables
+        // currentFlashAddress = fc.writePacket(currentFlashAddress, state);   // write state variables to flash chip
+
+        pc.printf("\ndelta1 (deg)\t: %f \ndelta2 (deg)\t: %f \ndelta1 (m)\t: %f \ndelta2 (m)\t: %f \npwm 1\t\t: %f \npwm 2\t\t: %f\n", state.delta1_deg, state.delta2_deg, state.delta1_m, state.delta2_m, state.pwm_motor1, state.pwm_motor2);
+        
+        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+            ctrl_trigger.write(0); // signal to control sequence on MCPS 
+        }
+    }
+}
+
+
+
 void dump(uint32_t numPacketDump){
     // big dumpy
     pc.printf("\nDumping %d packets...", numPacketDump);
@@ -108,12 +115,29 @@ void dump(uint32_t numPacketDump){
 }
 
 
+void ledFlashy30() {
+    Timer t;
+    t.start();
+
+    while (t.read_ms() < 30*1000) {
+        led_B.write(1);
+        led_G.write(0);
+        ThisThread::sleep_for(100ms);
+        led_B.write(0);
+        led_G.write(1);
+        ThisThread::sleep_for(100ms);
+    }
+    led_G.write(0);
+}
+
 
 int main() {
     ThisThread::sleep_for(1s); // wait for serial port to connect
     pc.printf("\n30s to flash before main program begins..\n");
+    thread.start(ledFlashy30);
     ThisThread::sleep_for(30s);
     pc.printf("\nEntering main program...\n");
+
 
     /*
      * PROCEDURE
@@ -121,5 +145,19 @@ int main() {
      * 2) flight_log()  - logs data during flight
      * 3) dump()        - prints all data on flash chip as a CSV
      */
-    startup();
+
+    // startup();
+    flight_log(numPackets);
+    // dump(numPackets);
+
+
+
+
+    // // TESTING BELOW
+    // // ctrl_trigger.write(1); 
+    // ThisThread::sleep_for(100ms);
+    
+
+
+
 }
