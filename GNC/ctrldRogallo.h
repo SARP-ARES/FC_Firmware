@@ -42,6 +42,7 @@ class ctrldRogallo {
         bool apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
+        uint32_t packetsRecorded; 
         posLTP ltp;
         MotorData getMotorData();
         void setModeFSM(ModeFSM mode);

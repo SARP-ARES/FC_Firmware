@@ -30,9 +30,14 @@ void startup() {
     led_B.write(0);
     // flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
     // EUSBSerial pc;
+    Timer t;
+    t.start();
+
     pc.printf("\nErasing flash chip memory...\n\n");
-    fc.eraseAll();    
-    pc.printf("...Erasing Complete...\n\n");
+    fc.eraseAll(); 
+    int ms = t.read_ms();   
+    pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
+    
     ThisThread::sleep_for(1s);
     led_B.write(1);
     pc.printf("ARES IS READY TO BEGIN FLIGHT LOG\n");
@@ -69,6 +74,7 @@ void startup() {
 
 
 void flight_log(uint32_t numPacketLog) {
+
 
     ctrldRogallo ARES; 
 
@@ -112,7 +118,7 @@ void dump(uint32_t numPacketDump){
 int main() {
     ThisThread::sleep_for(1s); // wait for serial port to connect
     pc.printf("\n30s to flash before main program begins..\n");
-    ThisThread::sleep_for(30s);
+    ThisThread::sleep_for(5s);
     pc.printf("\nEntering main program...\n");
 
     /*
@@ -121,5 +127,5 @@ int main() {
      * 2) flight_log()  - logs data during flight
      * 3) dump()        - prints all data on flash chip as a CSV
      */
-    startup();
+    flight_log(100); 
 }

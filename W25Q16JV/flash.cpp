@@ -148,8 +148,21 @@ void flash::eraseAll() {
     _spi.write((const char *)&cmd, 1, NULL, 0);
     csHigh();
 
-    wait_us(100000000);
+    cmd = 0x05;
+    uint8_t s1; 
+    while(true){
+        wait_us(10000);
+        csLow();
+        _spi.write((const char *)cmd, 1, NULL, 0);
+        _spi.write(NULL, 0, (char *) &s1, 1); // Only receive data
+        csHigh();
+
+        if((s1 & 0b1) == 0){
+            break;
+        }
+    }
 }
+
 
 /**
  * Sends Write Enable command to allow write/erase operations.
@@ -172,6 +185,7 @@ void flash::disableWrite() {
     csHigh();
     wait_us(5000);
 }
+
 
 /**
  * Resets the flash chip using the two-command reset sequence.

@@ -304,35 +304,34 @@ char* ctrldRogallo::getCompassDirection(){
     if(heading < 117.5){
         direction[0] = 'E';
         direction[1] = '\0';
-        return "E";
+        return direction;
     }
     if(heading < 167.5 ){
         direction[0] = 'S';
         direction[1] = 'E';
         direction[2] = '\0';
-        return "SE";
+        return direction;
     }
     if(heading < 217.5){
         direction[0] = 'S';
         direction[1] = '\0';
-        return "S";
+        return direction;
     }
     if(heading < 267.5){
         direction[0] = 'S';
         direction[1] = 'W';
         direction[2] = '\0';
-        return "SW";
+        return direction;
     }
     if(heading < 317.5){
         direction[0] = 'W';
         direction[1] = '\0';
-        return "W";
+        return direction;
     }
     direction[0] = 'N';
     direction[1] = 'W';
     direction[2] = '\0';
     return direction;
-    return "NW";
 }   
 
 
