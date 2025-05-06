@@ -9,14 +9,12 @@ void Motor::updateGlobals() {
     position = encoderCounter;
     angle = (encoderCounter * 360.0) / totalCounts;
     rotations = angle / 360.0;
-
 }
 
 void Motor::aRiseCallback() {
     aUp = true;
-    led.write(1);
 
-    if (!bUp) {
+    if (powerPositive) {
         encoderCounter++;
     } else {
         encoderCounter--;
@@ -37,9 +35,8 @@ void Motor::bRiseCallback() {
 
 void Motor::aFallCallback() {
     aUp = false;
-    led.write(1);
 
-    if (bUp) {
+    if (powerPositive) {
         encoderCounter++;
     } else {
         encoderCounter--;
@@ -69,7 +66,6 @@ Motor::Motor(PinName PIN_A, PinName PIN_B, PinName MOTOR_1, PinName MOTOR_2, Pin
     encoderB.mode(PullUp);
 
     if (encoderA.read() == 1) {
-
         aUp = true;
     }
     if (encoderB.read() == 1) {
@@ -81,8 +77,8 @@ Motor::Motor(PinName PIN_A, PinName PIN_B, PinName MOTOR_1, PinName MOTOR_2, Pin
     // Attach the address of the encoderCallback function to the each edge
     encoderA.rise([this]() {aRiseCallback();});
     encoderA.fall([this]() {aFallCallback();});
-    encoderB.rise([this]() {bRiseCallback();});
-    encoderB.fall([this]() {bFallCallback();});
+    // encoderB.rise([this]() {bRiseCallback();});
+    // encoderB.fall([this]() {bFallCallback();});
 
     led.write(1);
 }
@@ -92,8 +88,14 @@ int Motor::getEncoderA() {
     return encoderA.read();
 }
 
+int Motor::getEncoderB() {
+    updateGlobals();
+    return encoderB.read();
+}
+
 void Motor::motorPower(float power) {
     if (power > 0) {
+        powerPositive = true;
         if (!powerPositive) {
             motorPin1.write(0);
             motorPin2.write(0);
@@ -102,11 +104,11 @@ void Motor::motorPower(float power) {
 
             ThisThread::sleep_for(2ms);
         }
-        powerPositive = true;
         //set forward pins proportional to powe
         motorPin1.write(1);
         motorPin4.write(power);
     } else if (power < 0) {
+        powerPositive = false;
         if (powerPositive) {
             motorPin1.write(0);
             motorPin2.write(0);
@@ -115,7 +117,6 @@ void Motor::motorPower(float power) {
 
             ThisThread::sleep_for(2ms);
         }
-        powerPositive = false;
         //set backwards pins prop to |power|
         this->motorPin3.write(1);
         this->motorPin2.write(-power);
@@ -177,4 +178,9 @@ void Motor::lineTo(float retraction, int delay) {
         float displacement = getDisplacement();
         float power = motorPID->compute(displacement, inches, delay);
         motorPower(retraction);
+}
+
+int Motor::getEncoderTicks() {
+    updateGlobals();
+    return encoderCounter;
 }

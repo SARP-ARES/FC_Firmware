@@ -6,7 +6,7 @@
 #include "Motor.h"
 #include "PID.h"
 #include "Distributor.h"
-
+#include "MotorData.h"
 
 
 void flightComputer() {
@@ -113,23 +113,88 @@ void mcp() {
 }
 
 void motor_control() {
+
+
+
+    MotorData packet = {
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    };
+
+    DigitalIn startPin(PB_7);
+    ThisThread::sleep_for(5000ms);
+    while (startPin.read() == 1) {
+        ThisThread::sleep_for(100ms);
+    }
+
+
+
     DigitalOut led1(PC_14);
+    led1.write(1);
+
+    PID pid(0.001, 5,  0.1);
+    I2CSerial mcpsToFc(PB_7, PB_8, 0x32, true);
+
+    // Motor motor1(PB_5, PB_3, PA_11, PA_10, PA_12, PA_9, &pid); // left motor WITH PA_14 SUBSTITUTION, A AND B ENCODER CHANNELS SWITCHED BECAUSE ONLY A WORKS
+    Motor motor2(PA_5, PA_6, PB_14, PB_15, PB_13, PA_8, &pid); // right motor
+
+    ThisThread::sleep_for(30s);
+    motor2.motorPower(1);
+    ThisThread::sleep_for(16s);
+    motor2.motorPower(0);
+
+    // int seqLength = 3;
+    // float arr1[3] = {720, 0, 0};
+    // float arr2[3] = {0, 720, 0};
+    // int seconds = 5;
+    // int dt = 10;
+    // int repspersec = 100;
+
+    // float power1 = 0;
+    // float power2 = 0;
+
+    
+    // for (int i = 0; i < seqLength; i++) {
+
+    //     for (int j = 0; j < seconds*repspersec; j++) {
+    //         power1 = -pid.compute(motor1.getDegrees(), arr1[i], dt);
+    //         power2 = -pid.compute(motor2.getDegrees(), arr2[i], dt);
+    //         // slave.printf("Power: %d %\n", (int) (power*100));
+    //         motor1.motorPower(power1);
+    //         motor2.motorPower(power2);
+    //         if (j % 50 == 0) {
+    //         }
+    //         ThisThread::sleep_for(10ms);
+    //     }
+    // }
+
+
+    // for (int i = 0; i < 500; i++) {
+    //     power = -pid.compute(motor1.getDegrees(), -360, 10);
+    //     motor1.motorPower(-0.5);
+    //     ThisThread::sleep_for(10ms);
+    // }
+
     led1.write(0);
 
-    PID pid(0.1, 0, 0);
-
-    Motor motor1(PB_3, PA_14, PA_11, PA_10, PA_12, PA_9, &pid); // left motor WITH PA_14 SUBSTITUTION
-    Motor motor2(PA_6, PA_5, PB_14, PB_15, PB_13, PA_8, &pid); // right motor
-
-    // Now with no input!
-    Distributor distributor;
-
-    // DEBUG CODE
-    motor1.motorPower(0.2);
-
-    while (true) {
-        ThisThread::sleep_for(1s);
-    }
+    
+    // for (int i = 0; true; i++) {
+    //     ThisThread::sleep_for(10ms);
+    //     power = -pid.compute(motor2.getDegrees(), 7000, 10);
+    //     motor2.motorPower(power);
+    //     if (i % 50 == 0) {
+    //         // Write entire data packet (struct)
+    //         packet.delta1_deg = 7000 - motor2.getDegrees();
+    //         packet.delta2_deg = 0;
+    //         packet.pwm_motor1 = power;
+    //         packet.pwm_motor2 = 0;
+    //         mcpsToFc.write(reinterpret_cast<char*>(&packet), sizeof(MotorData));
+    //     }
+        
+        // slave.printf("degrees: %d%\n", motor1.getDegrees()*100);
+    //}
 }
 
 int main() {

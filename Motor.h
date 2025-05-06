@@ -26,8 +26,9 @@ class Motor {
 
         const float PI = 3.1415926535;
 
+        const int encoderChannels = 1; // Number of channels being used
         volatile int encoderCounter = 0; // Counter for the encoder ticks
-        const int countsPerRev = 64;
+        const int countsPerRev = 32 * encoderChannels;
         const float gearRatio = 150; // Might need to be updated for different motors
         const float spoolDiameter = 0.5; // Spool Diameter IN INCHES. Sidenote in realidad this will not be const
         const float MAX_DEFLECTION = 36; // INCHES
@@ -52,7 +53,7 @@ class Motor {
         void updateGlobals();
 
         int getEncoderA();
-        
+        int getEncoderB();
 
         Motor(PinName PIN_A, PinName PIN_B, PinName MOTOR_1, PinName MOTOR_2, PinName MOTOR_3,
                 PinName MOTOR_4, PID* pidObject);
@@ -67,6 +68,7 @@ class Motor {
 
         void lineTo(float retraction, int delay);
         
+        int getEncoderTicks();
 };
 
 #endif //_MOTOR_H_

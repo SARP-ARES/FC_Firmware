@@ -20,6 +20,9 @@ float PID::compute(float currAngle, float targetAngle, float dt) {
         positiveLast = !positiveLast;
     }
 
+    if (error < 5 && error > -5) {
+        return 0;
+    }
 
     float P = -Kp * error; //Simply proportional to error
     float I = -Ki * integralError;
@@ -31,5 +34,8 @@ float PID::compute(float currAngle, float targetAngle, float dt) {
     } else if (output < -1) {
         return -1;
     }
+
+    
+
     return output;
 }
