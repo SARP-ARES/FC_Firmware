@@ -43,7 +43,7 @@ struct gpsState{
     int date;
     char mode1;
     char mode2;
-    int antenna_status;
+    uint8_t antenna_status;
 };
 
 

@@ -303,7 +303,7 @@ int GPS::update_VTG(const char* msg){
 }
 
 int GPS::update_antenna_status(const char* msg){
-    int antenna_status = -1;
+    uint8_t antenna_status = 0;
     // Parse the RMC message
     int result = sscanf(msg, "$PCD,11,%d",
                         &antenna_status);
@@ -517,7 +517,7 @@ int GPS::bigUpdate(){
             break; // break out once all message types have been processed
         }
 
-        if (t.read_ms() > 3000) { // something fishy is going on
+        if (t.read_ms() > 2000) { // something fishy is going on
             break;
         }
     }
