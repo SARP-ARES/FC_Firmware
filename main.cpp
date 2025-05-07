@@ -102,8 +102,9 @@ void flight_log(uint32_t numPacketLog) {
         while(count < 10){
             ARES.updateFlightPacket(); // update all state variables with sensor data
             count++;
+            wait_ms(100);
         }    
-        
+
         count = 0;     
 
         FlightPacket state = ARES.getState(); // extract state variables
