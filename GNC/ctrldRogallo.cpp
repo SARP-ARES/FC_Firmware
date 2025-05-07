@@ -135,8 +135,6 @@ void ctrldRogallo::resetFlightPacket() {
     // std::memset(state.flight_id, 0, sizeof(state.flight_id));
 }
 
-
-
 /**
  * @brief updates the state of the system to log as a packet of data
  */ 

@@ -78,6 +78,8 @@ void flight_log(uint32_t numPacketLog) {
 
     ctrldRogallo ARES; 
 
+    
+
     /* 
      * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
      * to trigger control sequence
@@ -92,11 +94,20 @@ void flight_log(uint32_t numPacketLog) {
     pc.printf("\nARES IS READY TO INSTALL\n");
 
     // big write
+    int count = 0; 
     for (uint32_t i = 0; i < numPacketLog; i++) {
-        ARES.resetFlightPacket();   // set all state variables to NAN or equivalent
-        ARES.updateFlightPacket();  // update all state variables with sensor data
-        FlightPacket state = ARES.getState();   // extract state variables
-        currentFlashAddress = fc.writePacket(currentFlashAddress, state);   // write state variables to flash chip
+
+        // ARES.resetFlightPacket(); 
+
+        while(count < 10){
+            ARES.updateFlightPacket(); // update all state variables with sensor data
+            count++;
+        }    
+        
+        count = 0;     
+
+        FlightPacket state = ARES.getState(); // extract state variables
+        currentFlashAddress = fc.writePacket(currentFlashAddress, state); // write state variables to flash chip
 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
