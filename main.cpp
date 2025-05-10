@@ -95,24 +95,22 @@ void flight_log(int numPacketLog) {
 
     // big write
     for (int i = 0; i < numPacketLog; i++) {
-
         pc.printf("Logging %s\n", ' ');
-
 
         ARES.updateFlightPacket(); 
    
-
         FlightPacket state = ARES.getState(); // extract state variables
         currentFlashAddress = fc.writePacket(currentFlashAddress, state); // write state variables to flash chip
 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
-            ctrl_trigger.write(0); // signal to control sequence on MCPS 
+            // ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
     }
 }
 
 
 void dump(){
+
     uint32_t numPacketDump = fc.readByte(0x3FFFFF);
 
     // big dumpy
