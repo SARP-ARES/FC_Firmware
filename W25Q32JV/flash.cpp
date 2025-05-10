@@ -234,17 +234,19 @@ float flash::readNum(uint32_t address) {
 // Write entire data packet (struct)
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
-    uint8_t count;
-    read(0xFFFFFF, &count, 1);  // Read current count
+    uint16_t count;
+    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);  // Read current count
 
-    if (count == 0xFF) {
+    if (count == 0xFFFF) {
         // If it's the default erased value, initialize to 1
         eraseSector(0x3FFFF);  // Align to the base of the sector containing 0xFFFFFF
-        writeByte(0x3FFFFF, 0x01);
-    } else if (count < 0xFF) {
+        count = 1; 
+        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+    } else {
         // Increment count and write back
-        eraseSector(0x3FFFFF);  // Again, erase the entire sector before writing
-        writeByte(0x3FFFFF, count + 1);
+        eraseSector(0x3FFFFF);
+        count += 1;  // Again, erase the entire sector before writing
+        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
     }
     return address + 256;
 } 

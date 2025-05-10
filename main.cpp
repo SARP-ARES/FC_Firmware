@@ -106,12 +106,18 @@ void flight_log(int numPacketLog) {
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
     }
-}
+
+    pc.printf("=================================%s\n", ' ');
+    pc.printf(" ARES DATA COLLECTION FINISHED %s\n", ' ');
+    pc.printf("=================================%s\n", ' ');
+
+} 
 
 
 void dump(){
 
-    uint32_t numPacketDump = fc.readByte(0x3FFFFF);
+    uint32_t numPacketDump;
+    fc.read(0x3FFFFE, reinterpret_cast<uint8_t*> (&numPacketDump), 2);
 
     // big dumpy
     pc.printf("\nDumping %d packets...", numPacketDump);
@@ -131,8 +137,9 @@ int main() {
     /*
      * PROCEDURE
      * 1) startup()     - erases all chip memory
-     * 2) flight_log()  - logs data during flight
+     * 2) flight_log(numPackets)  - logs data during flight
      * 3) dump()        - prints all data on flash chip as a CSV
      */
-    dump();
+
+     dump();
 }
