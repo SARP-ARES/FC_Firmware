@@ -30,8 +30,7 @@ class ctrldRogallo {
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
-        // BMP280_Values bmp_state;
-        // gpsState gps_state;
+        uint32_t isGrounded; 
         posLTP ltp;
         
         void setModeFSM(ModeFSM mode);
@@ -48,6 +47,7 @@ class ctrldRogallo {
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
+        uint32_t groundedDetection(double prevAlt, double currAlt);
         void logData();
         void logDataTEST();
         const FlightPacket getState();

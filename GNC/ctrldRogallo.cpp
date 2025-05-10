@@ -19,6 +19,7 @@ ctrldRogallo::ctrldRogallo()
 
     apogeeDetected = 0; // false
     apogeeCounter = 0;
+    isGrounded = 0; 
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
     currentFlashAddress = 0; // start writing to address zero TODO: maybe pass as param?
@@ -218,10 +219,16 @@ void ctrldRogallo::updateFlightPacket(){
 
 
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
-    if(apogeeCounter >= 20){
+    if(apogeeCounter == 20){
         apogeeDetected = 1; // true
         // trigger seeking mode
         mode = FSM_SEEKING; // 1
+    } else if(apogeeDetected == 1) {
+        isGrounded += groundedDetection(prevAlt, state.altitude_m);
+    }
+
+    if(isGrounded >= 20){
+        mode = FSM_GROUNDED; 
     }
     
 }
@@ -256,15 +263,21 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  * @return 0 if non apogee 1 if apogee
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
-    // if(isnan(prevAlt) || isnan(currAlt)){
-    //     return 0; 
-    // }
     double interval = 1; // seconds
     // double apogeeVelo = -1.5; // m/s
     double apogeeVelo = -1.2; // m/s
     double velo = (currAlt - prevAlt)/interval;
     if(velo <= apogeeVelo && currAlt >= 600) { // 600m threshold altitude
         return 1;
+    } 
+    return 0; 
+}
+
+uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
+    double interval = 1; 
+    double velo = (currAlt - prevAlt)/interval;
+    if (velo < 0.1 && velo > -0.1) {
+        return 1; 
     }
     return 0; 
 }

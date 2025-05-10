@@ -133,7 +133,19 @@ void flash::eraseSector(uint32_t address) {
     _spi.write((const char *)cmd, 4, NULL, 0);
     csHigh();
 
-    wait_us(500000); // Erase time delay (~500 ms)
+    uint8_t eraseRegister = 0x05;
+    uint8_t s1; 
+    while(true){
+        wait_us(10000);
+        csLow();
+        _spi.write((const char *)eraseRegister, 1, NULL, 0);
+        _spi.write(NULL, 0, (char *) &s1, 1); // Only receive data
+        csHigh();
+
+        if((s1 & 0b1) == 0){
+            break;
+        }
+    }
 }
 
 /**
@@ -234,20 +246,23 @@ float flash::readNum(uint32_t address) {
 // Write entire data packet (struct)
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
+
     uint16_t count;
     read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);  // Read current count
 
     if (count == 0xFFFF) {
         // If it's the default erased value, initialize to 1
-        eraseSector(0x3FFFF);  // Align to the base of the sector containing 0xFFFFFF
+        eraseSector(0x3FFFFE);  // Align to the base of the sector containing 0xFFFFFF
         count = 1; 
         write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+
     } else {
         // Increment count and write back
-        eraseSector(0x3FFFFF);
+        eraseSector(0x3FFFFE);
         count += 1;  // Again, erase the entire sector before writing
         write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
     }
+
     return address + 256;
 } 
 
