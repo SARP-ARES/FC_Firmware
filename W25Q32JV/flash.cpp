@@ -234,8 +234,20 @@ float flash::readNum(uint32_t address) {
 // Write entire data packet (struct)
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
+    uint8_t count;
+    read(0xFFFFFF, &count, 1);  // Read current count
+
+    if (count == 0xFF) {
+        // If it's the default erased value, initialize to 1
+        eraseSector(0x3FFFF);  // Align to the base of the sector containing 0xFFFFFF
+        writeByte(0x3FFFFF, 0x01);
+    } else if (count < 0xFF) {
+        // Increment count and write back
+        eraseSector(0x3FFFFF);  // Again, erase the entire sector before writing
+        writeByte(0x3FFFFF, count + 1);
+    }
     return address + 256;
-}
+} 
 
 // Read packet
 uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
@@ -378,10 +390,10 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.pos_up_m,
         pkt.temp_c,
         pkt.pressure_pa,
-        pkt.delta1_deg,
-        pkt.delta1_m,
-        pkt.delta2_deg,
-        pkt.delta2_m,
+        pkt.delta_1_deg,
+        pkt.delta_1_m,
+        pkt.delta_2_deg,
+        pkt.delta_2_m,
         pkt.delta_a,
         pkt.delta_s,
         pkt.pwm_motor1,

@@ -5,7 +5,6 @@
 #include "BNO055.h"
 #include "flash.h"
 #include "flight_packet.h"
-#include "I2CSerial.h"
 #include <cstdint>
 
 // Finite State Machine Modes
@@ -16,17 +15,7 @@ typedef enum {
     FSM_GROUNDED,   // 3
 } ModeFSM;
 
-#pragma pack(push, 1) // remove padding to ensure correct memory layout
-struct MotorData {
-    float delta1_deg;       // 4 
-    float delta2_deg;       // 4
-    float pwm_motor1;       // 4
-    float pwm_motor2;       // 4
-};
-#pragma pack(pop)
 
-const float SPOOL_DIAM = 15.77 / 1000; // 15.77mm
-const float SPOOL_CIRC = SPOOL_DIAM * pi;
 
 class ctrldRogallo {
 
@@ -36,19 +25,20 @@ class ctrldRogallo {
         GPS gps;
         BMP280 bmp;
         BNO055 bno;
-        I2CSerial fc_mcps;
         FlightPacket state;
         ModeFSM mode;
-        bool apogeeDetected;
+        uint32_t apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
-        uint32_t packetsRecorded; 
+        // BMP280_Values bmp_state;
+        // gpsState gps_state;
         posLTP ltp;
-        MotorData getMotorData();
+        
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
-        char* getCompassDirection();
+        void updateApogeeDetection();
+        // string getCompassDirection(float rollMag, float pitchMag);
 
     public:
         uint32_t currentFlashAddress; // move to private after testing
@@ -58,6 +48,8 @@ class ctrldRogallo {
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
+        void logData();
+        void logDataTEST();
         const FlightPacket getState();
 };
 

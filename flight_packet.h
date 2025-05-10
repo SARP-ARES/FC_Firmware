@@ -22,10 +22,10 @@ struct FlightPacket {
     float pos_up_m;             // 4
     float temp_c;               // 4
     float pressure_pa;          // 4
-    float delta1_deg;           // 4
-    float delta1_m;             // 4
-    float delta2_deg;           // 4
-    float delta2_m;             // 4
+    float delta_1_deg;           // 4
+    float delta_1_m;             // 4
+    float delta_2_deg;           // 4
+    float delta_2_m;             // 4
     float delta_a;              // 4
     float delta_s;              // 4
     float pwm_motor1;           // 4
@@ -33,11 +33,15 @@ struct FlightPacket {
     float fc_cmd;               // 4
     uint32_t apogee_counter;    // 4
     uint8_t apogee_detected;    // 1
-    float yaw_rate;             // 4
-    float pitch_rate;           // 4 
-    float roll_rate;            // 4
+
 
     // --- BNO055 Sensor Fields ---
+
+    // Gyroscope
+    float yaw_rate;           
+    float pitch_rate;           
+    float roll_rate;           
+
     // Accelerometer
     float bno_acc_x;
     float bno_acc_y;

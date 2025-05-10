@@ -72,40 +72,35 @@ void startup() {
 //     }
 // }
 
-
-void flight_log(uint32_t numPacketLog) {
+void flight_log(int numPacketLog) {
 
 
     ctrldRogallo ARES; 
-
-    
 
     /* 
      * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
      * to trigger control sequence
      */
+    
     DigitalOut ctrl_trigger(PB_3); 
     ctrl_trigger.write(1); 
     
     ThisThread::sleep_for(1s);
     uint32_t currentFlashAddress = 0;
 
+    // --------------------------------------------------------
+
     pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketLog, packetSize);
     pc.printf("\nARES IS READY TO INSTALL\n");
 
     // big write
-    int count = 0; 
-    for (uint32_t i = 0; i < numPacketLog; i++) {
+    for (int i = 0; i < numPacketLog; i++) {
 
-        // ARES.resetFlightPacket(); 
+        pc.printf("Logging %s\n", ' ');
 
-        while(count < 10){
-            ARES.updateFlightPacket(); // update all state variables with sensor data
-            count++;
-            wait_ms(100);
-        }    
 
-        count = 0;     
+        ARES.updateFlightPacket(); 
+   
 
         FlightPacket state = ARES.getState(); // extract state variables
         currentFlashAddress = fc.writePacket(currentFlashAddress, state); // write state variables to flash chip
@@ -117,7 +112,9 @@ void flight_log(uint32_t numPacketLog) {
 }
 
 
-void dump(uint32_t numPacketDump){
+void dump(){
+    uint32_t numPacketDump = fc.readByte(0x3FFFFF);
+
     // big dumpy
     pc.printf("\nDumping %d packets...", numPacketDump);
     pc.printf("\n==================================\n");
@@ -128,9 +125,9 @@ void dump(uint32_t numPacketDump){
 
 
 int main() {
-    ThisThread::sleep_for(1s); // wait for serial port to connect
-    pc.printf("\n30s to flash before main program begins..\n");
-    ThisThread::sleep_for(5s);
+    ThisThread::sleep_for(3s); // wait for serial port to connect
+    pc.printf("\n10s to flash before main program begins..\n");
+    ThisThread::sleep_for(10s);
     pc.printf("\nEntering main program...\n");
 
     /*
@@ -139,5 +136,5 @@ int main() {
      * 2) flight_log()  - logs data during flight
      * 3) dump()        - prints all data on flash chip as a CSV
      */
-    flight_log(100); 
+    dump();
 }
