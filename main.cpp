@@ -128,7 +128,7 @@ void dump(){
 
 int main() {
     ThisThread::sleep_for(3s); // wait for serial port to connect
-    pc.printf("\n2s to flash before main program begins..\n");
+    pc.printf("\n20s to flash before main program begins..\n");
     ThisThread::sleep_for(2s);
     pc.printf("\nEntering main program...\n");
 
@@ -139,5 +139,5 @@ int main() {
      * 3) dump()        - prints all data on flash chip as a CSV
      */
 
-    startup();
+    dump();
 }

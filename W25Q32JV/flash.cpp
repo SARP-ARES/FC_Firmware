@@ -133,19 +133,7 @@ void flash::eraseSector(uint32_t address) {
     _spi.write((const char *)cmd, 4, NULL, 0);
     csHigh();
 
-    uint8_t eraseRegister = 0x05;
-    uint8_t s1; 
-    while(true){
-        wait_us(10000);
-        csLow();
-        _spi.write((const char *)eraseRegister, 1, NULL, 0);
-        _spi.write(NULL, 0, (char *) &s1, 1); // Only receive data
-        csHigh();
-
-        if((s1 & 0b1) == 0){
-            break;
-        }
-    }
+    wait_us(500000);
 }
 
 /**
