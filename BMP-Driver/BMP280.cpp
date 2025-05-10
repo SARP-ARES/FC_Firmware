@@ -151,6 +151,7 @@ int BMP280::BMP280_CalibrateTemp(){
     c.dig_T1 = calib[1] << 8 | calib[0];
     c.dig_T2 = (calib[3] << 8 | calib[2]);
     c.dig_T3 = (calib[5] << 8 | calib[4]);
+    
     return 0;
 }
 
@@ -197,6 +198,3 @@ void BMP280::updateAltitudeM(){
 BMP280_Values BMP280::getState() const{
      return values;
 }
-
-
-
