@@ -103,7 +103,7 @@ void flight_log(int numPacketLog) {
         currentFlashAddress = fc.writePacket(currentFlashAddress, state); // write state variables to flash chip
 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
-            // ctrl_trigger.write(0); // signal to control sequence on MCPS 
+            ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
     }
 }
