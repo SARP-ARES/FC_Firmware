@@ -113,6 +113,37 @@ void flight_log(int numPacketLog) {
 
 } 
 
+void flight_log(){
+
+    ctrldRogallo ARES; 
+
+    pc.printf("Beginning data collection... %s\n", ' ');
+
+    DigitalOut ctrl_trigger(PB_3); 
+    ctrl_trigger.write(1); 
+    
+    ThisThread::sleep_for(1s);
+    uint32_t currentFlashAddress = 0;
+
+    FlightPacket state;
+
+    while(state.fsm_mode != FSM_GROUNDED){
+
+        ARES.updateFlightPacket();
+
+        state = ARES.getState();
+        currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+
+        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+            ctrl_trigger.write(0); // signal to control sequence on MCPS 
+        }
+    }
+
+    pc.printf("=================================%s\n", ' ');
+    pc.printf(" ARES DATA COLLECTION FINISHED %s\n", ' ');
+    pc.printf("=================================%s\n", ' ');
+}
+
 
 void dump(){
 
@@ -124,6 +155,7 @@ void dump(){
     pc.printf("\n==================================\n");
     fc.dumpAllPackets(numPacketDump);
     pc.printf("==================================\n");
+    
 }
 
 int main() {
@@ -134,9 +166,10 @@ int main() {
 
     /*
      * PROCEDURE
-     * 1) startup()     - erases all chip memory
+     * 1) startup()               - erases all chip memory
      * 2) flight_log(numPackets)  - logs data during flight
-     * 3) dump()        - prints all data on flash chip as a CSV
+     * 3) flight_log()            - 
+     * 4) dump()                  - prints all data on flash chip as a CSV
      */
 
     dump();

@@ -142,7 +142,6 @@ int BMP280::updateValues(){
     return(errPress + errTemp);
 }
 
-
 //  @breif calibrates temperature values
 // - Array Calib: each calibration number comes in a lsb and msb pair 
 int BMP280::BMP280_CalibrateTemp(){

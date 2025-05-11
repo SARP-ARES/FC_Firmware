@@ -217,7 +217,6 @@ void ctrldRogallo::updateFlightPacket(){
 
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
-
     apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
     if(apogeeCounter == 20){
         apogeeDetected = 1; // true
@@ -230,7 +229,6 @@ void ctrldRogallo::updateFlightPacket(){
     if(isGrounded >= 20){
         mode = FSM_GROUNDED; 
     }
-    
 }
 
 /**

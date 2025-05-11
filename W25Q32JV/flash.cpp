@@ -152,6 +152,7 @@ void flash::eraseAll() {
     uint8_t s1; 
     while(true){
         wait_us(10000);
+
         csLow();
         _spi.write((const char *)cmd, 1, NULL, 0);
         _spi.write(NULL, 0, (char *) &s1, 1); // Only receive data

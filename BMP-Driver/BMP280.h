@@ -10,21 +10,21 @@
 using namespace std;
 
 struct BMP280_Values {
-    double press_pa; // Pressure in Pascals 
-    double temp_c; // Temperature in Celcius
-    double altitude_m; // Altitude from Sea Level in m
-    double press_psi; // Pressure in Psi
-    double temp_f; // temp in farenheit
+    double press_pa;    // Pressure in Pascals 
+    double temp_c;      // Temperature in Celcius
+    double altitude_m;  // Altitude from Sea Level in m
+    double press_psi;   // Pressure in Psi
+    double temp_f;      // temp in farenheit
 };
 
 struct BMP280_Calibration {
-            // Temperature 
-            uint16_t dig_T1;
-            int16_t dig_T2, dig_T3;
+    // Temperature 
+    uint16_t dig_T1;
+    int16_t dig_T2, dig_T3;
 
-            //Pressure 
-            uint16_t dig_P1;
-            int16_t dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
+    //Pressure 
+    uint16_t dig_P1;
+    int16_t dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
 };
 
 
