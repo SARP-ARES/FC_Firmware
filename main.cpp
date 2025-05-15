@@ -25,7 +25,7 @@ uint32_t eraseAddr = 0;
  * SET NUMBER OF PACKETS TO LOG
  * for for 1.5 hours of logging, log 5400 packets
  */
-uint32_t numPackets = 5400; 
+uint32_t numPackets = 16000;
 
 
 void startup() {
@@ -56,6 +56,7 @@ void flight_log(uint32_t numPacketLog) {
     pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketLog, packetSize);
     pc.printf("\nARES IS READY TO INSTALL\n");
     led_G.write(1);
+
 
     // big write
     for (uint32_t i = 0; i < numPacketLog; i++) {
@@ -111,7 +112,7 @@ int main() {
      */
 
     // startup();
-    flight_log(numPackets);
-    // dump(numPackets);
+    // flight_log(numPackets);
+    dump(numPackets);
 
 }
