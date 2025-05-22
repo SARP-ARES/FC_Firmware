@@ -26,7 +26,7 @@ uint32_t eraseAddr = 0;
  * SET NUMBER OF PACKETS TO LOG
  * for for 1.5 hours of logging, log 5400 packets
  */
-uint32_t numPackets = 20; 
+uint32_t numPackets = 1000; 
 
 
 void startup() {
@@ -72,6 +72,12 @@ void flight_log(uint32_t numPacketLog) {
 
 
 void flight_log_TEST(uint32_t numPacketLog) {
+    pc.printf("\nEntering flight_log_TEST...\n");
+    hisThread::sleep_for(1s); // wait for serial port to connect
+    pc.printf("\n30s to flash before main program begins..\n");
+    thread.start(ledFlashy30);
+    ThisThread::sleep_for(30s);
+    led_B.write(0);
     ctrldRogallo ARES; 
 
     /* 
@@ -166,9 +172,9 @@ int main() {
 
     // startup();
     // flight_log(numPackets);
-    // dump(numPackets);
+    dump(numPackets);
 
-    flight_log_TEST(numPackets);
+    // flight_log_TEST(numPackets);
 
 
 
