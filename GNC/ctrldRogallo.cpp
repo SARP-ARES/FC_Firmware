@@ -21,6 +21,11 @@ ctrldRogallo::ctrldRogallo()
 } 
 
 
+void ctrldRogallo::setModeFSM(ModeFSM mode_set) {
+    this->mode = mode_set;
+}
+
+
 const FlightPacket ctrldRogallo::getState() {
     return this->state;
 }

@@ -44,7 +44,6 @@ class ctrldRogallo {
         float alphaAlt;
         posLTP ltp;
         MotorData getMotorData();
-        void setModeFSM(ModeFSM mode);
         float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
         // char* getCompassDirection();
@@ -58,6 +57,8 @@ class ctrldRogallo {
         void sendCtrl(float ctrl);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         const FlightPacket getState();
+
+        void setModeFSM(ModeFSM mode);
 };
 
 

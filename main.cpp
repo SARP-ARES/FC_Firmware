@@ -13,7 +13,7 @@ flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
 Thread thread;
-DigitalOut ctrl_trigger(PB_3);
+//DigitalOut ctrl_trigger(PB_3);
 
 // = # of pages, 4.55 hours at 1Hz
 // 16 pages per sector
@@ -26,7 +26,7 @@ uint32_t eraseAddr = 0;
  * SET NUMBER OF PACKETS TO LOG
  * for for 1.5 hours of logging, log 5400 packets
  */
-uint32_t numPackets = 10; 
+uint32_t numPackets = 20; 
 
 
 void startup() {
@@ -79,7 +79,7 @@ void flight_log_TEST(uint32_t numPacketLog) {
      * to trigger control sequence
      */
     DigitalOut ctrl_trigger(PB_3); 
-    ctrl_trigger.write(1); 
+    ctrl_trigger.write(1);
     
     ThisThread::sleep_for(1s);
     uint32_t currentFlashAddress = 0;
@@ -88,6 +88,7 @@ void flight_log_TEST(uint32_t numPacketLog) {
     pc.printf("\nARES IS READY TO INSTALL\n");
     led_G.write(1);
 
+
     // big write
     for (uint32_t i = 0; i < numPacketLog; i++) {
         ARES.resetFlightPacket();   // set all state variables to NAN or equivalent
@@ -95,8 +96,13 @@ void flight_log_TEST(uint32_t numPacketLog) {
         FlightPacket state = ARES.getState();   // extract state variables
         // currentFlashAddress = fc.writePacket(currentFlashAddress, state);   // write state variables to flash chip
 
-        pc.printf("\ndelta1 (deg)\t: %f \ndelta2 (deg)\t: %f \ndelta1 (m)\t: %f \ndelta2 (m)\t: %f \npwm 1\t\t: %f \npwm 2\t\t: %f\n", state.delta1_deg, state.delta2_deg, state.delta1_m, state.delta2_m, state.pwm_motor1, state.pwm_motor2);
+        // pc.printf("\ndelta1 (deg)\t: %f \ndelta2 (deg)\t: %f \ndelta1 (m)\t: %f \ndelta2 (m)\t: %f \npwm 1\t\t: %f \npwm 2\t\t: %f\n", state.delta1_deg, state.delta2_deg, state.delta1_m, state.delta2_m, state.pwm_motor1, state.pwm_motor2);
         
+        if (i > 15) {
+            ARES.setModeFSM(FSM_SEEKING);
+            led_B.write(1);
+        }
+
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
@@ -131,19 +137,25 @@ void ledFlashy30() {
 
 
 int main() {
-    // ThisThread::sleep_for(1s); // wait for serial port to connect
-    // pc.printf("\n30s to flash before main program begins..\n");
-    // thread.start(ledFlashy30);
-    // ThisThread::sleep_for(30s);
-    ThisThread::sleep_for(1s);
+    ThisThread::sleep_for(1s); // wait for serial port to connect
+    pc.printf("\n30s to flash before main program begins..\n");
+    thread.start(ledFlashy30);
+    ThisThread::sleep_for(30s);
+    led_B.write(0);
+    // ThisThread::sleep_for(1s);
     pc.printf("\nEntering main program...\n");
-    
-    DigitalOut ctrl_trigger(PB_3); 
-    ctrl_trigger.write(0); 
 
-    while (true) {
-        ThisThread::sleep_for(10ms);
-    }
+
+
+    // ThisThread::sleep_for(5s);
+    // pc.printf("\nSending Trigger\n");
+    // DigitalOut ctrl_trigger(PB_3); 
+    // ctrl_trigger.write(0);
+    // led_B.write(1);
+
+    // while (true) {
+    //     ThisThread::sleep_for(10ms);
+    // }
 
     /*
      * PROCEDURE
@@ -156,6 +168,7 @@ int main() {
     // flight_log(numPackets);
     // dump(numPackets);
 
+    flight_log_TEST(numPackets);
 
 
 
