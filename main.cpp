@@ -28,8 +28,6 @@ uint32_t numPackets = 1000;
 void startup() {
     DigitalOut led_B(PA_8);
     led_B.write(0);
-    // flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
-    // EUSBSerial pc;
     Timer t;
     t.start();
 
@@ -95,12 +93,12 @@ void flight_log(int numPacketLog) {
 
     // big write
     for (int i = 0; i < numPacketLog; i++) {
-        pc.printf("Logging %s\n", ' ');
 
         ARES.updateFlightPacket(); 
    
         FlightPacket state = ARES.getState(); // extract state variables
         currentFlashAddress = fc.writePacket(currentFlashAddress, state); // write state variables to flash chip
+        pc.printf("Apogee Counter %f\n", state.apogee_counter);
 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
@@ -133,7 +131,14 @@ void flight_log(){
 
         state = ARES.getState();
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-
+        pc.printf("Apogee Counter %d\n", state.apogee_counter);
+        pc.printf("Altitude %f\n", state.altitude_m);
+        pc.printf("Apogee Detected %d\n", state.apogee_detected);
+        pc.printf("FSM mode %d\n", state.fsm_mode);
+        pc.printf("prevAlt: %.2f, currAlt: %.2f, velo: %.2f, apogeeCounter: %d\n",
+        state.prevAlt, state.altitude_m,
+        (state.altitude_m - state.prevAlt) / 0.1,
+        state.apogee_counter);
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
@@ -142,6 +147,26 @@ void flight_log(){
     pc.printf("=================================%s\n", ' ');
     pc.printf(" ARES DATA COLLECTION FINISHED %s\n", ' ');
     pc.printf("=================================%s\n", ' ');
+}
+
+void readBMP() {
+    ctrldRogallo ARES; 
+
+    ThisThread::sleep_for(1s);
+    FlightPacket state; 
+
+    while(true) {
+
+        ARES.updateFlightPacket();
+        state = ARES.getState();
+        pc.printf("Apogee Counter %d\n", state.apogee_counter);
+        pc.printf("Altitude %f\n", state.altitude_m);
+        pc.printf("Apogee Detected %d\n", state.apogee_detected);
+        pc.printf("FSM mode %d\n", state.fsm_mode);
+        pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        ThisThread::sleep_for(250);
+    }
+
 }
 
 
@@ -160,8 +185,8 @@ void dump(){
 
 int main() {
     ThisThread::sleep_for(3s); // wait for serial port to connect
-    pc.printf("\n20s to flash before main program begins..\n");
-    ThisThread::sleep_for(2s);
+    pc.printf("\n10s to flash before main program begins..\n");
+    ThisThread::sleep_for(10s);
     pc.printf("\nEntering main program...\n");
 
     /*
@@ -171,6 +196,5 @@ int main() {
      * 3) flight_log()            - 
      * 4) dump()                  - prints all data on flash chip as a CSV
      */
-
-    dump();
+    readBMP(); 
 }

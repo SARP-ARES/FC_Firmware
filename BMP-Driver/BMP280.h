@@ -34,7 +34,7 @@ struct BMP280_Calibration {
 
 class BMP280 { 
     public:
-        /* Constructor 
+        /** Constructor 
         * @param Pin address of the SDA Pin on the processor 
         * @param Pin address of the SCL Pin on the processor 
         * @param The I2C address for the BMP280

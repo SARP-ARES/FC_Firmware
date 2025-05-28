@@ -142,7 +142,7 @@ void ctrldRogallo::resetFlightPacket() {
  */ 
 void ctrldRogallo::updateFlightPacket(){
     BMP280_Values bmp_state = bmp.getState();
-    double prevAlt = bmp_state.altitude_m;
+    state.prevAlt = bmp_state.altitude_m;
     
     bmp.updateValues();
     int success = gps.bigUpdate(); 
@@ -172,8 +172,6 @@ void ctrldRogallo::updateFlightPacket(){
     // BMP 
     state.temp_c = bmp_state.temp_c;
     state.pressure_pa = bmp_state.press_pa;
-    state.apogee_counter = apogeeCounter;
-    state.apogee_detected = apogeeDetected;
 
     // strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
@@ -217,15 +215,18 @@ void ctrldRogallo::updateFlightPacket(){
 
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
-    apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
-    if(apogeeCounter == 20){
+    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m);
+    if(apogeeCounter == 7){
         apogeeDetected = 1; // true
         // trigger seeking mode
         mode = FSM_SEEKING; // 1
     } else if(apogeeDetected == 1) {
-        isGrounded += groundedDetection(prevAlt, state.altitude_m);
+        isGrounded += groundedDetection(state.prevAlt, state.altitude_m);
     }
 
+    state.apogee_counter = apogeeCounter;
+    state.apogee_detected = apogeeDetected;
+    state.groundedCounter = isGrounded;
     if(isGrounded >= 20){
         mode = FSM_GROUNDED; 
     }
@@ -261,11 +262,11 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  * @return 0 if non apogee 1 if apogee
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
-    double interval = 1; // seconds
+    double interval = .10; // seconds
     // double apogeeVelo = -1.5; // m/s
     double apogeeVelo = -1.2; // m/s
     double velo = (currAlt - prevAlt)/interval;
-    if(velo <= apogeeVelo && currAlt >= 600) { // 600m threshold altitude
+    if(velo <= apogeeVelo) { // 600m threshold altitude
         return 1;
     } 
     return 0; 
@@ -274,7 +275,7 @@ uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
 uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     double interval = 1; 
     double velo = (currAlt - prevAlt)/interval;
-    if (velo < 0.1 && velo > -0.1) {
+    if (velo < 0.3 && velo > -0.3) {
         return 1; 
     }
     return 0; 

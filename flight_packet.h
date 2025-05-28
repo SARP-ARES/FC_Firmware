@@ -74,6 +74,8 @@ struct FlightPacket {
     float bno_quat_z;
 
     char* compass_heading;    // 3
+    uint32_t groundedCounter;
+    float prevAlt; 
 
     // --- END BNO055 Sensor Fields ---
 
