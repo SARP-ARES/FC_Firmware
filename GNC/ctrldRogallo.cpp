@@ -14,8 +14,7 @@ ctrldRogallo::ctrldRogallo()
     bmp.start();
     bno.setup();
 
-    char* gps_cmd = "$PMTK300,100,0,0,0,0*18"; // 100ms = 10hz
-    gps.serial.write(gps_cmd, 23); // send command to enable 10Hz updates
+    
 
     apogeeDetected = 0; // false
     apogeeCounter = 0;
@@ -216,18 +215,20 @@ void ctrldRogallo::updateFlightPacket(){
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m);
-    if(apogeeCounter == 7){
+    if(apogeeCounter >= 0){
         apogeeDetected = 1; // true
         // trigger seeking mode
         mode = FSM_SEEKING; // 1
-    } else if(apogeeDetected == 1) {
+    } 
+    
+    if(apogeeDetected == 1) {
         isGrounded += groundedDetection(state.prevAlt, state.altitude_m);
     }
 
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = isGrounded;
-    if(isGrounded >= 20){
+    if(isGrounded >= 15){
         mode = FSM_GROUNDED; 
     }
 }
@@ -262,7 +263,7 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  * @return 0 if non apogee 1 if apogee
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
-    double interval = .10; // seconds
+    double interval = 1; // seconds
     // double apogeeVelo = -1.5; // m/s
     double apogeeVelo = -1.2; // m/s
     double velo = (currAlt - prevAlt)/interval;

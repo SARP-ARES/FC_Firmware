@@ -127,18 +127,18 @@ void flight_log(){
 
     while(state.fsm_mode != FSM_GROUNDED){
 
-        ARES.updateFlightPacket();
+        // for(int i = 0; i < 10; i++) {
+            ARES.updateFlightPacket();
+            state = ARES.getState();
+            ThisThread::sleep_for(105);
+            pc.printf("Apogee Counter %d\n", state.apogee_counter);
+            pc.printf("Altitude %f\n", state.altitude_m);
+            pc.printf("Apogee Detected %d\n", state.apogee_detected);
+            pc.printf("FSM mode %d\n", state.fsm_mode);
+            pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        // }
 
-        state = ARES.getState();
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-        pc.printf("Apogee Counter %d\n", state.apogee_counter);
-        pc.printf("Altitude %f\n", state.altitude_m);
-        pc.printf("Apogee Detected %d\n", state.apogee_detected);
-        pc.printf("FSM mode %d\n", state.fsm_mode);
-        pc.printf("prevAlt: %.2f, currAlt: %.2f, velo: %.2f, apogeeCounter: %d\n",
-        state.prevAlt, state.altitude_m,
-        (state.altitude_m - state.prevAlt) / 0.1,
-        state.apogee_counter);
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
@@ -160,11 +160,11 @@ void readBMP() {
         ARES.updateFlightPacket();
         state = ARES.getState();
         pc.printf("Apogee Counter %d\n", state.apogee_counter);
-        pc.printf("Altitude %f\n", state.altitude_m);
-        pc.printf("Apogee Detected %d\n", state.apogee_detected);
-        pc.printf("FSM mode %d\n", state.fsm_mode);
-        pc.printf("Grounded Counter: %d \n", state.groundedCounter);
-        ThisThread::sleep_for(250);
+        // pc.printf("Altitude %f\n", state.altitude_m);
+        // pc.printf("Apogee Detected %d\n", state.apogee_detected);
+        // pc.printf("FSM mode %d\n", state.fsm_mode);
+        // pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        ThisThread::sleep_for(100);
     }
 
 }
@@ -196,5 +196,5 @@ int main() {
      * 3) flight_log()            - 
      * 4) dump()                  - prints all data on flash chip as a CSV
      */
-    readBMP(); 
+    dump();
 }
