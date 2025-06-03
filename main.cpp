@@ -115,6 +115,12 @@ void flight_log(){
 
     ctrldRogallo ARES; 
 
+    ThisThread::sleep_for(5s);
+
+
+    ARES.updateFlightPacket();
+    ARES.setAltitude(); 
+
     pc.printf("Beginning data collection... %s\n", ' ');
 
     DigitalOut ctrl_trigger(PB_3); 
@@ -130,7 +136,7 @@ void flight_log(){
         // for(int i = 0; i < 10; i++) {
             ARES.updateFlightPacket();
             state = ARES.getState();
-            ThisThread::sleep_for(105);
+            // ThisThread::sleep_for(105);
             pc.printf("Apogee Counter %d\n", state.apogee_counter);
             pc.printf("Altitude %f\n", state.altitude_m);
             pc.printf("Apogee Detected %d\n", state.apogee_detected);
@@ -185,8 +191,8 @@ void dump(){
 
 int main() {
     ThisThread::sleep_for(3s); // wait for serial port to connect
-    pc.printf("\n10s to flash before main program begins..\n");
-    ThisThread::sleep_for(10s);
+    pc.printf("\n20s to flash before main program begins..\n");
+    ThisThread::sleep_for(20s);
     pc.printf("\nEntering main program...\n");
 
     /*

@@ -19,6 +19,10 @@ ctrldRogallo::ctrldRogallo()
     apogeeDetected = 0; // false
     apogeeCounter = 0;
     isGrounded = 0; 
+
+    groundedThreshold = NAN;
+    apogeeThreshold = NAN; 
+
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
     currentFlashAddress = 0; // start writing to address zero TODO: maybe pass as param?
@@ -215,7 +219,7 @@ void ctrldRogallo::updateFlightPacket(){
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m);
-    if(apogeeCounter >= 0){
+    if(apogeeCounter >= 5) { 
         apogeeDetected = 1; // true
         // trigger seeking mode
         mode = FSM_SEEKING; // 1
@@ -257,7 +261,7 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
 }
 
 /** 
- * @breif - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
+ * @brief - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
  * @param prevAlt - previous altitude 
  * @param currAlt - current altitude
  * @return 0 if non apogee 1 if apogee
@@ -267,7 +271,7 @@ uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     // double apogeeVelo = -1.5; // m/s
     double apogeeVelo = -1.2; // m/s
     double velo = (currAlt - prevAlt)/interval;
-    if(velo <= apogeeVelo) { // 600m threshold altitude
+    if(velo <= apogeeVelo && currAlt > apogeeThreshold) { // REMINDER TO ADD --> 600m threshold altitude
         return 1;
     } 
     return 0; 
@@ -276,10 +280,15 @@ uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
 uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     double interval = 1; 
     double velo = (currAlt - prevAlt)/interval;
-    if (velo < 0.3 && velo > -0.3) {
+    if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) {
         return 1; 
     }
     return 0; 
+}
+
+void ctrldRogallo::setAltitude(){
+    groundedThreshold = state.altitude_m + 100;
+    apogeeThreshold = state.altitude_m + 600; 
 }
 
 // string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){

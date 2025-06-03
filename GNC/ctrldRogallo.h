@@ -32,6 +32,8 @@ class ctrldRogallo {
         float alphaAlt;
         uint32_t isGrounded; 
         posLTP ltp;
+        uint32_t apogeeThreshold;
+        uint32_t groundedThreshold; 
         
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt(float alt1, float alt2);
@@ -40,6 +42,7 @@ class ctrldRogallo {
         // string getCompassDirection(float rollMag, float pitchMag);
 
     public:
+        void setAltitude(); 
         uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();
         void updateFlightPacket();
