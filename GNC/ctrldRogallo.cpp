@@ -244,7 +244,7 @@ void ctrldRogallo::updateFlightPacket(){
 float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
     float fuzedAlt = NAN; 
     // check for NANs (they will not equal themselves)
-    if (alt1 == alt1 && alt2 == alt2){
+    if (alt1 == alt1 && alt2 == alt2) {
         fuzedAlt = alt1*alphaAlt + alt2*(1-alphaAlt);
     } else if (alt1 == alt1) {
         fuzedAlt = alt1;
@@ -286,7 +286,7 @@ uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     return 0; 
 }
 
-void ctrldRogallo::setAltitude(){
+void ctrldRogallo::setThreshold(){
     groundedThreshold = state.altitude_m + 100;
     apogeeThreshold = state.altitude_m + 600; 
 }

@@ -119,7 +119,7 @@ void flight_log(){
 
 
     ARES.updateFlightPacket();
-    ARES.setAltitude(); 
+    ARES.setThreshold(); 
 
     pc.printf("Beginning data collection... %s\n", ' ');
 

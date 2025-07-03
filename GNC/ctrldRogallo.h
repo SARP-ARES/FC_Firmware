@@ -42,7 +42,7 @@ class ctrldRogallo {
         // string getCompassDirection(float rollMag, float pitchMag);
 
     public:
-        void setAltitude(); 
+        void setThreshold(); 
         uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();
         void updateFlightPacket();
