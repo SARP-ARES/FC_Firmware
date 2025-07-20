@@ -6,6 +6,9 @@
 #include "BNO055.h"
 #include "flash.h"
 #include "flight_packet.h"
+#include <iostream>
+#include <cstring>
+
 
 
 EUSBSerial pc;
@@ -115,8 +118,9 @@ void flight_log(){
 
     ctrldRogallo ARES; 
 
-    ThisThread::sleep_for(5s);
+    char cmdBuf[32];
 
+    ThisThread::sleep_for(5s);
 
     ARES.updateFlightPacket();
     ARES.setThreshold(); 
@@ -147,6 +151,12 @@ void flight_log(){
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
+        }
+
+        if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
+            if(strcmp(cmdBuf, "quit") == 0) {
+                break;
+            }
         }
     }
 
@@ -189,18 +199,67 @@ void dump(){
     
 }
 
-int main() {
-    ThisThread::sleep_for(3s); // wait for serial port to connect
-    pc.printf("\n20s to flash before main program begins..\n");
-    ThisThread::sleep_for(20s);
-    pc.printf("\nEntering main program...\n");
+// int main(int argc, char* argv[]) {
 
-    /*
-     * PROCEDURE
-     * 1) startup()               - erases all chip memory
-     * 2) flight_log(numPackets)  - logs data during flight
-     * 3) flight_log()            - 
-     * 4) dump()                  - prints all data on flash chip as a CSV
-     */
-    dump();
+//     if (argc != 1 or argc != 2) {
+
+//         pc.printf("Invalid Arguments");
+
+//     } else {
+
+//         char* cmd = argv[0];
+
+//         if (strcmp(cmd, "flightlog") == 0 && argc == 1){
+//             flight_log();
+//         } else if (strcmp(cmd,"flightlog") == 0 && argc == 2){
+//             cmd = "defined packet flightlog";
+//             int numPackets = std::atoi(argv[1]);
+//             flight_log(numPackets);
+//         } else if(strcmp(cmd,"startup") == 0) {
+//             startup();
+//         } else if(strcmp(cmd,"dump") == 0) {
+//             dump();
+//         } else if(strcmp(cmd, "readbmp") == 0) {
+//             readBMP();
+//         }
+ 
+//         pc.printf("Running %s", cmd);
+//     }
+
+// }
+
+void parse_cmd(){
+
+    ThisThread::sleep_for(1000);
+    pc.printf("Waiting for console input...\n\n");
+    char cmd_buffer[32];
+
+    while(true) {
+
+        if(pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
+
+           if (strcmp(cmd_buffer, "flightlog") == 0){
+               pc.printf("Running Flight Log\n\n");
+                flight_log();
+            } else if(strcmp(cmd_buffer,"startup") == 0) {
+                pc.printf("Running Startup\n");
+                startup();
+            } else if(strcmp(cmd_buffer,"dump") == 0) {
+                pc.printf("Dumping Packets\n");
+                dump();
+            } else if(strcmp(cmd_buffer, "readbmp") == 0) {
+                pc.printf("Reading BMP\n");
+                readBMP();
+            }
+
+            break; 
+        }
+
+        ThisThread::sleep_for(1000);
+    }
 }
+
+int main() {
+    parse_cmd();
+}
+

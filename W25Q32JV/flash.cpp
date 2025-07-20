@@ -441,9 +441,9 @@ void flash::dumpAllPackets(uint32_t numPackets) {
     for (uint32_t i = 0; i < numPackets; ++i) {
         readPacket(i * 256, pkt);
         // don't print if timestamp is nan
-        if (pkt.timestamp_utc == pkt.timestamp_utc) {
-            printPacketAsCSV(pkt);
-        }
+        // if (pkt.timestamp_utc == pkt.timestamp_utc) {
+        printPacketAsCSV(pkt);
+        // }
     }
 }
 
