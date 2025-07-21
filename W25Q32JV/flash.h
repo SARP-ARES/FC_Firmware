@@ -25,7 +25,7 @@ public:
     // Read data to CSV
     void printCSVHeader();
     void printPacketAsCSV(const FlightPacket& pkt);
-    void dumpAllPackets(uint32_t numPackets);
+    void dumpAllPackets(uint32_t numPackets, EUSBSerial* pc);
 
     // Write operations
     uint32_t write(uint32_t address, const uint8_t *buffer, size_t length);

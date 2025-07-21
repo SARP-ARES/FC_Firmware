@@ -435,10 +435,13 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
 }
 
 
-void flash::dumpAllPackets(uint32_t numPackets) {
+void flash::dumpAllPackets(uint32_t numPackets, EUSBSerial* pc) {
     FlightPacket pkt;
     printCSVHeader();
     for (uint32_t i = 0; i < numPackets; ++i) {
+        uint32_t addr = i * 256;
+        pc->printf("Reading packet at address: 0x%08X\n", addr);
+        pc->printf("Printing packet %d", i);
         readPacket(i * 256, pkt);
         // don't print if timestamp is nan
         // if (pkt.timestamp_utc == pkt.timestamp_utc) {

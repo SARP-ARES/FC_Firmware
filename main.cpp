@@ -133,7 +133,7 @@ void flight_log(){
     ThisThread::sleep_for(1s);
     uint32_t currentFlashAddress = 0;
 
-    FlightPacket state;
+    FlightPacket state = ARES.getState();
 
     while(state.fsm_mode != FSM_GROUNDED){
 
@@ -146,9 +146,11 @@ void flight_log(){
             pc.printf("Apogee Detected %d\n", state.apogee_detected);
             pc.printf("FSM mode %d\n", state.fsm_mode);
             pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+            pc.printf("Packet size: %u\n", sizeof(FlightPacket));
         // }
 
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
@@ -194,7 +196,7 @@ void dump(){
     // big dumpy
     pc.printf("\nDumping %d packets...", numPacketDump);
     pc.printf("\n==================================\n");
-    fc.dumpAllPackets(numPacketDump);
+    fc.dumpAllPackets(numPacketDump, &pc);
     pc.printf("==================================\n");
     
 }
@@ -230,8 +232,8 @@ void dump(){
 
 void parse_cmd(){
 
-    ThisThread::sleep_for(1000);
-    pc.printf("Waiting for console input...\n\n");
+    ThisThread::sleep_for(5s);
+    pc.printf("Waiting for console input... Enter flightlog, startup, dump, or readbmp \n\n");
     char cmd_buffer[32];
 
     while(true) {
