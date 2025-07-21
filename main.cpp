@@ -125,7 +125,8 @@ void flight_log(){
     ARES.updateFlightPacket();
     ARES.setThreshold(); 
 
-    pc.printf("Beginning data collection... %s\n", ' ');
+    pc.printf("Beginning data collection... %s\n\n", ' ');
+    pc.printf("Type \"quit\" to quit at any time\n\n");
 
     DigitalOut ctrl_trigger(PB_3); 
     ctrl_trigger.write(1); 
