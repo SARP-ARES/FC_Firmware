@@ -230,8 +230,8 @@ void dump(){
 
 void parse_cmd(){
 
-    ThisThread::sleep_for(1000);
-    pc.printf("Waiting for console input...\n\n");
+    ThisThread::sleep_for(2s);
+    pc.printf("\nWaiting for console input...\n\n");
     char cmd_buffer[32];
 
     while(true) {
