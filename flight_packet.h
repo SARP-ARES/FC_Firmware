@@ -73,7 +73,7 @@ struct FlightPacket {
     float bno_quat_y;
     float bno_quat_z;
 
-    char* compass_heading;         // 3
+    char compass_heading[3];         // 3
     uint32_t groundedCounter;
     float prevAlt; 
 
