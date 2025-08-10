@@ -3,6 +3,7 @@
 #include "GPS.h"
 #include "BMP280.h"
 #include "BNO055.h"
+#include <string>
 
 
 /**
@@ -12,9 +13,16 @@ ctrldRogallo::ctrldRogallo()
     : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
     bmp.start();
     bno.setup();
-    resetFlightPacket();
+
+    
+
     apogeeDetected = 0; // false
     apogeeCounter = 0;
+    isGrounded = 0; 
+
+    groundedThreshold = NAN;
+    apogeeThreshold = NAN; 
+
     alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
 } 
@@ -65,7 +73,8 @@ float ctrldRogallo::getThetaErr(){
     return thetaErr_deg;
 }
 
-
+#include <cmath>    // for NAN
+#include <cstring>  // for memset, strcpy
 
 void ctrldRogallo::resetFlightPacket() {
     // Set all float fields to NAN
@@ -84,10 +93,10 @@ void ctrldRogallo::resetFlightPacket() {
     state.pos_up_m           = NAN;
     state.temp_c             = NAN;
     state.pressure_pa        = NAN;
-    state.delta1             = NAN;
+    state.delta_1_deg        = NAN;
     state.delta_1_m          = NAN;
-    state.delta2             = NAN;
-    state.delta2_m           = NAN;
+    state.delta_2_deg        = NAN;
+    state.delta_2_m          = NAN;
     state.delta_a            = NAN;
     state.delta_s            = NAN;
     state.pwm_motor1         = NAN;
@@ -121,7 +130,6 @@ void ctrldRogallo::resetFlightPacket() {
     // Set all integer fields to 0xFF (invalid/unknown)
     state.fsm_mode           = 0xFF;
     state.gps_fix            = 0xFFFF;
-    state.gps_antenna_status = 0xFF;
     state.apogee_counter     = 0xFFFFFFFF;
     state.apogee_detected    = 0xFF;
 
@@ -136,7 +144,7 @@ void ctrldRogallo::resetFlightPacket() {
  */ 
 void ctrldRogallo::updateFlightPacket(){
     BMP280_Values bmp_state = bmp.getState();
-    double prevAlt = bmp_state.altitude_m;
+    state.prevAlt = bmp_state.altitude_m;
     
     bmp.updateValues();
     int success = gps.bigUpdate(); 
@@ -149,7 +157,6 @@ void ctrldRogallo::updateFlightPacket(){
     state.timestamp_utc = gps_state.utc;
     state.fsm_mode = this->mode;
     state.gps_fix = gps_state.fix;
-    state.gps_antenna_status = gps_state.antenna_status;
     state.heading_deg = gps_state.heading;
     state.target_heading_deg = getTargetHeading();
     state.h_speed_m_s = gps_state.gspeed;
@@ -167,9 +174,8 @@ void ctrldRogallo::updateFlightPacket(){
     // BMP 
     state.temp_c = bmp_state.temp_c;
     state.pressure_pa = bmp_state.press_pa;
-    state.apogee_counter = apogeeCounter;
-    state.apogee_detected = apogeeDetected;
 
+    // strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
     // BNO 
     bno055_vector_t acc = bno.getAccelerometer();
@@ -211,18 +217,23 @@ void ctrldRogallo::updateFlightPacket(){
 
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
-
-    apogeeCounter += apogeeDetection(prevAlt, state.altitude_m);
-    if(apogeeCounter >= 15){
+    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m);
+    if(apogeeCounter >= 5) { 
         apogeeDetected = 1; // true
         // trigger seeking mode
         mode = FSM_SEEKING; // 1
+    } 
+    
+    if(apogeeDetected == 1) {
+        isGrounded += groundedDetection(state.prevAlt, state.altitude_m);
     }
 
-
-    strncpy(state.flight_id, "ARES-01\0", sizeof(state.flight_id));
-
-    
+    state.apogee_counter = apogeeCounter;
+    state.apogee_detected = apogeeDetected;
+    state.groundedCounter = isGrounded;
+    if(isGrounded >= 15){
+        mode = FSM_GROUNDED; 
+    }
 }
 
 /**
@@ -232,7 +243,7 @@ void ctrldRogallo::updateFlightPacket(){
 float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
     float fuzedAlt = NAN; 
     // check for NANs (they will not equal themselves)
-    if (alt1 == alt1 && alt2 == alt2){
+    if (alt1 == alt1 && alt2 == alt2) {
         fuzedAlt = alt1*alphaAlt + alt2*(1-alphaAlt);
     } else if (alt1 == alt1) {
         fuzedAlt = alt1;
@@ -249,19 +260,34 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
 }
 
 /** 
- * @breif - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
+ * @brief - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
  * @param prevAlt - previous altitude 
  * @param currAlt - current altitude
  * @return 0 if non apogee 1 if apogee
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     double interval = 1; // seconds
+    // double apogeeVelo = -1.5; // m/s
     double apogeeVelo = -1.2; // m/s
     double velo = (currAlt - prevAlt)/interval;
-    if(velo <= apogeeVelo && currAlt >= 600) { // 600m threshold altitude
+    if(velo <= apogeeVelo && currAlt > apogeeThreshold) { // REMINDER TO ADD --> 600m threshold altitude
         return 1;
+    } 
+    return 0; 
+}
+
+uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
+    double interval = 1; 
+    double velo = (currAlt - prevAlt)/interval;
+    if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) {
+        return 1; 
     }
     return 0; 
+}
+
+void ctrldRogallo::setThreshold(){
+    groundedThreshold = state.altitude_m + 100;
+    apogeeThreshold = state.altitude_m + 600; 
 }
 
 // string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){

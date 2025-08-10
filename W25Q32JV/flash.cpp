@@ -133,7 +133,7 @@ void flash::eraseSector(uint32_t address) {
     _spi.write((const char *)cmd, 4, NULL, 0);
     csHigh();
 
-    wait_us(500000); // Erase time delay (~500 ms)
+    wait_us(500000);
 }
 
 /**
@@ -148,8 +148,22 @@ void flash::eraseAll() {
     _spi.write((const char *)&cmd, 1, NULL, 0);
     csHigh();
 
-    wait_us(100000000);
+    cmd = 0x05;
+    uint8_t s1; 
+    while(true){
+        wait_us(10000);
+
+        csLow();
+        _spi.write((const char *)cmd, 1, NULL, 0);
+        _spi.write(NULL, 0, (char *) &s1, 1); // Only receive data
+        csHigh();
+
+        if((s1 & 0b1) == 0){
+            break;
+        }
+    }
 }
+
 
 /**
  * Sends Write Enable command to allow write/erase operations.
@@ -172,6 +186,7 @@ void flash::disableWrite() {
     csHigh();
     wait_us(5000);
 }
+
 
 /**
  * Resets the flash chip using the two-command reset sequence.
@@ -220,8 +235,25 @@ float flash::readNum(uint32_t address) {
 // Write entire data packet (struct)
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
+
+    uint16_t count;
+    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);  // Read current count
+
+    if (count == 0xFFFF) {
+        // If it's the default erased value, initialize to 1
+        eraseSector(0x3FFFFE);  // Align to the base of the sector containing 0xFFFFFF
+        count = 1; 
+        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+
+    } else {
+        // Increment count and write back
+        eraseSector(0x3FFFFE);
+        count += 1;  // Again, erase the entire sector before writing
+        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+    }
+
     return address + 256;
-}
+} 
 
 // Read packet
 uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
@@ -249,9 +281,9 @@ void flash::printCSVHeader() {
         "pos_up_m,"
         "temp_c,"
         "pressure_pa,"
-        "delta1,"
-        "delta_1_m,"
-        "delta2,"
+        "delta1_deg,"
+        "delta1_m,"
+        "delta2_deg,"
         "delta2_m,"
         "delta_a,"
         "delta_s,"
@@ -282,6 +314,7 @@ void flash::printCSVHeader() {
         "bno_quat_x,"
         "bno_quat_y,"
         "bno_quat_z,"
+        "compass_heading,"
         "flight_id\n"
     );
 }
@@ -310,9 +343,9 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // pos_up_m
         "%.4f,"      // temp_c
         "%.4f,"      // pressure_pa
-        "%.4f,"      // delta1
-        "%.4f,"      // delta_1_m
-        "%.4f,"      // delta2
+        "%.4f,"      // delta1_deg
+        "%.4f,"      // delta1_m
+        "%.4f,"      // delta2_deg
         "%.4f,"      // delta2_m
         "%.4f,"      // delta_a
         "%.4f,"      // delta_s
@@ -343,6 +376,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // bno_quat_x
         "%.4f,"      // bno_quat_y
         "%.4f,"       // bno_quat_z
+        "%s,"           // compass_heading
         "%s\n",      // pkt.flight_id (uncomment if you add it back)
         pkt.timestamp_utc,
         pkt.fsm_mode,
@@ -362,10 +396,10 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.pos_up_m,
         pkt.temp_c,
         pkt.pressure_pa,
-        pkt.delta1,
+        pkt.delta_1_deg,
         pkt.delta_1_m,
-        pkt.delta2,
-        pkt.delta2_m,
+        pkt.delta_2_deg,
+        pkt.delta_2_m,
         pkt.delta_a,
         pkt.delta_s,
         pkt.pwm_motor1,
@@ -395,6 +429,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.bno_quat_x,
         pkt.bno_quat_y,
         pkt.bno_quat_z,
+        pkt.compass_heading,
         pkt.flight_id
     );
 }
@@ -406,9 +441,9 @@ void flash::dumpAllPackets(uint32_t numPackets) {
     for (uint32_t i = 0; i < numPackets; ++i) {
         readPacket(i * 256, pkt);
         // don't print if timestamp is nan
-        if (pkt.timestamp_utc == pkt.timestamp_utc) {
-            printPacketAsCSV(pkt);
-        }
+        // if (pkt.timestamp_utc == pkt.timestamp_utc) {
+        printPacketAsCSV(pkt);
+        // }
     }
 }
 

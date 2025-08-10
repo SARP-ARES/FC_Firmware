@@ -6,6 +6,9 @@
 #include "BNO055.h"
 #include "flash.h"
 #include "flight_packet.h"
+#include <iostream>
+#include <cstring>
+
 
 
 EUSBSerial pc;
@@ -30,9 +33,14 @@ uint32_t numPackets = 16000;
 
 void startup() {
     led_B.write(0);
+    Timer t;
+    t.start();
+
     pc.printf("\nErasing flash chip memory...\n\n");
-    fc.eraseAll();    
-    pc.printf("...Erasing Complete...\n\n");
+    fc.eraseAll(); 
+    int ms = t.read_ms();   
+    pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
+    
     ThisThread::sleep_for(1s);
     led_B.write(1);
     pc.printf("ARES IS READY TO BEGIN FLIGHT LOG\n");
@@ -47,11 +55,14 @@ void flight_log(uint32_t numPacketLog) {
      * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
      * to trigger control sequence
      */
+    
     DigitalOut ctrl_trigger(PB_3); 
     ctrl_trigger.write(1); 
     
     ThisThread::sleep_for(1s);
     uint32_t currentFlashAddress = 0;
+
+    // --------------------------------------------------------
 
     pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", numPacketLog, packetSize);
     pc.printf("\nARES IS READY TO INSTALL\n");
@@ -59,60 +70,150 @@ void flight_log(uint32_t numPacketLog) {
 
 
     // big write
-    for (uint32_t i = 0; i < numPacketLog; i++) {
-        ARES.resetFlightPacket();   // set all state variables to NAN or equivalent
-        ARES.updateFlightPacket();  // update all state variables with sensor data
-        FlightPacket state = ARES.getState();   // extract state variables
-        currentFlashAddress = fc.writePacket(currentFlashAddress, state);   // write state variables to flash chip
+    for (int i = 0; i < numPacketLog; i++) {
+
+        ARES.updateFlightPacket(); 
+   
+        FlightPacket state = ARES.getState(); // extract state variables
+        currentFlashAddress = fc.writePacket(currentFlashAddress, state); // write state variables to flash chip
+        pc.printf("Apogee Counter %f\n", state.apogee_counter);
 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
     }
+
+    pc.printf("=================================%s\n", ' ');
+    pc.printf(" ARES DATA COLLECTION FINISHED %s\n", ' ');
+    pc.printf("=================================%s\n", ' ');
+
+} 
+
+void flight_log(){
+
+    ctrldRogallo ARES; 
+
+    char cmdBuf[32];
+
+    ThisThread::sleep_for(5s);
+
+    ARES.updateFlightPacket();
+    ARES.setThreshold(); 
+
+    pc.printf("Beginning data collection... %s\n", ' ');
+
+    DigitalOut ctrl_trigger(PB_3); 
+    ctrl_trigger.write(1); 
+    
+    ThisThread::sleep_for(1s);
+    uint32_t currentFlashAddress = 0;
+
+    FlightPacket state;
+
+    while(state.fsm_mode != FSM_GROUNDED){
+
+        // for(int i = 0; i < 10; i++) {
+            ARES.updateFlightPacket();
+            state = ARES.getState();
+            // ThisThread::sleep_for(105);
+            pc.printf("Apogee Counter %d\n", state.apogee_counter);
+            pc.printf("Altitude %f\n", state.altitude_m);
+            pc.printf("Apogee Detected %d\n", state.apogee_detected);
+            pc.printf("FSM mode %d\n", state.fsm_mode);
+            pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        // }
+
+        currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+            ctrl_trigger.write(0); // signal to control sequence on MCPS 
+        }
+
+        if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
+            if(strcmp(cmdBuf, "quit") == 0) {
+                break;
+            }
+        }
+    }
+
+    pc.printf("=================================%s\n", ' ');
+    pc.printf(" ARES DATA COLLECTION FINISHED %s\n", ' ');
+    pc.printf("=================================%s\n", ' ');
+}
+
+void readBMP() {
+    ctrldRogallo ARES; 
+
+    ThisThread::sleep_for(1s);
+    FlightPacket state; 
+
+    while(true) {
+
+        ARES.updateFlightPacket();
+        state = ARES.getState();
+        pc.printf("Apogee Counter %d\n", state.apogee_counter);
+        // pc.printf("Altitude %f\n", state.altitude_m);
+        // pc.printf("Apogee Detected %d\n", state.apogee_detected);
+        // pc.printf("FSM mode %d\n", state.fsm_mode);
+        // pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        ThisThread::sleep_for(100);
+    }
+
 }
 
 
-void dump(uint32_t numPacketDump){
+void dump(){
+
+    uint32_t numPacketDump;
+    fc.read(0x3FFFFE, reinterpret_cast<uint8_t*> (&numPacketDump), 2);
+
     // big dumpy
     pc.printf("\nDumping %d packets...", numPacketDump);
     pc.printf("\n==================================\n");
     fc.dumpAllPackets(numPacketDump);
     pc.printf("==================================\n");
+    
 }
 
 
-void ledFlashy30() {
-    Timer t;
-    t.start();
 
-    while (t.read_ms() < 30*1000) {
-        led_B.write(1);
-        led_G.write(0);
-        ThisThread::sleep_for(100ms);
-        led_B.write(0);
-        led_G.write(1);
-        ThisThread::sleep_for(100ms);
+void parse_cmd(){
+
+    ThisThread::sleep_for(2s);
+    pc.printf("\nWaiting for console input...\n\n");
+    char cmd_buffer[32];
+
+    while(true) {
+
+        if(pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
+
+           if (strcmp(cmd_buffer, "flightlog") == 0){
+               pc.printf("Running Flight Log\n\n");
+                flight_log();
+            } else if(strcmp(cmd_buffer,"startup") == 0) {
+                pc.printf("Running Startup\n");
+                startup();
+            } else if(strcmp(cmd_buffer,"dump") == 0) {
+                pc.printf("Dumping Packets\n");
+                dump();
+            } else if(strcmp(cmd_buffer, "readbmp") == 0) {
+                pc.printf("Reading BMP\n");
+                readBMP();
+            }
+
+            break; 
+        }
+
+        ThisThread::sleep_for(1000);
     }
-    led_G.write(0);
 }
-
 
 int main() {
-    ThisThread::sleep_for(1s); // wait for serial port to connect
-    pc.printf("\n30s to flash before main program begins..\n");
-    thread.start(ledFlashy30);
-    ThisThread::sleep_for(30s);
-    pc.printf("\nEntering main program...\n");
-
+    parse_cmd();
     /*
      * PROCEDURE
      * 1) startup()     - erases all chip memory
      * 2) flight_log()  - logs data during flight
      * 3) dump()        - prints all data on flash chip as a CSV
      */
-
-    // startup();
-    // flight_log(numPackets);
-    dump(numPackets);
-
 }
+

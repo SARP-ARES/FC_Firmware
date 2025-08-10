@@ -27,10 +27,13 @@ class ctrldRogallo {
         BNO055 bno;
         FlightPacket state;
         ModeFSM mode;
-        bool apogeeDetected;
+        uint32_t apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
+        uint32_t isGrounded; 
         posLTP ltp;
+        uint32_t apogeeThreshold;
+        uint32_t groundedThreshold; 
         
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt(float alt1, float alt2);
@@ -39,6 +42,7 @@ class ctrldRogallo {
         // string getCompassDirection(float rollMag, float pitchMag);
 
     public:
+        void setThreshold(); 
         uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();
         void updateFlightPacket();
@@ -46,6 +50,7 @@ class ctrldRogallo {
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
+        uint32_t groundedDetection(double prevAlt, double currAlt);
         void logData();
         void logDataTEST();
         const FlightPacket getState();

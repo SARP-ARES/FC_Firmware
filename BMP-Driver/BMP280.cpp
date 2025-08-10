@@ -6,7 +6,7 @@
 #include<cmath>
 using namespace std;
 
-/* Constructor 
+/** Constructor 
  * @param Pin address of the SDA Pin on the processor 
  * @param Pin address of the SCL Pin on the processor    
  * @param The I2C address for the BMP280
@@ -16,8 +16,9 @@ BMP280::BMP280(PinName SDA, PinName SCL, char addr){
     BMP280::i2c = new I2C(SDA,SCL);
     BMP280::addr = addr; 
 }
-/* Destructor
- * Deletes I2C if created in object
+
+/** Destructor
+ * @brief Deletes I2C if created in object
  */ 
 BMP280::~BMP280() {
     if(owned){
@@ -25,7 +26,7 @@ BMP280::~BMP280() {
     }
 }
 
-/*
+/**
  * @brief Reads a chunk of data from the BNO055 over I2C.
  * @param regaddr The register address to read from
  * @param data Pointer to a buffer for storing data
@@ -37,7 +38,8 @@ int BMP280::readData(char regaddr, char* data, uint8_t len) {
     return i2c->read(addr, data, len);
 }
 
-/* @brief Writes data to a BNO055 register over I2C.
+/** 
+ * @brief Writes data to a BNO055 register over I2C.
  * @param regaddr The register address to write to
  * @param data The value to be written
  * @return 0 on success, non-zero on failure
@@ -51,19 +53,28 @@ int BMP280::writeData(char regaddr, char data) {
 
 // Temperature 2x, Pressure 16x -> 0b11101011
 // Temperature 1x, Pressure 1x -> 0b00100111
+/** 
+ * @brief Starts the BMP280 in standard operating mode using given sampling rate
+ * @return - state of write 0 if written 1 if error 
+ */
 int BMP280::start(){
     int result = writeData(BMP280_CTRL_MEAS, 0b11101011);
     // 11 = normal mode
     return result;
 }
 
+/**
+ * @brief Sleeps the BMP280, will not collect data in this mode
+ * @return - state of write 0 if written 1 if error 
+ */
 int BMP280::sleep(){
     int result = writeData(BMP280_CTRL_MEAS, 0b11101000);
     // 00 = sleep mode
     return result;
 }
 
-/* @brief Retrieves and organizes temperature data
+/**
+ * @brief Retrieves and organizes temperature data - stores the values in the BMP_280VALUES struct
  * @return calulated temperature value
  */ 
 int BMP280::updateTemperatureData(){
@@ -82,7 +93,8 @@ int BMP280::updateTemperatureData(){
     return totalErr; 
 }
 
-/* @brief Retrieves and organizes pressure data
+/**
+ * @brief Retrieves and organizes pressure data - stores the values in the BMP_280VALUES struct
  * @return calulated pressure value
  */ 
 int BMP280::updatePressureData(){
@@ -100,6 +112,11 @@ int BMP280::updatePressureData(){
     return totalErr; 
 }
 
+/** 
+ * @brief converts the raw sampling values to usable data using BMP280 calibration values
+ * @param adc_t raw binary representing the temperature value 
+ * @return a double of the temperature in celcius
+ */
 double BMP280::convert_temp(int32_t adc_T){
     int err = BMP280_CalibrateTemp();
 
@@ -112,7 +129,11 @@ double BMP280::convert_temp(int32_t adc_T){
     return T;
 }
 
-// @brief calibrates the pressure based upon formulas from datasheet
+/** 
+ * @brief calibrates the pressure based upon formulas from datasheet
+ * @param adc_p raw binary representing the pressure value 
+ * @return a double of the pressure in pascals
+ */
 double BMP280::convert_press(int32_t adc_P){
     int err = BMP280_CalibratePress(); 
 
@@ -134,7 +155,10 @@ double BMP280::convert_press(int32_t adc_P){
     return p;
 }
 
-// @breif updates sensor values 
+/** 
+ * @brief updates sensor values (altitude, pressure, temperature)
+ * @return number of errors accumlated from each update
+ */
 int BMP280::updateValues(){
     int errTemp = updateTemperatureData();
     int errPress  = updatePressureData();
@@ -142,19 +166,26 @@ int BMP280::updateValues(){
     return(errPress + errTemp);
 }
 
-
-//  @breif calibrates temperature values
-// - Array Calib: each calibration number comes in a lsb and msb pair 
+/** 
+ * @brief Calibrates the temperature oversampling using calibration registers 
+          stores all calibration data in BMP_Calibration
+ * @return 0 
+ */
 int BMP280::BMP280_CalibrateTemp(){
     char calib[6];
     readData(0x88, calib, 6);
     c.dig_T1 = calib[1] << 8 | calib[0];
     c.dig_T2 = (calib[3] << 8 | calib[2]);
     c.dig_T3 = (calib[5] << 8 | calib[4]);
+    
     return 0;
 }
 
-
+/**
+ * @brief Calibrates the pressure oversampling using calibration registers 
+          stores all calibration data in BMP_Calibration 
+ * @return 0 
+ */
 int BMP280::BMP280_CalibratePress(){
     char calib[18];
 
@@ -176,7 +207,9 @@ int BMP280::BMP280_CalibratePress(){
 }
 
 
-// Advanced hypsometric mixed with standard hyposometric
+/** 
+ * @brief generates altitude data using the a kalman filter of the hypersometric and advanced hypersometric formula
+ */
 void BMP280::updateAltitudeM(){
     double univesalGasConst = 8.31432;
     double staticPress = 101325;
@@ -194,9 +227,10 @@ void BMP280::updateAltitudeM(){
     values.altitude_m = .5*h1 +.5*h2;
 }
 
+/** 
+ * @brief returns the BMP280 Values struct 
+ * @return the BMP280_Values struct 
+ */
 BMP280_Values BMP280::getState() const{
      return values;
 }
-
-
-
