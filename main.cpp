@@ -31,6 +31,7 @@ uint32_t eraseAddr = 0;
 uint32_t numPackets = 16000;
 
 
+
 void startup() {
     led_B.write(0);
     Timer t;
@@ -112,22 +113,20 @@ void flight_log(){
 
     while(state.fsm_mode != FSM_GROUNDED){
 
-        // for(int i = 0; i < 10; i++) {
-            ARES.updateFlightPacket();
-            state = ARES.getState();
-            // ThisThread::sleep_for(105);
-            pc.printf("Apogee Counter %d\n", state.apogee_counter);
-            pc.printf("Altitude %f\n", state.altitude_m);
-            pc.printf("Apogee Detected %d\n", state.apogee_detected);
-            pc.printf("FSM mode %d\n", state.fsm_mode);
-            pc.printf("Grounded Counter: %d \n", state.groundedCounter);
-        // }
+        ARES.updateFlightPacket();
+        state = ARES.getState();
+        pc.printf("Apogee Counter %d\n", state.apogee_counter);
+        pc.printf("Altitude %f\n", state.altitude_m);
+        pc.printf("Apogee Detected %d\n", state.apogee_detected);
+        pc.printf("FSM mode %d\n", state.fsm_mode);
+        pc.printf("Grounded Counter: %d \n", state.groundedCounter);
 
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
 
+        // break on "quit" command
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
                 break;
@@ -140,25 +139,6 @@ void flight_log(){
     pc.printf("=================================%s\n", ' ');
 }
 
-void readBMP() {
-    ctrldRogallo ARES; 
-
-    ThisThread::sleep_for(1s);
-    FlightPacket state; 
-
-    while(true) {
-
-        ARES.updateFlightPacket();
-        state = ARES.getState();
-        pc.printf("Apogee Counter %d\n", state.apogee_counter);
-        // pc.printf("Altitude %f\n", state.altitude_m);
-        // pc.printf("Apogee Detected %d\n", state.apogee_detected);
-        // pc.printf("FSM mode %d\n", state.fsm_mode);
-        // pc.printf("Grounded Counter: %d \n", state.groundedCounter);
-        ThisThread::sleep_for(100);
-    }
-
-}
 
 
 void dump(){
@@ -175,8 +155,7 @@ void dump(){
 }
 
 
-
-void parse_cmd(){
+void command_line_interface(){
 
     ThisThread::sleep_for(2s);
     pc.printf("\nWaiting for console input...\n\n");
@@ -189,26 +168,28 @@ void parse_cmd(){
            if (strcmp(cmd_buffer, "flightlog") == 0){
                pc.printf("Running Flight Log\n\n");
                 flight_log();
+                command_line_interface();
             } else if(strcmp(cmd_buffer,"startup") == 0) {
                 pc.printf("Running Startup\n");
                 startup();
+                command_line_interface();
             } else if(strcmp(cmd_buffer,"dump") == 0) {
                 pc.printf("Dumping Packets\n");
                 dump();
-            } else if(strcmp(cmd_buffer, "readbmp") == 0) {
-                pc.printf("Reading BMP\n");
-                readBMP();
-            }
+                command_line_interface();
+            } 
 
             break; 
         }
 
-        ThisThread::sleep_for(1000);
+        ThisThread::sleep_for(100ms);
     }
 }
 
+
+
 int main() {
-    parse_cmd();
+    command_line_interface();
     /*
      * PROCEDURE
      * 1) startup()     - erases all chip memory
