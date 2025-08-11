@@ -406,7 +406,7 @@ void GPS::setOriginECEFr(float lat_deg, float lon_deg, float h) { // uses curren
     // float h = state.alt;
     float x = (h + N)*cos(lat_rad)*cos(lon_rad);
     float y = (h + N)*cos(lat_rad)*sin(lon_rad);
-    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
+    float z = ( h + N*(1 - pow(e,2)) )*sin(lat_rad);
     origin.x = x;
     origin.y = y;
     origin.z = z;
@@ -443,15 +443,15 @@ void GPS::updatePosLTP() {
     float y_pp = x_p*cos(lon_rad) + y_p*sin(lon_rad);
     float z_pp = z_p;
 
-    // // final rotation to allign z_axis with up
-    // pos.e = x_pp;
-    // pos.n = -y_pp*sin(lat_rad) + z_pp*cos(lat_rad);
-    // pos.u = y_pp*cos(lat_rad) + z_pp*sin(lat_rad);
+    // final rotation to allign z_axis with up
+    pos.e = x_pp;
+    pos.n = -y_pp*sin(lat_rad) + z_pp*cos(lat_rad);
+    pos.u = y_pp*cos(lat_rad) + z_pp*sin(lat_rad);
 
-    // TESTING RELATIVE POSITION IN ECEFr
-    pos.e = x_p;
-    pos.n = y_p;
-    pos.u = z_p;
+    // // TESTING RELATIVE POSITION IN ECEFr
+    // pos.e = x_p;
+    // pos.n = y_p;
+    // pos.u = z_p;
 }
 
 

@@ -22,7 +22,6 @@ class ctrldRogallo {
     private:
         float getThetaErr();
         float getTargetHeading();
-        GPS gps;
         BMP280 bmp;
         BNO055 bno;
         FlightPacket state;
@@ -42,6 +41,7 @@ class ctrldRogallo {
         // string getCompassDirection(float rollMag, float pitchMag);
 
     public:
+        GPS gps;
         void setThreshold(); 
         uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();

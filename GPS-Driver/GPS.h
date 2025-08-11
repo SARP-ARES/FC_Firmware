@@ -71,8 +71,8 @@ const float pi = 3.1415926535898;
 class GPS {
     private:
         gpsState state;
-        posLTP pos;
         posECEFr origin;
+        posLTP pos;
         int getLatSign();
         int getLonSign();
         float utc2sec(float utc);
