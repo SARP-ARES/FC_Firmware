@@ -140,7 +140,7 @@ void dump_data(){
     uint16_t numPacketDump;
     fc.read(0x3FFFFE, reinterpret_cast<uint8_t*> (&numPacketDump), 2);
 
-    if (numPacketDump == 0xFFFF) {
+    if (numPacketDump == 0xFFFF || numPacketDump == 0) {
         // If it's the default erased value, there are no packets to dump
         pc.printf("There are no packets to dump!");
         ThisThread::sleep_for(1500ms);
@@ -275,11 +275,5 @@ void command_line_interface() {
 
 int main() {
     command_line_interface();
-    /*
-     * PROCEDURE
-     * 1) startup()     - erases all chip memory
-     * 2) flight_log()  - logs data during flight
-     * 3) dump()        - prints all data on flash chip as a CSV
-     */
 }
 
