@@ -10,7 +10,7 @@
 #include <cstring>
 
 
-
+ctrldRogallo ARES;
 EUSBSerial pc;
 flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
 DigitalOut led_B(PA_8);
@@ -32,7 +32,7 @@ uint32_t numPackets = 16000;
 
 
 
-void startup() {
+void clear_data() {
     led_B.write(0);
     Timer t;
     t.start();
@@ -42,15 +42,12 @@ void startup() {
     int ms = t.read_ms();   
     pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
     
-    ThisThread::sleep_for(1s);
     led_B.write(1);
-    pc.printf("ARES IS READY TO BEGIN FLIGHT LOG\n");
 }
 
 
 
-void flight_log(uint32_t numPacketLog) {
-    ctrldRogallo ARES; 
+void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog) {
 
     /* 
      * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
@@ -73,11 +70,10 @@ void flight_log(uint32_t numPacketLog) {
     // big write
     for (int i = 0; i < numPacketLog; i++) {
 
-        ARES.updateFlightPacket(); 
+        ARES->updateFlightPacket(); 
    
-        FlightPacket state = ARES.getState(); // extract state variables
+        FlightPacket state = ARES->getState(); // extract state variables
         currentFlashAddress = fc.writePacket(currentFlashAddress, state); // write state variables to flash chip
-        pc.printf("Apogee Counter %f\n", state.apogee_counter);
 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
@@ -90,16 +86,12 @@ void flight_log(uint32_t numPacketLog) {
 
 } 
 
-void flight_log(){
-
-    ctrldRogallo ARES; 
+void flight_log(ctrldRogallo* ARES){
 
     char cmdBuf[32];
 
-    ThisThread::sleep_for(5s);
-
-    ARES.updateFlightPacket();
-    ARES.setThreshold(); 
+    ARES->updateFlightPacket();
+    ARES->setThreshold(); 
 
     pc.printf("Beginning data collection... %s\n", ' ');
 
@@ -107,18 +99,19 @@ void flight_log(){
     ctrl_trigger.write(1); 
     
     ThisThread::sleep_for(1s);
-    uint32_t currentFlashAddress = 0;
+    uint32_t currentFlashAddress = 0; // start writing at the first flash address
 
     FlightPacket state;
 
     while(state.fsm_mode != FSM_GROUNDED){
 
-        ARES.updateFlightPacket();
-        state = ARES.getState();
-        pc.printf("Apogee Counter %d\n", state.apogee_counter);
-        pc.printf("Altitude %f\n", state.altitude_m);
-        pc.printf("Apogee Detected %d\n", state.apogee_detected);
+        ARES->updateFlightPacket();
+        state = ARES->getState();
+        
+        pc.printf("Lat, Lon, Alt: \t %f, %f, %f\n", state.latitude_deg, state.longitude_deg, state.altitude_m);
         pc.printf("FSM mode %d\n", state.fsm_mode);
+        pc.printf("Apogee Counter %d\n", state.apogee_counter);
+        pc.printf("Apogee Detected %d\n", state.apogee_detected);
         pc.printf("Grounded Counter: %d \n", state.groundedCounter);
 
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
@@ -134,57 +127,149 @@ void flight_log(){
         }
     }
 
-    pc.printf("=================================%s\n", ' ');
-    pc.printf(" ARES DATA COLLECTION FINISHED %s\n", ' ');
-    pc.printf("=================================%s\n", ' ');
+    pc.printf("==============================%s\n", ' ');
+    pc.printf("\"quit\" cmd recieved...\n");
+    pc.printf("ARES data collection complete\n");
+    pc.printf("==============================%s\n", ' ');
 }
 
 
 
-void dump(){
+void dump_data(){
 
-    uint32_t numPacketDump;
+    uint16_t numPacketDump;
     fc.read(0x3FFFFE, reinterpret_cast<uint8_t*> (&numPacketDump), 2);
 
-    // big dumpy
-    pc.printf("\nDumping %d packets...", numPacketDump);
-    pc.printf("\n==================================\n");
-    fc.dumpAllPackets(numPacketDump);
-    pc.printf("==================================\n");
-    
+    if (numPacketDump == 0xFFFF) {
+        // If it's the default erased value, there are no packets to dump
+        pc.printf("There are no packets to dump!");
+        ThisThread::sleep_for(1500ms);
+
+    } else {
+        // big dumpy
+        pc.printf("\nDumping %d packets...", numPacketDump);
+        pc.printf("\n==================================\n");
+        fc.dumpAllPackets(numPacketDump);
+        pc.printf("==================================\n");
+    }
+
 }
 
 
-void command_line_interface(){
+void double_check() {
+    char cmdBuf[32];
+    pc.printf("Are you sure you want to erase all data from ARES?\n");
+    pc.printf("1. \"yes\"\n2. \"no\"\n3. \"yo mama\"\n");
+    
+    Timer t;
+    t.start();
+    while (true) {
+        if (pc.readline(cmdBuf, sizeof(cmdBuf))) {
+            if (strcmp(cmdBuf, "yes") == 0 || strcmp(cmdBuf, "1") == 0) {
+                pc.printf("\"yes\" received\n");
+                ThisThread::sleep_for(1500ms);
+                pc.printf("Ok... What's the password?\n");
+                ThisThread::sleep_for(4s);
+                pc.printf("Just kidding :)");
+                ThisThread::sleep_for(1s);
+                clear_data();
+                break;
+            } else if (strcmp(cmdBuf, "no") == 0 || strcmp(cmdBuf, "2") == 0) {
+                pc.printf("\"no\" received\n");
+                ThisThread::sleep_for(1500ms);
+                break;
+            } else if (strcmp(cmdBuf, "yo mama") == 0 || strcmp(cmdBuf, "3") == 0) {
+                pc.printf("\"yo mama\" received\n");
+                ThisThread::sleep_for(1500ms);
+                pc.printf("That wasn't very nice :(");
+                ThisThread::sleep_for(1s);
+                break;
+            }
+        }
+        // break (don't erase) if there is no response in 15 seconds
+        if (t.read_ms() > 15000) {
+            pc.printf("You took too damn long! Try again...");
+            break;
+        }
+    }
+        
+}
+
+
+void set_origin(ctrldRogallo* ARES) {
+    ARES->updateFlightPacket(); // get current coordinates
+    ARES->gps.setOriginECEFr(); // set coordinates as origin for LTP
+    FlightPacket state = ARES->getState();
+    posECEFr origin = ARES->gps.getOriginECEFr();
+    pc.printf("LTP origin has been set...\nLat, Lon, Alt: %f deg, %f deg, %f m\nECEFr (x, y, z): %f m, %f m, %f m", \
+    state.latitude_deg, state.longitude_deg, state.altitude_m, origin.x, origin.y, origin.z);
+}
+
+
+void command_line_interface() {
+    char cmd_buffer[32];  // user input buffer
 
     ThisThread::sleep_for(2s);
-    pc.printf("\nWaiting for console input...\n\n");
-    char cmd_buffer[32];
 
-    while(true) {
-
-        if(pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
-
-           if (strcmp(cmd_buffer, "flightlog") == 0){
-               pc.printf("Running Flight Log\n\n");
-                flight_log();
-                command_line_interface();
-            } else if(strcmp(cmd_buffer,"startup") == 0) {
-                pc.printf("Running Startup\n");
-                startup();
-                command_line_interface();
-            } else if(strcmp(cmd_buffer,"dump") == 0) {
-                pc.printf("Dumping Packets\n");
-                dump();
-                command_line_interface();
-            } 
-
-            break; 
+    bool cli_reset = true;
+    while (true) {
+        
+        if (cli_reset) {
+            pc.printf("\n\nARES is waiting for user input... What would you like to run?\n");
+            pc.printf("1. \"flight_log\"\n");
+            pc.printf("2. \"dump\"\n");
+            pc.printf("3. \"set_origin\"\n");
+            pc.printf("4. \"clear\"\n");
+            pc.printf("\n> ");  // command prompt
+            cli_reset = false;
         }
 
+        memset(cmd_buffer, 0, sizeof(cmd_buffer)); // reset user input buffer
+
+        // read user input
+        if (pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
+
+            // flight log
+            if (strcmp(cmd_buffer, "flight_log") == 0 || strcmp(cmd_buffer, "1") == 0) {
+                pc.printf("\"flight_log\" cmd received. Use \"quit\" cmd to stop logging.\n");
+                ThisThread::sleep_for(1500ms);
+                flight_log(&ARES);
+            }
+
+            // dump data
+            else if (strcmp(cmd_buffer, "dump") == 0 || strcmp(cmd_buffer, "2") == 0) {
+                pc.printf("\"dump\" cmd received\n");
+                ThisThread::sleep_for(1500ms);
+                dump_data();
+            }
+
+            // set origin
+            else if (strcmp(cmd_buffer, "set_origin") == 0 || strcmp(cmd_buffer, "3") == 0) {
+                pc.printf("\"set_origin\" cmd received\n");
+                ThisThread::sleep_for(1500ms);
+                set_origin(&ARES);
+            }
+
+            // clear data
+            else if (strcmp(cmd_buffer, "clear") == 0 || strcmp(cmd_buffer, "4") == 0) {
+                pc.printf("\"clear\" cmd received\n");
+                ThisThread::sleep_for(1500ms);
+                double_check(); // make sure the user wants to clear the data
+            }
+
+            // Unknown command
+            else {
+                pc.printf("Unknown command: %s\n", cmd_buffer);
+            }
+
+            cli_reset = true; // reset CLI after user input is recieved 
+        }
+
+        // Avoid hammering CPU
         ThisThread::sleep_for(100ms);
     }
 }
+
 
 
 
