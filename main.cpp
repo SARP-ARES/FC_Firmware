@@ -201,7 +201,7 @@ void set_origin(ctrldRogallo* ARES) {
     ARES->gps.setOriginECEFr(); // set coordinates as origin for LTP
     FlightPacket state = ARES->getState();
     posECEFr origin = ARES->gps.getOriginECEFr();
-    pc.printf("LTP origin has been set...\nLat, Lon, Alt: %f deg, %f deg, %f m\nECEFr (x, y, z): %f m, %f m, %f m", \
+    pc.printf("LTP origin has been set...\nLat, Lon, Alt: %f deg, %f deg, %.3f m\nECEFr (x, y, z): %.3f m, %.3f m, %.3f m", \
     state.latitude_deg, state.longitude_deg, state.altitude_m, origin.x, origin.y, origin.z);
 }
 
@@ -255,6 +255,14 @@ void command_line_interface() {
                 pc.printf("\"clear\" cmd received\n");
                 ThisThread::sleep_for(1500ms);
                 double_check(); // make sure the user wants to clear the data
+            }
+
+            // hello
+            else if (strcmp(cmd_buffer, "hello") == 0) {
+                pc.printf("\"hello\" received\n");
+                ThisThread::sleep_for(1500ms);
+                pc.printf("\nhello! :)\n");
+                ThisThread::sleep_for(1500ms);
             }
 
             // Unknown command
