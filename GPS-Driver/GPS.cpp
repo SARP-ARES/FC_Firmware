@@ -1,6 +1,7 @@
 #include "BufferedSerial.h"
 #include "EUSBSerial.h"
 #include "GPS.h"
+#include "GPS_CMD.h"
 #include <cmath>
 
 
@@ -10,6 +11,52 @@ ADD DESCRIPTION
 
 */
 GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
+
+
+
+/*
+
+ADD DESCRIPTION
+
+*/
+void GPS::set_logging_rate(uint32_t hz) {
+    // Choose valid GPS settings based on requested Hz
+    const GPSCmd* baudCmd = nullptr;
+    const GPSCmd* updateCmd = nullptr;
+    const GPSCmd* fixCmd = nullptr;
+    uint32_t uart_baud = 0;
+
+    if (hz <= 1) {
+        baudCmd = &CMD_BAUD_9600;
+        updateCmd = &CMD_UPDATE_1HZ;
+        fixCmd = &CMD_FIXCTL_1HZ;
+        uart_baud = 9600;
+    } else if (hz <= 5) {
+        baudCmd = &CMD_BAUD_38400;
+        updateCmd = &CMD_UPDATE_5HZ;
+        fixCmd = &CMD_FIXCTL_5HZ;
+        uart_baud = 38400;
+    } else { // default: 10 Hz
+        baudCmd = &CMD_BAUD_38400;  // GPS stable at 10Hz with 38400
+        updateCmd = &CMD_UPDATE_10HZ;
+        fixCmd = &CMD_FIXCTL_10HZ;
+        uart_baud = 38400;
+    }
+
+    // Step 1: Set GPS baud rate
+    serial.write(baudCmd->cmd, baudCmd->len);
+
+    // Step 2: Update STM32 UART baud to match GPS
+    serial.set_baud(uart_baud);
+
+    // Step 3: Set GPS update rate
+    serial.write(updateCmd->cmd, updateCmd->len);
+
+    // Step 4: Set GPS fix interval
+    serial.write(fixCmd->cmd, fixCmd->len);
+
+}
+
 
 
 /*
@@ -313,13 +360,12 @@ int GPS::update_antenna_status(const char* msg){
 }
 
 
-// legacy method
 int GPS::update(NMEA_Type msgType, const char* msg){
 
     switch(msgType) {
         
         case NMEA_NA: { // type not recognized
-            printf("Invalid NMEA message type\n");
+            // printf("Invalid NMEA message type\n");
             return 0;
         }
 

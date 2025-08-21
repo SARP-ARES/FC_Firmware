@@ -2,9 +2,26 @@
 #define GPS_H
 #include "mbed.h"
 
-
-
 #define KNOT_TO_M_S 0.5144444444
+
+// // GPS serial command declarations
+// extern const char* cmd_set_baud_rate_9600;
+// extern const char* cmd_set_baud_rate_38400;
+// extern const char* cmd_set_baud_rate_57600;
+// extern const char* cmd_set_baud_rate_115200;
+// extern const char* cmd_set_update_rate_10hz;
+// extern const char* cmd_set_update_rate_5hz;
+// extern const char* cmd_set_update_rate_1hz;
+// extern const char* cmd_antenna_status;
+
+// extern const int len_cmd_set_baud_rate_9600;
+// extern const int len_cmd_set_baud_rate_38400;
+// extern const int len_cmd_set_baud_rate_57600;
+// extern const int len_cmd_set_baud_rate_115200;
+// extern const int len_cmd_set_update_rate_10hz;
+// extern const int len_cmd_set_update_rate_5hz;
+// extern const int len_cmd_set_update_rate_1hz;
+// extern const int len_cmd_antenna_status;
 
 struct posECEFg {   // Earth-Centered Earth-Fixed Geodic Coordinates
     float lat; // lattitude    (radians)
@@ -104,6 +121,7 @@ class GPS {
         BufferedSerial serial;
         void setOriginECEFr(); // uses current position to set origin if nothing is passed
         void setOriginECEFr(float lat_deg, float lon_deg, float h); // can specify origin
+        void set_logging_rate(uint32_t hz);
         
 
         // functino: start (GPS LOOOP)
