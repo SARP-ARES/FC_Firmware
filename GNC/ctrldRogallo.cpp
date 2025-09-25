@@ -5,6 +5,12 @@
 #include "BNO055.h"
 #include <string>
 
+#define DEG_LLA_TO_M_CONVERSION         111111
+#define APOGEE_THRESHOLD_BUFFER         600
+#define GROUNDED_THRESHOLD_BUFFER       100
+#define ALPHA_ALT_START_PERCENT         0.05
+#define SPIRAL_RADIUS                   10
+#define PI                              3.1415926535
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
@@ -14,19 +20,45 @@ ctrldRogallo::ctrldRogallo()
     bmp.start();
     bno.setup();
 
-    
-
     apogeeDetected = 0; // false
     apogeeCounter = 0;
-    isGrounded = 0; 
+    groundedCounter = 0; 
+
+    //target LLA
+    target_lat = NAN;
+    target_long = NAN;
 
     groundedThreshold = NAN;
     apogeeThreshold = NAN; 
 
-    alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
+    alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
 } 
 
+void ctrldRogallo::setTarget(float lat, float longitude) { target_lat = lat; target_long = longitude; }
+
+float ctrldRogallo::computeHaversine(void){
+    // distance between latitudes
+        // and longitudes
+        float dLat = (state.latitude_deg - target_lat) *
+                      PI / 180.0;
+        float dLon = (state.longitude_deg - target_long) * 
+                      PI / 180.0;
+
+        // convert to radians
+        float lat1 = (state.latitude_deg) * PI / 180.0;
+        float lat2 = (target_lat) * PI / 180.0;
+
+        // apply formulae
+        float a = pow(sin(dLat / 2), 2) + 
+                   pow(sin(dLon / 2), 2) * 
+                   cos(lat1) * cos(lat2);
+        float rad = 6371;
+        float c = 2 * asin(sqrt(a));
+        return (rad * c) / 1000; // return in m
+}
+
+bool ctrldRogallo::isWithinTarget(void) { return computeHaversine() < SPIRAL_RADIUS; }
 
 const FlightPacket ctrldRogallo::getState() {
     return this->state;
@@ -72,9 +104,6 @@ float ctrldRogallo::getThetaErr(){
     }
     return thetaErr_deg;
 }
-
-#include <cmath>    // for NAN
-#include <cstring>  // for memset, strcpy
 
 void ctrldRogallo::resetFlightPacket() {
     // Set all float fields to NAN
@@ -217,23 +246,21 @@ void ctrldRogallo::updateFlightPacket(){
 
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
-    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m);
-    if(apogeeCounter >= 5) { 
-        apogeeDetected = 1; // true
-        // trigger seeking mode
-        mode = FSM_SEEKING; // 1
-    } 
+    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); // checks if descending and above threshold
+
+    if(apogeeCounter >= 5) apogeeDetected = 1;
     
     if(apogeeDetected == 1) {
-        isGrounded += groundedDetection(state.prevAlt, state.altitude_m);
+        if(isWithinTarget())    mode = FSM_SPIRAL; // checks if ARES is within spiral target range mode = FSM_SPIRAL; 
+        else                    mode = FSM_SEEKING;
+
+        groundedCounter += groundedDetection(state.prevAlt, state.altitude_m); // checks if not moving and below threshold
+        if(groundedCounter >= 15)    mode = FSM_GROUNDED;
     }
 
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
-    state.groundedCounter = isGrounded;
-    if(isGrounded >= 15){
-        mode = FSM_GROUNDED; 
-    }
+    state.groundedCounter = groundedCounter;
 }
 
 /**
@@ -286,8 +313,8 @@ uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
 }
 
 void ctrldRogallo::setThreshold(){
-    groundedThreshold = state.altitude_m + 100;
-    apogeeThreshold = state.altitude_m + 600; 
+    groundedThreshold = state.altitude_m + GROUNDED_THRESHOLD_BUFFER;
+    apogeeThreshold = state.altitude_m + APOGEE_THRESHOLD_BUFFER; 
 }
 
 // string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){

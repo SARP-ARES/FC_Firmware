@@ -29,10 +29,15 @@ class ctrldRogallo {
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
-        uint32_t isGrounded; 
+        uint32_t groundedCounter; 
+        float target_lat;
+        float target_long; 
         posLTP ltp;
         uint32_t apogeeThreshold;
         uint32_t groundedThreshold; 
+
+        float computeHaversine(void);
+        bool isWithinTarget(void);
         
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt(float alt1, float alt2);
@@ -43,6 +48,7 @@ class ctrldRogallo {
     public:
         GPS gps;
         void setThreshold(); 
+        void setTarget(float lat, float longitude);
         uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();
         void updateFlightPacket();

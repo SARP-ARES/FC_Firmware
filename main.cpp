@@ -108,11 +108,11 @@ void flight_log(ctrldRogallo* ARES){
         ARES->updateFlightPacket();
         state = ARES->getState();
         
-        pc.printf("Lat, Lon, Alt: \t %f, %f, %f\n", state.latitude_deg, state.longitude_deg, state.altitude_m);
-        pc.printf("FSM mode %d\n", state.fsm_mode);
-        pc.printf("Apogee Counter %d\n", state.apogee_counter);
-        pc.printf("Apogee Detected %d\n", state.apogee_detected);
-        pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        // pc.printf("Lat, Lon, Alt: \t %f, %f, %f\n", state.latitude_deg, state.longitude_deg, state.altitude_m);
+        // pc.printf("FSM mode %d\n", state.fsm_mode);
+        // pc.printf("Apogee Counter %d\n", state.apogee_counter);
+        // pc.printf("Apogee Detected %d\n", state.apogee_detected);
+        // pc.printf("Grounded Counter: %d \n", state.groundedCounter);
 
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
