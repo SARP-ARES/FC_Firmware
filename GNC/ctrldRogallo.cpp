@@ -35,25 +35,25 @@ ctrldRogallo::ctrldRogallo()
     mode = FSM_IDLE; // initialize in idle mode
 } 
 
-void ctrldRogallo::setTarget(float lat, float longitude) { target_lat = lat; target_long = longitude; }
+void ctrldRogallo::setTarget(double lat, double longitude) { target_lat = lat; target_long = longitude; }
 
 float ctrldRogallo::computeHaversine(void){
     // distance between latitudes
         // and longitudes
-        float dLat = (state.latitude_deg - target_lat) *
+        double dLat = (state.latitude_deg - target_lat) *
                       PI / 180.0;
-        float dLon = (state.longitude_deg - target_long) * 
+        double dLon = (state.longitude_deg - target_long) * 
                       PI / 180.0;
 
         // convert to radians
-        float lat1 = (state.latitude_deg) * PI / 180.0;
-        float lat2 = (target_lat) * PI / 180.0;
+        double lat1 = (state.latitude_deg) * PI / 180.0;
+        double lat2 = (target_lat) * PI / 180.0;
 
         // apply formulae
-        float a = pow(sin(dLat / 2), 2) + 
+        double a = pow(sin(dLat / 2), 2) + 
                    pow(sin(dLon / 2), 2) * 
                    cos(lat1) * cos(lat2);
-        float rad = 6371;
+        double rad = 6371;
         float c = 2 * asin(sqrt(a));
         return (rad * c) / 1000; // return in m
 }

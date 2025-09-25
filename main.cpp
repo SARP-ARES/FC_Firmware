@@ -197,12 +197,20 @@ void double_check() {
 
 
 void set_origin(ctrldRogallo* ARES) {
-    ARES->updateFlightPacket(); // get current coordinates
-    ARES->gps.setOriginECEFr(); // set coordinates as origin for LTP
+    // no lat/lon argument
+    // sets current lat/lon as target/origin
+    ARES->updateFlightPacket(); // get current lat/lon
     FlightPacket state = ARES->getState();
-    posECEFr origin = ARES->gps.getOriginECEFr();
-    pc.printf("LTP origin has been set...\nLat, Lon, Alt: %f deg, %f deg, %.3f m\nECEFr (x, y, z): %.3f m, %.3f m, %.3f m", \
-    state.latitude_deg, state.longitude_deg, state.altitude_m, origin.x, origin.y, origin.z);
+    ARES->setTarget(state.latitude_deg, state.longitude_deg);
+    pc.printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
+                state.latitude_deg, state.longitude_deg);
+}
+
+void set_origin(ctrldRogallo* ARES, double lat, double lon) {
+    // uses lat/lon arg to set target/origin
+    ARES->setTarget(lat, lon);
+    pc.printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
+                lat, lon);
 }
 
 
@@ -245,9 +253,28 @@ void command_line_interface() {
 
             // set origin
             else if (strcmp(cmd_buffer, "set_origin") == 0 || strcmp(cmd_buffer, "3") == 0) {
-                pc.printf("\"set_origin\" cmd received\n");
-                ThisThread::sleep_for(1500ms);
-                set_origin(&ARES);
+                pc.printf("\"set_origin\" cmd received...\n");
+                pc.printf("Where would you like to set the origin?\n");
+                char input_buf[64];
+                size_t idx = 0;
+                // Wait for user input
+                while (true) {
+                    if (pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
+                        break;
+                    }
+                }
+                float lat, lon;
+                if (strcmp(cmd_buffer, "here") == 0) {
+                    ThisThread::sleep_for(1500ms);
+                    set_origin(&ARES); // set current location as origin
+                } else if (sscanf(input_buf, "%f,%f", &lat, &lon) == 2) {
+                    // get lat/lon from user input and set as origin
+                    set_origin(&ARES, lat, lon);
+                } else {
+                    pc.printf("\nInvalid format. Use: lat,lon or type \"here\".\n");
+                }
+                
+                
             }
 
             // clear data

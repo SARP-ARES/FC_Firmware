@@ -48,7 +48,7 @@ class ctrldRogallo {
     public:
         GPS gps;
         void setThreshold(); 
-        void setTarget(float lat, float longitude);
+        void setTarget(double latitude, double longitude);
         uint32_t currentFlashAddress; // move to private after testing
         ctrldRogallo();
         void updateFlightPacket();
