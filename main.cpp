@@ -4,6 +4,18 @@
 #include "GPS_CMD.h"
 
 
+GPS gps(PA_2, PA_3); // instantiate
+
+#define GPS_BUF_SIZE 256
+char gps_buf[GPS_BUF_SIZE] = {0};
+int gps_index = 0;
+
+DigitalOut led_G(PA_15);
+DigitalOut led_B(PA_8);
+
+EUSBSerial pc(true); // new class Extended USB Serial
+// BufferedSerial gps_serial(PA_2, PA_3);
+
 const char* getTypeStr(NMEA_Type type) { // for printing to port
     switch(type) {
         case NMEA_GGA: {
@@ -31,22 +43,48 @@ const char* getTypeStr(NMEA_Type type) { // for printing to port
     return type_str;
 }
 
+// Process a completed NMEA line
+void process_gps_line(GPS* gps, const char* line) {
+    NMEA_Type msgType = gps->getMsgType(line);
+    int result = gps->update(msgType, line);
+
+    pc.printf("\n===========================\n");
+    pc.printf("%s", line);
+    pc.printf("Message Type\t: %s\n", getTypeStr(msgType));
+}
+
+// Poll GPS and fill buffer until newline, then process
+void poll_gps(GPS* gps) {
+    static char buf[GPS_BUF_SIZE];
+    static int index = 0;
+
+    while (gps->serial.readable()) {
+        char c;
+        if (gps->serial.read(&c, 1) == 1) {
+            // store character
+            if (index < GPS_BUF_SIZE - 1) {
+                buf[index++] = c;
+            }
+
+            // End of line reached
+            if (c == '\n') {
+                buf[index] = '\0';  // terminate C string
+                process_gps_line(gps, buf);
+                index = 0;          // reset buffer
+            }
+        }
+    }
+}
+
 
 int main(){
-    DigitalOut led_G(PA_15);
-    DigitalOut led_B(PA_8);
-
-    EUSBSerial pc(true); // new class Extended USB Serial
-    // BufferedSerial gps_serial(PA_2, PA_3);
-
     led_B.write(1);
     
+
+    gps.setOriginECEFr(47.664612, -122.303568, 60); // set lat/lon/alt origin
     // setup timer for use in secondary actions
     Timer t;
-
-    GPS gps(PA_2, PA_3); // instantiate
-    gps.setOriginECEFr(47.664612, -122.303568, 60); // set lat/lon/alt origin 
-    
+ 
     /*
     - center of red square (between benches): 47.655821, -122.309691
     - triple brick stack red sq: 47.656229, -122.309831
@@ -57,7 +95,7 @@ int main(){
     // Thread thred; // thread to automatically set origin if needed
     // thred.start()
 
-    char buf[256] = {0};
+    
     int index = 0;
     int success;
 
@@ -76,18 +114,25 @@ int main(){
     // int rslt1 = gps.serial.write(antenna_status_cmd, sizeof(tenHurtzCmd));
     // pc.printf("\nsent command to enable antenna status messages... result: %d", rslt1);
 
-    int rslt1 = gps.serial.write(CMD_BAUD_38400.cmd, CMD_BAUD_38400.len);
-    gps.serial.set_baud(38400); // also change baud rate of USART2 on STM32 so the GPS and STM can communicate
-    pc.printf("\n\n...Wrote 38400 baud rate cmd... result: %d", rslt1);
+    int rslt1 = gps.serial.write(CMD_BAUD_9600.cmd, CMD_BAUD_9600.len);
+    ThisThread::sleep_for(100ms);
+    gps.serial.set_baud(9600); // also change baud rate of USART2 on STM32 so the GPS and STM can communicate
+    ThisThread::sleep_for(100ms);
+    pc.printf("\n\n...Wrote 9600 baud rate cmd... result: %d", rslt1);
     // 9600, 38400, 57600, 115200
     int rslt2 = gps.serial.write(CMD_UPDATE_1HZ.cmd, CMD_UPDATE_1HZ.len);
+    ThisThread::sleep_for(100ms);
     pc.printf("\n\n...Wrote 1Hz cmd... result: %d", rslt2);
 
     int rslt3 = gps.serial.write(CMD_FIXCTL_1HZ.cmd, CMD_FIXCTL_1HZ.len);
+    ThisThread::sleep_for(100ms);
     pc.printf("\n\n...Wrote 1Hz fix cmd... result: %d", rslt3);
 
     
     ThisThread::sleep_for(5s);
+    led_B.write(0);
+    ThisThread::sleep_for(500ms);
+    led_B.write(1);
     t.start();
     while(true){
         // // BELOW SENDS FAKE MESSAGES TO TEST UPDATES
@@ -141,36 +186,48 @@ int main(){
 
 
         //====================================================================================================
-        // BELOW GETS AND PRINTS REAL GPS DATA USING LEGACY UPDATE METHOD
+        // BELOW GETS AND PRINTS REAL GPS DATA USING SIMPLE UPDATE METHOD
         
 
         
-        //read each character of the message and send to the corresponding buffer index
-        if (gps.serial.readable()) {
-            gps.serial.read(&buf[index], 1);
-            index ++;
-        }else{
-            // pc.printf("\nGPS not readable...");
-        }
+        // //read each character of the message and send to the corresponding buffer index
+        // if (gps.serial.readable()) {
+        //     gps.serial.read(&gps_buf[index], 1);
+        //     index ++;
+        // }else{
+        //     // pc.printf("\nGPS not readable...");
+        // }
+        
+        // if (index != 0 && gps_buf[index-1] == '\n') {
+        //     gps_buf[index] = 0; // terminate the string to negate leftovers
+        //     NMEA_Type msgType = gps.getMsgType(gps_buf);
+        //     int result = gps.update(msgType, gps_buf);; // TODO: combine getMsgType() & udpate() w/ wrapper
+        //     pc.printf("\n===========================");
+        //     pc.printf("\n%s", gps_buf); // write the message to serial port
+        //     const char* msgTypeStr = getTypeStr(msgType);
+        //     pc.printf("Message Type\t: %s", msgTypeStr); // write the message type
+        //     gpsState state = gps.getState();
+        //     // pc.printf("\nUTC\t\t: %f \nFix\t\t: %d \nmode2\t\t: %d \nLattitude\t: %f %c \nLongitude\t: %f %c\nAltitude\t: %f\nHeading\t\t: %.3f degrees \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f \nAntenna Status\t: %d", \
+        //     //                 state.utc, state.fix, state.mode2, state.lat, state.latNS, state.lon, state.lonEW, state.alt, state.heading, state.pdop, state.hdop, state.vdop, state.antenna_status);
+        //     // pc.printf("\nitems matched\t: %d", result);
+        //     index = 0; // reset    
 
-        if (index != 0 && buf[index-1] == '\n') {
-            buf[index] = 0; // terminate the string to negate leftovers
-            NMEA_Type msgType = gps.getMsgType(buf);
-            int result = gps.update(msgType, buf);; // TODO: combine getMsgType() & udpate() w/ wrapper
-            pc.printf("\n===========================");
-            pc.printf("\n%s", buf); // write the message to serial port
-            const char* msgTypeStr = getTypeStr(msgType);
-            pc.printf("Message Type\t: %s", msgTypeStr); // write the message type
-            gpsState state = gps.getState();
-            // pc.printf("\nUTC\t\t: %f \nFix\t\t: %d \nmode2\t\t: %d \nLattitude\t: %f %c \nLongitude\t: %f %c\nAltitude\t: %f\nHeading\t\t: %.3f degrees \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f \nAntenna Status\t: %d", \
-            //                 state.utc, state.fix, state.mode2, state.lat, state.latNS, state.lon, state.lonEW, state.alt, state.heading, state.pdop, state.hdop, state.vdop, state.antenna_status);
-            // pc.printf("\nitems matched\t: %d", result);
-            index = 0; // reset    
+        //     // if (t.read_ms() > 5000) { // get antenna status every 5s
+        //     //     gps.serial.write(cmd_antenna_status, 25);
+        //     // } 
+        // }
+        
+             
 
-            // if (t.read_ms() > 5000) { // get antenna status every 5s
-            //     gps.serial.write(cmd_antenna_status, 25);
-            // } 
-        }
+        // if (t.read_ms() > 5000) { // get antenna status every 5s
+        //     gps.serial.write(cmd_antenna_status, 25);
+        // } 
+    
+
+
+        // Try process line & polling functions
+        poll_gps(&gps);   // keep draining GPS data
+        
 
 
 
