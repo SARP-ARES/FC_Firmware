@@ -23,20 +23,6 @@ gpsState GPS::getState() const{
 /*
 ADD DESCRIPTION
 */
-posLTP GPS::getPosLTP() const{
-    return pos; // return a copy of the state (can't be modified bc its private)
-}
-
-/*
-ADD DESCRIPTION
-*/
-posECEFr GPS::getOriginECEFr() const{
-    return origin;
-}
-
-/*
-ADD DESCRIPTION
-*/
 // say "const" so that it can't be modified (only reading it)
 // msg will be the entire line 
 NMEA_Type GPS::getMsgType(const char* msg) {
@@ -356,111 +342,11 @@ int GPS::update(NMEA_Type msgType, const char* msg){
 }
 
 
-/*
-
-ADD DESCRIPTION
-
-*/
-void GPS::setOriginECEFr() { // uses current position to set origin if nothing is passed
-    // get longitude and latitude into radians
-    float lat_rad = state.lat * pi/180;
-    float lon_rad = state.lon * pi/180;
-
-    const float a = 6378137; // earth semi-major axis        (m)
-    const float b = 6356752.3142; // earth semi-minor axis   (m)
-    const float f = (a-b)/a; // ellipsoid flatness 
-    const float e = sqrt(f*(2-f)); // eccentricity
-    // distance from the earth's surface to the z-axis along the ellipsoid normal
-    const float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
-
-    // get current position in ECEF-r coordinates
-    float h = state.alt;
-    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
-    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
-    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
-    origin.x = x;
-    origin.y = y;
-    origin.z = z;
-}
-
-
-const float a = 6378137; // earth semi-major axis        (m)
-const float b = 6356752.3142; // earth semi-minor axis   (m)
-const float f = (a-b)/a; // ellipsoid flatness 
-const float e = sqrt(f*(2-f)); // eccentricity
-
-/*
-Overloaded... 
-can specify the lattitude and longitude of the origin in degrees if needed
-instead of pulling from the current GPS position
-*/
-void GPS::setOriginECEFr(float lat_deg, float lon_deg, float h) { // uses current position to set origin if nothing is passed
-    // convert longitude and latitude into radians
-    float lat_rad = lat_deg * pi/180;
-    float lon_rad = lon_deg * pi/180;
- 
-    // distance from the earth's surface to the z-axis along the ellipsoid normal
-    const float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
-
-    // get current position in ECEF-r coordinates
-    // float h = state.alt;
-    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
-    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
-    float z = ( h + N*(1 - pow(e,2)) )*sin(lat_rad);
-    origin.x = x;
-    origin.y = y;
-    origin.z = z;
-} 
-
-
-
-
-void GPS::updatePosLTP() {
-    // state.lat = ddmm.mmmm ... state.lat/100 = dd.mmmmmm
-    // North = positive, South = negative
-    // East = positive, West = negative 
-    
-    // get longitude and latitude from degrees into radians
-    float lat_rad = deg2rad(state.lat);
-    float lon_rad = deg2rad(state.lon);
-
-    // distance from the earth's surface to the z-axis along the ellipsoid normal
-    float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
-
-    // get current position in ECEF-r coordinates
-    float h = state.alt;
-    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
-    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
-    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
-    
-    // subtract the origin ECEF-r coordinate to get relative position vector
-    float x_p = x - origin.x;
-    float y_p = y - origin.y;
-    float z_p = z - origin.z;
-
-    // rotate to allign y-axis w/ LTP
-    float x_pp = -x_p*sin(lon_rad) + y_p*cos(lon_rad);
-    float y_pp = x_p*cos(lon_rad) + y_p*sin(lon_rad);
-    float z_pp = z_p;
-
-    // final rotation to allign z_axis with up
-    pos.e = x_pp;
-    pos.n = -y_pp*sin(lat_rad) + z_pp*cos(lat_rad);
-    pos.u = y_pp*cos(lat_rad) + z_pp*sin(lat_rad);
-
-    // // TESTING RELATIVE POSITION IN ECEFr
-    // pos.e = x_p;
-    // pos.n = y_p;
-    // pos.u = z_p;
-}
-
 
 int GPS::bigUpdate(){
     // multiple messages come in... gotta parse all of them and then update the state
     Timer t;
     t.start();
-
-    updatePosLTP(); // update local tangent plane position
 
     char buf[256] = {0};
     int index = 0;

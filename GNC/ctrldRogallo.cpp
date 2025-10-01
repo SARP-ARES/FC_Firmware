@@ -195,7 +195,8 @@ void ctrldRogallo::updateFlightPacket(){
 
     gpsState gps_state = gps.getState();
     bmp_state = bmp.getState(); 
-    posLTP ltp = gps.getPosLTP();
+
+    updateHaversineCoords();
 
     // GPS 
     state.timestamp_utc = gps_state.utc;
@@ -211,8 +212,8 @@ void ctrldRogallo::updateFlightPacket(){
     state.altitude_bmp_m = bmp_state.altitude_m;
     state.altitude_m = bmp_state.altitude_m;
     // state.altitude_m = getFuzedAlt(bmp_state.altitude_m, gps_state.alt); // shit don't work
-    state.pos_east_m = ltp.e;
-    state.pos_north_m = ltp.n;
+    state.pos_east_m = haversineCoordEast;
+    state.pos_north_m = haversineCoordNorth;
 
     // BMP 
     state.temp_c = bmp_state.temp_c;

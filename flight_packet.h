@@ -37,7 +37,7 @@ struct FlightPacket {
     // --- BNO055 Sensor Fields ---
 
     // Gyroscope
-    float yaw_rate;           
+    float yaw_rate;                 
     float pitch_rate;           
     float roll_rate;           
 

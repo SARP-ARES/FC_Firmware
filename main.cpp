@@ -136,8 +136,6 @@ void test_mode(ctrldRogallo* ARES){
 
 
 
-
-
 void dump_data(){
 
     uint16_t numPacketDump;
@@ -192,7 +190,7 @@ void double_check() {
         }
         // break (don't erase) if there is no response in 15 seconds
         if (t.read_ms() > 15000) {
-            pc.printf("You took too damn long! Try again...");
+            pc.printf("You took too long! Try again...");
             break;
         }
     }
