@@ -86,7 +86,8 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog) {
 
 } 
 
-void flight_log(ctrldRogallo* ARES){
+
+void test_mode(ctrldRogallo* ARES){
 
     char cmdBuf[32];
 
@@ -103,8 +104,7 @@ void flight_log(ctrldRogallo* ARES){
 
     FlightPacket state;
 
-    while(state.fsm_mode != FSM_GROUNDED){
-
+    while(true) {
         ARES->updateFlightPacket();
         state = ARES->getState();
         
@@ -113,6 +113,7 @@ void flight_log(ctrldRogallo* ARES){
         pc.printf("Apogee Counter %d\n", state.apogee_counter);
         pc.printf("Apogee Detected %d\n", state.apogee_detected);
         pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        pc.printf("=========================================\n");
 
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
@@ -126,12 +127,14 @@ void flight_log(ctrldRogallo* ARES){
             }
         }
     }
-
+    
     pc.printf("==============================%s\n", ' ');
     pc.printf("\"quit\" cmd recieved...\n");
     pc.printf("ARES data collection complete\n");
     pc.printf("==============================%s\n", ' ');
 }
+
+
 
 
 
@@ -169,8 +172,9 @@ void double_check() {
                 pc.printf("\"yes\" received\n");
                 ThisThread::sleep_for(1500ms);
                 pc.printf("Ok... What's the password?\n");
+                pc.printf("\n> ");
                 ThisThread::sleep_for(4s);
-                pc.printf("Just kidding :)");
+                pc.printf("Just kidding :)\n");
                 ThisThread::sleep_for(1s);
                 clear_data();
                 break;
@@ -197,12 +201,25 @@ void double_check() {
 
 
 void set_origin(ctrldRogallo* ARES) {
-    ARES->updateFlightPacket(); // get current coordinates
-    ARES->gps.setOriginECEFr(); // set coordinates as origin for LTP
+    // no lat/lon argument
+    // sets current lat/lon as target/origin
+    ARES->updateFlightPacket(); // get current lat/lon
     FlightPacket state = ARES->getState();
-    posECEFr origin = ARES->gps.getOriginECEFr();
-    pc.printf("LTP origin has been set...\nLat, Lon, Alt: %f deg, %f deg, %.3f m\nECEFr (x, y, z): %.3f m, %.3f m, %.3f m", \
-    state.latitude_deg, state.longitude_deg, state.altitude_m, origin.x, origin.y, origin.z);
+
+    if (state.latitude_deg != NAN && state.longitude_deg != NAN){
+        ARES->setTarget(state.latitude_deg, state.longitude_deg);
+        pc.printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
+                state.latitude_deg, state.longitude_deg);
+    } else { // lat/lon are nans... GPS doesn't have a fix yet.
+        pc.printf("Origin has NOT been set because the GPS does not yet have fix.\nMake sure the antenna has a clear view of the sky and try again later.");
+    }
+}
+
+void set_origin(ctrldRogallo* ARES, double lat, double lon) {
+    // uses lat/lon arg to set target/origin
+    ARES->setTarget(lat, lon);
+    pc.printf("Origin has been set...\nLat, Lon: %lf deg, %lf deg\n", \
+                lat, lon);
 }
 
 
@@ -216,7 +233,7 @@ void command_line_interface() {
         
         if (cli_reset) {
             pc.printf("\n\nARES is waiting for user input... What would you like to run?\n");
-            pc.printf("1. \"flight_log\"\n");
+            pc.printf("1. \"test_mode\"\n");
             pc.printf("2. \"dump\"\n");
             pc.printf("3. \"set_origin\"\n");
             pc.printf("4. \"clear\"\n");
@@ -230,10 +247,10 @@ void command_line_interface() {
         if (pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
 
             // flight log
-            if (strcmp(cmd_buffer, "flight_log") == 0 || strcmp(cmd_buffer, "1") == 0) {
-                pc.printf("\"flight_log\" cmd received. Use \"quit\" cmd to stop logging.\n");
+            if (strcmp(cmd_buffer, "test_mode") == 0 || strcmp(cmd_buffer, "1") == 0) {
+                pc.printf("\"test_mode\" cmd received. Use \"quit\" cmd to stop logging.\n");
                 ThisThread::sleep_for(1500ms);
-                flight_log(&ARES);
+                test_mode(&ARES);
             }
 
             // dump data
@@ -245,9 +262,30 @@ void command_line_interface() {
 
             // set origin
             else if (strcmp(cmd_buffer, "set_origin") == 0 || strcmp(cmd_buffer, "3") == 0) {
-                pc.printf("\"set_origin\" cmd received\n");
+                pc.printf("\"set_origin\" cmd received...\n");
                 ThisThread::sleep_for(1500ms);
-                set_origin(&ARES);
+                pc.printf("Where would you like to set the origin?\n");
+                // Wait for user input
+                while (true) {
+                    if (pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
+                        break;
+                    }
+                }
+                double lat, lon;
+                if (strcmp(cmd_buffer, "here") == 0) {
+                    pc.printf("\"here\" received...\n");
+                    ThisThread::sleep_for(1500ms);
+                    set_origin(&ARES); // set current location as origin
+                } else if (sscanf(cmd_buffer, "%lf, %lf", &lat, &lon) == 2) {
+                    // get lat/lon from user input and set as origin
+                    pc.printf("\"coordinates\" received...\n");
+                    ThisThread::sleep_for(1500ms);
+                    set_origin(&ARES, lat, lon);
+                } else {
+                    pc.printf("\nInvalid format. Use: \"<lat>, <lon>\" or type \"here\".\n");
+                }
+                
+                
             }
 
             // clear data

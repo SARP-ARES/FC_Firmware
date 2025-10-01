@@ -5,6 +5,13 @@
 #include "BNO055.h"
 #include <string>
 
+#define DEG_LLA_TO_M_CONVERSION         111111
+#define APOGEE_THRESHOLD_BUFFER         600
+#define GROUNDED_THRESHOLD_BUFFER       100
+#define ALPHA_ALT_START_PERCENT         0.05
+#define SPIRAL_RADIUS                   10
+#define PI                              3.1415926535
+#define DEG_TO_RAD                      PI/180.0
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
@@ -14,23 +21,64 @@ ctrldRogallo::ctrldRogallo()
     bmp.start();
     bno.setup();
 
-    
-
     apogeeDetected = 0; // false
     apogeeCounter = 0;
-    isGrounded = 0; 
+    groundedCounter = 0; 
+
+    //target lat/lon
+    target_lat = NAN;
+    target_lon = NAN;
 
     groundedThreshold = NAN;
     apogeeThreshold = NAN; 
 
-    alphaAlt = .05; // used to determine complimentary filter preference (majority goes to BMP)
+    alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
 } 
-
 
 const FlightPacket ctrldRogallo::getState() {
     return this->state;
 }
+
+
+void ctrldRogallo::setTarget(double lat, double longitude) { target_lat = lat; target_lon = longitude; }
+
+
+// document
+float ctrldRogallo::computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg) {
+    double dLat = (lat_deg - lat_target_deg) * DEG_TO_RAD;
+    
+    double dLon = (lon_deg - lon_target_deg) * DEG_TO_RAD;
+
+    // convert to radians
+    double lat_rad = lat_deg * DEG_TO_RAD;
+    double target_lat_rad = lat_target_deg * DEG_TO_RAD;
+
+    // apply formulae
+    double a = pow(sin(dLat / 2), 2) + 
+                pow(sin(dLon / 2), 2) * cos(lat_rad) * cos(target_lat_rad);
+
+    double R = 6371000; // Average earth radius in meters
+
+    return 2 * R * asin(sqrt(a)); // return in meters
+}
+
+// document
+float ctrldRogallo::getDistanceToTarget(void) {
+    float d = computeHaversine(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
+    return d;
+}
+
+// document
+void ctrldRogallo::updateHaversineCoords(void){
+    // only compute distance between latitudes to get north coord
+    haversineCoordNorth = computeHaversine(state.latitude_deg, target_lon, target_lat, target_lon);
+
+    // only compute distance between longitudes to get east coord
+    haversineCoordEast = computeHaversine(target_lat, state.longitude_deg, target_lat, target_lon);
+}
+
+bool ctrldRogallo::isWithinTarget(void) { return getDistanceToTarget() < SPIRAL_RADIUS; }
 
 /*  Python Code
 def getTargetHeading(e, n):
@@ -73,9 +121,6 @@ float ctrldRogallo::getThetaErr(){
     return thetaErr_deg;
 }
 
-#include <cmath>    // for NAN
-#include <cstring>  // for memset, strcpy
-
 void ctrldRogallo::resetFlightPacket() {
     // Set all float fields to NAN
     state.timestamp_utc      = NAN;
@@ -90,7 +135,6 @@ void ctrldRogallo::resetFlightPacket() {
     state.altitude_m         = NAN;
     state.pos_east_m         = NAN;
     state.pos_north_m        = NAN;
-    state.pos_up_m           = NAN;
     state.temp_c             = NAN;
     state.pressure_pa        = NAN;
     state.delta_1_deg        = NAN;
@@ -169,7 +213,6 @@ void ctrldRogallo::updateFlightPacket(){
     // state.altitude_m = getFuzedAlt(bmp_state.altitude_m, gps_state.alt); // shit don't work
     state.pos_east_m = ltp.e;
     state.pos_north_m = ltp.n;
-    state.pos_up_m = ltp.u;
 
     // BMP 
     state.temp_c = bmp_state.temp_c;
@@ -217,23 +260,21 @@ void ctrldRogallo::updateFlightPacket(){
 
     // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
-    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m);
-    if(apogeeCounter >= 5) { 
-        apogeeDetected = 1; // true
-        // trigger seeking mode
-        mode = FSM_SEEKING; // 1
-    } 
+    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); // checks if descending and above threshold
+
+    if(apogeeCounter >= 5) apogeeDetected = 1;
     
     if(apogeeDetected == 1) {
-        isGrounded += groundedDetection(state.prevAlt, state.altitude_m);
+        if(isWithinTarget())    mode = FSM_SPIRAL; // checks if ARES is within spiral target range mode = FSM_SPIRAL; 
+        else                    mode = FSM_SEEKING;
+
+        groundedCounter += groundedDetection(state.prevAlt, state.altitude_m); // checks if not moving and below threshold
+        if(groundedCounter >= 15)    mode = FSM_GROUNDED;
     }
 
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
-    state.groundedCounter = isGrounded;
-    if(isGrounded >= 15){
-        mode = FSM_GROUNDED; 
-    }
+    state.groundedCounter = groundedCounter;
 }
 
 /**
@@ -286,8 +327,8 @@ uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
 }
 
 void ctrldRogallo::setThreshold(){
-    groundedThreshold = state.altitude_m + 100;
-    apogeeThreshold = state.altitude_m + 600; 
+    groundedThreshold = state.altitude_m + GROUNDED_THRESHOLD_BUFFER;
+    apogeeThreshold = state.altitude_m + APOGEE_THRESHOLD_BUFFER; 
 }
 
 // string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){
