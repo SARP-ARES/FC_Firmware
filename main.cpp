@@ -86,7 +86,8 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog) {
 
 } 
 
-void flight_log(ctrldRogallo* ARES){
+
+void test_mode(ctrldRogallo* ARES){
 
     char cmdBuf[32];
 
@@ -103,16 +104,16 @@ void flight_log(ctrldRogallo* ARES){
 
     FlightPacket state;
 
-    while(state.fsm_mode != FSM_GROUNDED){
-
+    while(true) {
         ARES->updateFlightPacket();
         state = ARES->getState();
         
-        // pc.printf("Lat, Lon, Alt: \t %f, %f, %f\n", state.latitude_deg, state.longitude_deg, state.altitude_m);
-        // pc.printf("FSM mode %d\n", state.fsm_mode);
-        // pc.printf("Apogee Counter %d\n", state.apogee_counter);
-        // pc.printf("Apogee Detected %d\n", state.apogee_detected);
-        // pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        pc.printf("Lat, Lon, Alt: \t %f, %f, %f\n", state.latitude_deg, state.longitude_deg, state.altitude_m);
+        pc.printf("FSM mode %d\n", state.fsm_mode);
+        pc.printf("Apogee Counter %d\n", state.apogee_counter);
+        pc.printf("Apogee Detected %d\n", state.apogee_detected);
+        pc.printf("Grounded Counter: %d \n", state.groundedCounter);
+        pc.printf("=========================================\n");
 
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
@@ -126,12 +127,14 @@ void flight_log(ctrldRogallo* ARES){
             }
         }
     }
-
+    
     pc.printf("==============================%s\n", ' ');
     pc.printf("\"quit\" cmd recieved...\n");
     pc.printf("ARES data collection complete\n");
     pc.printf("==============================%s\n", ' ');
 }
+
+
 
 
 
@@ -230,7 +233,7 @@ void command_line_interface() {
         
         if (cli_reset) {
             pc.printf("\n\nARES is waiting for user input... What would you like to run?\n");
-            pc.printf("1. \"flight_log\"\n");
+            pc.printf("1. \"test_mode\"\n");
             pc.printf("2. \"dump\"\n");
             pc.printf("3. \"set_origin\"\n");
             pc.printf("4. \"clear\"\n");
@@ -244,10 +247,10 @@ void command_line_interface() {
         if (pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
 
             // flight log
-            if (strcmp(cmd_buffer, "flight_log") == 0 || strcmp(cmd_buffer, "1") == 0) {
-                pc.printf("\"flight_log\" cmd received. Use \"quit\" cmd to stop logging.\n");
+            if (strcmp(cmd_buffer, "test_mode") == 0 || strcmp(cmd_buffer, "1") == 0) {
+                pc.printf("\"test_mode\" cmd received. Use \"quit\" cmd to stop logging.\n");
                 ThisThread::sleep_for(1500ms);
-                flight_log(&ARES);
+                test_mode(&ARES);
             }
 
             // dump data

@@ -340,7 +340,6 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // altitude_m
         "%.4f,"      // pos_east_m
         "%.4f,"      // pos_north_m
-        "%.4f,"      // pos_up_m
         "%.4f,"      // temp_c
         "%.4f,"      // pressure_pa
         "%.4f,"      // delta1_deg
@@ -393,7 +392,6 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.altitude_m,
         pkt.pos_east_m,
         pkt.pos_north_m,
-        pkt.pos_up_m,
         pkt.temp_c,
         pkt.pressure_pa,
         pkt.delta_1_deg,

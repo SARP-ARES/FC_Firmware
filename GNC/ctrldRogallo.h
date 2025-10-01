@@ -31,12 +31,16 @@ class ctrldRogallo {
         float alphaAlt;
         uint32_t groundedCounter; 
         float target_lat;
-        float target_long; 
+        float target_lon;
+        float haversineCoordNorth;
+        float haversineCoordEast;
         posLTP ltp;
         uint32_t apogeeThreshold;
         uint32_t groundedThreshold; 
 
-        float computeHaversine(void);
+        float computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
+        float getDistanceToTarget(void);
+        void updateHaversineCoords(void);
         bool isWithinTarget(void);
         
         void setModeFSM(ModeFSM mode);
@@ -46,11 +50,11 @@ class ctrldRogallo {
         // string getCompassDirection(float rollMag, float pitchMag);
 
     public:
+        ctrldRogallo();
         GPS gps;
         void setThreshold(); 
         void setTarget(double latitude, double longitude);
         uint32_t currentFlashAddress; // move to private after testing
-        ctrldRogallo();
         void updateFlightPacket();
         void resetFlightPacket();
         float computeCtrl(float thetaErr); // output in [-1, 1]

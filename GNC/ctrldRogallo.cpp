@@ -11,6 +11,7 @@
 #define ALPHA_ALT_START_PERCENT         0.05
 #define SPIRAL_RADIUS                   10
 #define PI                              3.1415926535
+#define DEG_TO_RAD                      PI/180.0
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
@@ -24,9 +25,9 @@ ctrldRogallo::ctrldRogallo()
     apogeeCounter = 0;
     groundedCounter = 0; 
 
-    //target LLA
+    //target lat/lon
     target_lat = NAN;
-    target_long = NAN;
+    target_lon = NAN;
 
     groundedThreshold = NAN;
     apogeeThreshold = NAN; 
@@ -35,34 +36,49 @@ ctrldRogallo::ctrldRogallo()
     mode = FSM_IDLE; // initialize in idle mode
 } 
 
-void ctrldRogallo::setTarget(double lat, double longitude) { target_lat = lat; target_long = longitude; }
-
-float ctrldRogallo::computeHaversine(void){
-    // distance between latitudes
-        // and longitudes
-        double dLat = (state.latitude_deg - target_lat) *
-                      PI / 180.0;
-        double dLon = (state.longitude_deg - target_long) * 
-                      PI / 180.0;
-
-        // convert to radians
-        double lat1 = (state.latitude_deg) * PI / 180.0;
-        double lat2 = (target_lat) * PI / 180.0;
-
-        // apply formulae
-        double a = pow(sin(dLat / 2), 2) + 
-                   pow(sin(dLon / 2), 2) * 
-                   cos(lat1) * cos(lat2);
-        double rad = 6371;
-        float c = 2 * asin(sqrt(a));
-        return (rad * c) / 1000; // return in m
-}
-
-bool ctrldRogallo::isWithinTarget(void) { return computeHaversine() < SPIRAL_RADIUS; }
-
 const FlightPacket ctrldRogallo::getState() {
     return this->state;
 }
+
+
+void ctrldRogallo::setTarget(double lat, double longitude) { target_lat = lat; target_lon = longitude; }
+
+
+// document
+float ctrldRogallo::computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg) {
+    double dLat = (lat_deg - lat_target_deg) * DEG_TO_RAD;
+    
+    double dLon = (lon_deg - lon_target_deg) * DEG_TO_RAD;
+
+    // convert to radians
+    double lat_rad = lat_deg * DEG_TO_RAD;
+    double target_lat_rad = lat_target_deg * DEG_TO_RAD;
+
+    // apply formulae
+    double a = pow(sin(dLat / 2), 2) + 
+                pow(sin(dLon / 2), 2) * cos(lat_rad) * cos(target_lat_rad);
+
+    double R = 6371000; // Average earth radius in meters
+
+    return 2 * R * asin(sqrt(a)); // return in meters
+}
+
+// document
+float ctrldRogallo::getDistanceToTarget(void) {
+    float d = computeHaversine(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
+    return d;
+}
+
+// document
+void ctrldRogallo::updateHaversineCoords(void){
+    // only compute distance between latitudes to get north coord
+    haversineCoordNorth = computeHaversine(state.latitude_deg, target_lon, target_lat, target_lon);
+
+    // only compute distance between longitudes to get east coord
+    haversineCoordEast = computeHaversine(target_lat, state.longitude_deg, target_lat, target_lon);
+}
+
+bool ctrldRogallo::isWithinTarget(void) { return getDistanceToTarget() < SPIRAL_RADIUS; }
 
 /*  Python Code
 def getTargetHeading(e, n):
@@ -119,7 +135,6 @@ void ctrldRogallo::resetFlightPacket() {
     state.altitude_m         = NAN;
     state.pos_east_m         = NAN;
     state.pos_north_m        = NAN;
-    state.pos_up_m           = NAN;
     state.temp_c             = NAN;
     state.pressure_pa        = NAN;
     state.delta_1_deg        = NAN;
@@ -198,7 +213,6 @@ void ctrldRogallo::updateFlightPacket(){
     // state.altitude_m = getFuzedAlt(bmp_state.altitude_m, gps_state.alt); // shit don't work
     state.pos_east_m = ltp.e;
     state.pos_north_m = ltp.n;
-    state.pos_up_m = ltp.u;
 
     // BMP 
     state.temp_c = bmp_state.temp_c;
