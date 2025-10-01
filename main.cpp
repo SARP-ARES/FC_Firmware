@@ -169,8 +169,9 @@ void double_check() {
                 pc.printf("\"yes\" received\n");
                 ThisThread::sleep_for(1500ms);
                 pc.printf("Ok... What's the password?\n");
+                pc.printf("\n> ");
                 ThisThread::sleep_for(4s);
-                pc.printf("Just kidding :)");
+                pc.printf("Just kidding :)\n");
                 ThisThread::sleep_for(1s);
                 clear_data();
                 break;
@@ -201,15 +202,20 @@ void set_origin(ctrldRogallo* ARES) {
     // sets current lat/lon as target/origin
     ARES->updateFlightPacket(); // get current lat/lon
     FlightPacket state = ARES->getState();
-    ARES->setTarget(state.latitude_deg, state.longitude_deg);
-    pc.printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
+
+    if (state.latitude_deg != NAN && state.longitude_deg != NAN){
+        ARES->setTarget(state.latitude_deg, state.longitude_deg);
+        pc.printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
                 state.latitude_deg, state.longitude_deg);
+    } else { // lat/lon are nans... GPS doesn't have a fix yet.
+        pc.printf("Origin has NOT been set because the GPS does not yet have fix.\nMake sure the antenna has a clear view of the sky and try again later.");
+    }
 }
 
 void set_origin(ctrldRogallo* ARES, double lat, double lon) {
     // uses lat/lon arg to set target/origin
     ARES->setTarget(lat, lon);
-    pc.printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
+    pc.printf("Origin has been set...\nLat, Lon: %lf deg, %lf deg\n", \
                 lat, lon);
 }
 
@@ -254,24 +260,26 @@ void command_line_interface() {
             // set origin
             else if (strcmp(cmd_buffer, "set_origin") == 0 || strcmp(cmd_buffer, "3") == 0) {
                 pc.printf("\"set_origin\" cmd received...\n");
+                ThisThread::sleep_for(1500ms);
                 pc.printf("Where would you like to set the origin?\n");
-                char input_buf[64];
-                size_t idx = 0;
                 // Wait for user input
                 while (true) {
                     if (pc.readline(cmd_buffer, sizeof(cmd_buffer))) {
                         break;
                     }
                 }
-                float lat, lon;
+                double lat, lon;
                 if (strcmp(cmd_buffer, "here") == 0) {
+                    pc.printf("\"here\" received...\n");
                     ThisThread::sleep_for(1500ms);
                     set_origin(&ARES); // set current location as origin
-                } else if (sscanf(input_buf, "%f,%f", &lat, &lon) == 2) {
+                } else if (sscanf(cmd_buffer, "%lf, %lf", &lat, &lon) == 2) {
                     // get lat/lon from user input and set as origin
+                    pc.printf("\"coordinates\" received...\n");
+                    ThisThread::sleep_for(1500ms);
                     set_origin(&ARES, lat, lon);
                 } else {
-                    pc.printf("\nInvalid format. Use: lat,lon or type \"here\".\n");
+                    pc.printf("\nInvalid format. Use: \"<lat>, <lon>\" or type \"here\".\n");
                 }
                 
                 
