@@ -278,7 +278,7 @@ void flash::printCSVHeader() {
         "altitude_m,"
         "pos_east_m,"
         "pos_north_m,"
-        "pos_up_m,"
+        "distance_to_target_m,"
         "temp_c,"
         "pressure_pa,"
         "delta1_deg,"
@@ -340,6 +340,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // altitude_m
         "%.4f,"      // pos_east_m
         "%.4f,"      // pos_north_m
+        "%.4f,"      // distance_to_target_m
         "%.4f,"      // temp_c
         "%.4f,"      // pressure_pa
         "%.4f,"      // delta1_deg
@@ -374,8 +375,8 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // bno_quat_w
         "%.4f,"      // bno_quat_x
         "%.4f,"      // bno_quat_y
-        "%.4f,"       // bno_quat_z
-        "%s,"           // compass_heading
+        "%.4f,"      // bno_quat_z
+        "%s,"        // compass_heading
         "%s\n",      // pkt.flight_id (uncomment if you add it back)
         pkt.timestamp_utc,
         pkt.fsm_mode,
@@ -392,6 +393,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.altitude_m,
         pkt.pos_east_m,
         pkt.pos_north_m,
+        pkt.distance_to_target_m,
         pkt.temp_c,
         pkt.pressure_pa,
         pkt.delta_1_deg,

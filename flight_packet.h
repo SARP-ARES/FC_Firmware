@@ -19,6 +19,7 @@ struct FlightPacket {
     float altitude_m;            // 4
     float pos_east_m;            // 4
     float pos_north_m;           // 4
+    float distance_to_target_m;    // 4
     float temp_c;                // 4
     float pressure_pa;           // 4
     float delta_1_deg;           // 4

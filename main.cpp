@@ -105,17 +105,26 @@ void test_mode(ctrldRogallo* ARES){
     FlightPacket state;
 
     while(true) {
+        // Get current data and put it in the state struct
         ARES->updateFlightPacket();
         state = ARES->getState();
         
-        pc.printf("Lat, Lon, Alt: \t %f, %f, %f\n", state.latitude_deg, state.longitude_deg, state.altitude_m);
-        pc.printf("FSM mode %d\n", state.fsm_mode);
-        pc.printf("Apogee Counter %d\n", state.apogee_counter);
-        pc.printf("Apogee Detected %d\n", state.apogee_detected);
-        pc.printf("Grounded Counter: %d \n", state.groundedCounter);
-        pc.printf("=========================================\n");
+        // Print data to serial port
+        pc.printf("Lat (deg), Lon (deg), Alt (m): \t%f, %f, %f\n", 
+                    state.latitude_deg, state.longitude_deg, state.altitude_m);
+        pc.printf("Pos East (m), Pos North (m), Distance (m): \t%f, %f, %f\n", 
+                    state.pos_east_m, state.pos_north_m, state.distance_to_target_m);
+        pc.printf("FSM mode \t\t\t%d\n", state.fsm_mode);
+        pc.printf("Apogee Counter \t\t\t%d\n", state.apogee_counter);
+        pc.printf("Apogee Detected \t\t%d\n", state.apogee_detected);
+        pc.printf("Grounded Counter: \t\t%d \n", state.groundedCounter);
+        pc.printf("==========================================================\n");
 
+        // Write data to flash chip
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+
+
+        // TODO: make control sequence / seeking logic 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }

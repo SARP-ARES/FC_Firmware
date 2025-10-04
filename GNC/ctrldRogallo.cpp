@@ -36,23 +36,38 @@ ctrldRogallo::ctrldRogallo()
     mode = FSM_IDLE; // initialize in idle mode
 } 
 
+/**
+ * @brief getter for the current state of the system
+ * @returns system state as a FlightPacket struct
+ */ 
 const FlightPacket ctrldRogallo::getState() {
     return this->state;
 }
 
+/**
+ * @brief sets the seeking/landing target latitude & longitude
+ * @param lat - target latitude
+ * @param lon - target longitude
+ */ 
+void ctrldRogallo::setTarget(double lat, double lon) { target_lat = lat; target_lon = lon; }
 
-void ctrldRogallo::setTarget(double lat, double longitude) { target_lat = lat; target_lon = longitude; }
 
-
-// document
-float ctrldRogallo::computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg) {
-    double dLat = (lat_deg - lat_target_deg) * DEG_TO_RAD;
+/**
+ * @brief cumputes the greater-circle distance between 
+          two lat/lon coordinate pairs using the haversine formula
+ * @param lat1_deg - latitude of first coordinate pair in degrees
+ * @param lon1_deg - longitude of first coordinate pair in degrees
+ * @param lat2_deg - latitude of second coordinate pair in degrees
+ * @param lon2_deg - longitude of second coordinate pair in degrees
+ */ 
+float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg) {
+    double dLat = (lat1_deg - lat2_deg) * DEG_TO_RAD;
     
-    double dLon = (lon_deg - lon_target_deg) * DEG_TO_RAD;
+    double dLon = (lon1_deg - lon2_deg) * DEG_TO_RAD;
 
     // convert to radians
-    double lat_rad = lat_deg * DEG_TO_RAD;
-    double target_lat_rad = lat_target_deg * DEG_TO_RAD;
+    double lat_rad = lat1_deg * DEG_TO_RAD;
+    double target_lat_rad = lat2_deg * DEG_TO_RAD;
 
     // apply formulae
     double a = pow(sin(dLat / 2), 2) + 
@@ -63,19 +78,34 @@ float ctrldRogallo::computeHaversine(double lat_deg, double lon_deg, double lat_
     return 2 * R * asin(sqrt(a)); // return in meters
 }
 
-// document
+/**
+ * @brief Uses computeHaversine to get the current distance 
+          to the target coords
+ * @returns d - distance to target (m)
+ */ 
 float ctrldRogallo::getDistanceToTarget(void) {
     float d = computeHaversine(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
     return d;
 }
 
-// document
+/**
+ * @brief Uses computeHaversine to convert the current lat/lon position into 
+          meters east and north of the target
+ */ 
 void ctrldRogallo::updateHaversineCoords(void){
-    // only compute distance between latitudes to get north coord
+    // only compute distance between latitudes to get NORTH coord
     haversineCoordNorth = computeHaversine(state.latitude_deg, target_lon, target_lat, target_lon);
+    // make negative if south of target
+    if (state.latitude_deg < target_lat)  { 
+        haversineCoordNorth = -1 * haversineCoordNorth; 
+    }
 
-    // only compute distance between longitudes to get east coord
+    // only compute distance between longitudes to get EAST coord
     haversineCoordEast = computeHaversine(target_lat, state.longitude_deg, target_lat, target_lon);
+    // make negative if west of target
+    if (state.longitude_deg < target_lon)  { 
+        haversineCoordEast = -1 * haversineCoordEast; 
+    }
 }
 
 bool ctrldRogallo::isWithinTarget(void) { return getDistanceToTarget() < SPIRAL_RADIUS; }
