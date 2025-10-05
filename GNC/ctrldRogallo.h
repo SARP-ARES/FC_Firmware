@@ -60,6 +60,7 @@ class ctrldRogallo {
         void resetFlightPacket();
         float computeCtrl(float thetaErr); // output in [-1, 1]
         void sendCtrl(float ctrl);
+        void requestMotorPacket(void);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
         void logData();

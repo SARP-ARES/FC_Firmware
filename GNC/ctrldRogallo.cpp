@@ -307,7 +307,7 @@ void ctrldRogallo::updateFlightPacket(){
 }
 
 /**
- * @Brief fuzes the altitude of the GPS and BMP reading using a complimentary filter
+ * @brief fuzes the altitude of the GPS and BMP reading using a complimentary filter
  * @return - the fuzed altitude of the two sensors
  */ 
 float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
@@ -365,7 +365,7 @@ void ctrldRogallo::printCompactState(EUSBSerial* pc) {
                 state.latitude_deg, state.longitude_deg, state.altitude_m);
     pc->printf("Pos North (m), Pos East (m):\t%.2f, %.2f\n", 
                 state.pos_north_m, state.pos_east_m);
-    pc->printf("Distance to Target:\t\t%.2f\n", state.distance_to_target_m);
+    pc->printf("Distance to Target (m):\t\t%.2f\n", state.distance_to_target_m);
     pc->printf("FSM mode:\t\t\t%d\n", state.fsm_mode);
     pc->printf("Apogee Counter:\t\t\t%d\n", state.apogee_counter);
     pc->printf("Apogee Detected:\t\t%d\n", state.apogee_detected);
