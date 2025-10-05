@@ -95,6 +95,7 @@ void test_mode(ctrldRogallo* ARES){
     ARES->setThreshold(); 
 
     pc.printf("Beginning data collection... %s\n", ' ');
+    pc.printf("==========================================================\n");
 
     DigitalOut ctrl_trigger(PB_3); 
     ctrl_trigger.write(1); 
@@ -110,15 +111,15 @@ void test_mode(ctrldRogallo* ARES){
         state = ARES->getState();
         
         // Print data to serial port
-        pc.printf("Lat (deg), Lon (deg), Alt (m):\t%.3f, %.3f, %.3f\n", 
+        pc.printf("Lat (deg), Lon (deg), Alt (m):\t%f, %f, %.3f\n", 
                     state.latitude_deg, state.longitude_deg, state.altitude_m);
-        pc.printf("Pos North (m), Pos East (m):\t%f, %f\n", 
+        pc.printf("Pos North (m), Pos East (m):\t%.2f, %.2f\n", 
                     state.pos_north_m, state.pos_east_m);
-        pc.printf("Distance to Target:\t\t%.3f\n", state.distance_to_target_m);
+        pc.printf("Distance to Target:\t\t%.2f\n", state.distance_to_target_m);
         pc.printf("FSM mode:\t\t\t%d\n", state.fsm_mode);
         pc.printf("Apogee Counter:\t\t\t%d\n", state.apogee_counter);
         pc.printf("Apogee Detected:\t\t%d\n", state.apogee_detected);
-        pc.printf("Grounded Counter: \t\t%d \n", state.groundedCounter);
+        pc.printf("Grounded Counter:\t\t%d \n", state.groundedCounter);
         pc.printf("==========================================================\n");
 
         // Write data to flash chip
