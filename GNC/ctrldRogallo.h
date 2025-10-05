@@ -3,6 +3,7 @@
 #include "GPS.h"
 #include "BMP280.h"
 #include "BNO055.h"
+#include "EUSBSerial.h"
 #include "flash.h"
 #include "flight_packet.h"
 #include <cstdint>
@@ -43,7 +44,6 @@ class ctrldRogallo {
         void updateDistanceToTarget(void);
         void updateHaversineCoords(void);
         bool isWithinTarget(void);
-        
         void setModeFSM(ModeFSM mode);
         float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
@@ -65,6 +65,7 @@ class ctrldRogallo {
         void logData();
         void logDataTEST();
         const FlightPacket getState();
+        void printCompactState(EUSBSerial* pc);
 };
 
 

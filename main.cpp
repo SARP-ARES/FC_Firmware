@@ -96,9 +96,6 @@ void test_mode(ctrldRogallo* ARES){
 
     pc.printf("Beginning data collection... %s\n", ' ');
     pc.printf("==========================================================\n");
-
-    DigitalOut ctrl_trigger(PB_3); 
-    ctrl_trigger.write(1); 
     
     ThisThread::sleep_for(1s);
     uint32_t currentFlashAddress = 0; // start writing at the first flash address
@@ -111,24 +108,67 @@ void test_mode(ctrldRogallo* ARES){
         state = ARES->getState();
         
         // Print data to serial port
-        pc.printf("Lat (deg), Lon (deg), Alt (m):\t%f, %f, %.3f\n", 
-                    state.latitude_deg, state.longitude_deg, state.altitude_m);
-        pc.printf("Pos North (m), Pos East (m):\t%.2f, %.2f\n", 
-                    state.pos_north_m, state.pos_east_m);
-        pc.printf("Distance to Target:\t\t%.2f\n", state.distance_to_target_m);
-        pc.printf("FSM mode:\t\t\t%d\n", state.fsm_mode);
-        pc.printf("Apogee Counter:\t\t\t%d\n", state.apogee_counter);
-        pc.printf("Apogee Detected:\t\t%d\n", state.apogee_detected);
-        pc.printf("Grounded Counter:\t\t%d \n", state.groundedCounter);
-        pc.printf("==========================================================\n");
+        ARES->printCompactState(&pc);
 
         // Write data to flash chip
         currentFlashAddress = fc.writePacket(currentFlashAddress, state);
 
-
         // TODO: make control sequence / seeking logic 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
-            ctrl_trigger.write(0); // signal to control sequence on MCPS 
+            // SEEKING CODE HERE
+            // Use computeCtrl() and sendCtrl()
+            // the speed of this (outer) loop should define the speed of the control system.
+            // TODO: put GPS in its own thread so it doesnt hold up this loop.
+            int x = 0;
+        }
+
+        // break on "quit" command
+        if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
+            if(strcmp(cmdBuf, "quit") == 0) {
+                break;
+            }
+        }
+    }
+    
+    pc.printf("==============================%s\n", ' ');
+    pc.printf("\"quit\" cmd recieved...\n");
+    pc.printf("ARES data collection complete\n");
+    pc.printf("==============================%s\n", ' ');
+}
+
+
+void ctrl_sequence_after_apogee(ctrldRogallo* ARES){
+
+    char cmdBuf[32];
+
+    ARES->updateFlightPacket();
+    ARES->setThreshold(); 
+
+    pc.printf("Beginning control sequence... %s\n", ' ');
+    pc.printf("==========================================================\n");
+    
+    ThisThread::sleep_for(1s);
+    uint32_t currentFlashAddress = 0; // start writing at the first flash address
+
+    FlightPacket state;
+
+    while(true) {
+        // Get current data and put it in the state struct
+        ARES->updateFlightPacket();
+        state = ARES->getState();
+        
+
+        
+        // Print data to serial port
+        ARES->printCompactState(&pc);
+
+        // Write data to flash chip
+        currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+
+        
+        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+            // TODO: CONTROL SEQUENCE HERE
+            // use sendCtrl() method
         }
 
         // break on "quit" command
