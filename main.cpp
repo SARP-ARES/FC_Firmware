@@ -110,13 +110,14 @@ void test_mode(ctrldRogallo* ARES){
         state = ARES->getState();
         
         // Print data to serial port
-        pc.printf("Lat (deg), Lon (deg), Alt (m): \t%f, %f, %f\n", 
+        pc.printf("Lat (deg), Lon (deg), Alt (m):\t%.3f, %.3f, %.3f\n", 
                     state.latitude_deg, state.longitude_deg, state.altitude_m);
-        pc.printf("Pos East (m), Pos North (m), Distance (m): \t%f, %f, %f\n", 
-                    state.pos_east_m, state.pos_north_m, state.distance_to_target_m);
-        pc.printf("FSM mode \t\t\t%d\n", state.fsm_mode);
-        pc.printf("Apogee Counter \t\t\t%d\n", state.apogee_counter);
-        pc.printf("Apogee Detected \t\t%d\n", state.apogee_detected);
+        pc.printf("Pos North (m), Pos East (m):\t%f, %f\n", 
+                    state.pos_north_m, state.pos_east_m);
+        pc.printf("Distance to Target:\t\t%.3f\n", state.distance_to_target_m);
+        pc.printf("FSM mode:\t\t\t%d\n", state.fsm_mode);
+        pc.printf("Apogee Counter:\t\t\t%d\n", state.apogee_counter);
+        pc.printf("Apogee Detected:\t\t%d\n", state.apogee_detected);
         pc.printf("Grounded Counter: \t\t%d \n", state.groundedCounter);
         pc.printf("==========================================================\n");
 

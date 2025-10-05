@@ -34,12 +34,13 @@ class ctrldRogallo {
         float target_lon;
         float haversineCoordNorth;
         float haversineCoordEast;
+        float distanceToTarget;
         posLTP ltp;
         uint32_t apogeeThreshold;
         uint32_t groundedThreshold; 
 
         float computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
-        float getDistanceToTarget(void);
+        void updateDistanceToTarget(void);
         void updateHaversineCoords(void);
         bool isWithinTarget(void);
         

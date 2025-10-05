@@ -78,19 +78,10 @@ float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg, double la
     return 2 * R * asin(sqrt(a)); // return in meters
 }
 
-/**
- * @brief Uses computeHaversine to get the current distance 
-          to the target coords
- * @returns d - distance to target (m)
- */ 
-float ctrldRogallo::getDistanceToTarget(void) {
-    float d = computeHaversine(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
-    return d;
-}
 
 /**
  * @brief Uses computeHaversine to convert the current lat/lon position into 
-          meters east and north of the target
+          meters east and north of the target and updates distance to target
  */ 
 void ctrldRogallo::updateHaversineCoords(void){
     // only compute distance between latitudes to get NORTH coord
@@ -106,9 +97,12 @@ void ctrldRogallo::updateHaversineCoords(void){
     if (state.longitude_deg < target_lon)  { 
         haversineCoordEast = -1 * haversineCoordEast; 
     }
+
+    // update distance to target field
+    distanceToTarget = computeHaversine(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
 }
 
-bool ctrldRogallo::isWithinTarget(void) { return getDistanceToTarget() < SPIRAL_RADIUS; }
+bool ctrldRogallo::isWithinTarget(void) { return distanceToTarget < SPIRAL_RADIUS; }
 
 /*  Python Code
 def getTargetHeading(e, n):
@@ -226,7 +220,6 @@ void ctrldRogallo::updateFlightPacket(){
     gpsState gps_state = gps.getState();
     bmp_state = bmp.getState(); 
 
-    updateHaversineCoords();
 
     // GPS 
     state.timestamp_utc = gps_state.utc;
@@ -242,8 +235,12 @@ void ctrldRogallo::updateFlightPacket(){
     state.altitude_bmp_m = bmp_state.altitude_m;
     state.altitude_m = bmp_state.altitude_m;
     // state.altitude_m = getFuzedAlt(bmp_state.altitude_m, gps_state.alt); // shit don't work
+
+    updateHaversineCoords();
     state.pos_east_m = haversineCoordEast;
     state.pos_north_m = haversineCoordNorth;
+    state.distance_to_target_m = distanceToTarget;
+    
 
     // BMP 
     state.temp_c = bmp_state.temp_c;
