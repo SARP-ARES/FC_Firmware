@@ -5,7 +5,11 @@
 #include "BMP280.h"
 #include "BNO055.h"
 #include <string>
+#include "mbed.h"
 
+I2C master(PB_7, PB_8); // Master I2C object 
+
+#define MCPS_I2C_ADDR                   0x01 
 #define DEG_LLA_TO_M_CONVERSION         111111
 #define APOGEE_THRESHOLD_BUFFER         600
 #define GROUNDED_THRESHOLD_BUFFER       100
@@ -13,12 +17,14 @@
 #define SPIRAL_RADIUS                   10
 #define PI                              3.1415926535
 #define DEG_TO_RAD                      PI/180.0
+#define BMP_I2C_ADDR                    0xEE
+#define BNO_I2C_ADDR                    0x51
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
 ctrldRogallo::ctrldRogallo() 
-    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
+    : gps(PA_2, PA_3), bmp(PB_7, PB_8, BMP_I2C_ADDR), bno(PB_7, PB_8, BNO_I2C_ADDR) {
     bmp.start();
     bno.setup();
 
@@ -124,7 +130,7 @@ def getThetaErr(actualHeading_deg, targetHeading_deg):
  * @brief calculates target heading to point towards the origin in local tangent plane coords
  * @return target heading 
  */ 
-float ctrldRogallo::getTargetHeading(){
+float ctrldRogallo::getTargetHeading(void){
     float targetHeading_rad = atan2(state.pos_east_m, state.pos_north_m) + pi;
     float targetHeading_deg = targetHeading_rad * 180 / pi;
     return targetHeading_deg;
@@ -134,7 +140,7 @@ float ctrldRogallo::getTargetHeading(){
  * @brief calculates heading error to feed into controller
  * @return heading error (current - target)
  */ 
-float ctrldRogallo::getThetaErr(){
+float ctrldRogallo::getThetaErr(void){
     float thetaErr_deg = this->state.heading_deg - this->state.target_heading_deg;
     if (thetaErr_deg > 180){
         // if its greater than 180 deg, add 360 deg
@@ -146,7 +152,7 @@ float ctrldRogallo::getThetaErr(){
     return thetaErr_deg;
 }
 
-void ctrldRogallo::resetFlightPacket() {
+void ctrldRogallo::resetFlightPacket(void) {
     // Set all float fields to NAN
     state.timestamp_utc      = NAN;
     state.heading_deg        = NAN;
@@ -211,7 +217,7 @@ void ctrldRogallo::resetFlightPacket() {
 /**
  * @brief updates the state of the system to log as a packet of data
  */ 
-void ctrldRogallo::updateFlightPacket(){
+void ctrldRogallo::updateFlightPacket(void){
     BMP280_Values bmp_state = bmp.getState();
     state.prevAlt = bmp_state.altitude_m;
     
@@ -220,7 +226,6 @@ void ctrldRogallo::updateFlightPacket(){
 
     gpsState gps_state = gps.getState();
     bmp_state = bmp.getState(); 
-
 
     // GPS 
     state.timestamp_utc = gps_state.utc;
@@ -304,6 +309,18 @@ void ctrldRogallo::updateFlightPacket(){
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = groundedCounter;
+}
+
+
+uint8_t ctrldRogallo::sendCtrl(float ctrl){
+
+    // Send data over i2c !!!THIS IS A BLOCKING CALL!!!
+    uint8_t ack = master.write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
+    return ack; 
+}
+
+void ctrldRogallo::requestMotorPacket(void){
+
 }
 
 /**

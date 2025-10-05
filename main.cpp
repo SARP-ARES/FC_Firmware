@@ -248,6 +248,14 @@ void double_check() {
         
 }
 
+void led_blinky(void) {
+    for(uint8_t i = 0; i < 10; i++) {
+        led_B.write(1);
+        ThisThread::sleep_for(500ms);
+        led_B.write(0);
+        ThisThread::sleep_for(500ms);
+    }
+}
 
 void set_origin(ctrldRogallo* ARES) {
     // no lat/lon argument
@@ -286,6 +294,7 @@ void command_line_interface() {
             pc.printf("2. \"dump\"\n");
             pc.printf("3. \"set_origin\"\n");
             pc.printf("4. \"clear\"\n");
+            pc.printf("5. \"mcps_send\"\n");
             pc.printf("\n> ");  // command prompt
             cli_reset = false;
         }
@@ -300,6 +309,13 @@ void command_line_interface() {
                 pc.printf("\"test_mode\" cmd received. Use \"quit\" cmd to stop logging.\n");
                 ThisThread::sleep_for(1500ms);
                 test_mode(&ARES);
+            }
+            
+            if (strcmp(cmd_buffer, "mcps_send") == 0 || strcmp(cmd_buffer, "5") == 0) {
+                pc.printf("\"mcps_send\" cmd received. Sending Data\n");
+                float deflection = 300.69f;
+                uint8_t ack = ARES.sendCtrl(deflection);
+                if(ack == 0) led_blinky();
             }
 
             // dump data

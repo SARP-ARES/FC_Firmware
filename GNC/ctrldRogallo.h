@@ -16,13 +16,11 @@ typedef enum {
     FSM_GROUNDED,   // 3
 } ModeFSM;
 
-
-
 class ctrldRogallo {
 
     private:
-        float getThetaErr();
-        float getTargetHeading();
+        float getThetaErr(void);
+        float getTargetHeading(void);
         BMP280 bmp;
         BNO055 bno;
         FlightPacket state;
@@ -56,16 +54,16 @@ class ctrldRogallo {
         void setThreshold(); 
         void setTarget(double latitude, double longitude);
         uint32_t currentFlashAddress; // move to private after testing
-        void updateFlightPacket();
-        void resetFlightPacket();
+        void updateFlightPacket(void);
+        void resetFlightPacket(void);
         float computeCtrl(float thetaErr); // output in [-1, 1]
-        void sendCtrl(float ctrl);
+        uint8_t sendCtrl(float ctrl); // returns ack bit
         void requestMotorPacket(void);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
-        void logData();
-        void logDataTEST();
-        const FlightPacket getState();
+        void logData(void);
+        void logDataTEST(void);
+        const FlightPacket getState(void);
         void printCompactState(EUSBSerial* pc);
 };
 
