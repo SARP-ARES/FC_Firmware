@@ -10,6 +10,7 @@ struct FlightPacket {
     uint8_t gps_antenna_status;  // 1
     float heading_deg;           // 4
     float target_heading_deg;    // 4
+    float heading_error_deg;     // 4
     float h_speed_m_s;           // 4
     float v_speed_m_s;           // 4
     double latitude_deg;         // 8
@@ -19,7 +20,7 @@ struct FlightPacket {
     float altitude_m;            // 4
     float pos_east_m;            // 4
     float pos_north_m;           // 4
-    float distance_to_target_m;    // 4
+    float distance_to_target_m;  // 4
     float temp_c;                // 4
     float pressure_pa;           // 4
     float delta_1_deg;           // 4

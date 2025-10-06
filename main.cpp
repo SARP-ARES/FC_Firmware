@@ -12,7 +12,7 @@
 
 ctrldRogallo ARES;
 EUSBSerial pc;
-flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
+flash flash_chip(PA_7, PA_6, PA_5, PA_4, &pc);
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
 Thread thread;
@@ -38,7 +38,7 @@ void clear_data() {
     t.start();
 
     pc.printf("\nErasing flash chip memory...\n\n");
-    fc.eraseAll(); 
+    flash_chip.eraseAll(); 
     int ms = t.read_ms();   
     pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
     
@@ -73,7 +73,7 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog) {
         ARES->updateFlightPacket(); 
    
         FlightPacket state = ARES->getState(); // extract state variables
-        currentFlashAddress = fc.writePacket(currentFlashAddress, state); // write state variables to flash chip
+        currentFlashAddress = flash_chip.writePacket(currentFlashAddress, state); // write state variables to flash chip
 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
@@ -111,7 +111,7 @@ void test_mode(ctrldRogallo* ARES){
         ARES->printCompactState(&pc);
 
         // Write data to flash chip
-        currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+        currentFlashAddress = flash_chip.writePacket(currentFlashAddress, state);
 
         // TODO: make control sequence / seeking logic 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
@@ -163,7 +163,7 @@ void ctrl_sequence_after_apogee(ctrldRogallo* ARES){
         ARES->printCompactState(&pc);
 
         // Write data to flash chip
-        currentFlashAddress = fc.writePacket(currentFlashAddress, state);
+        currentFlashAddress = flash_chip.writePacket(currentFlashAddress, state);
 
         
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
@@ -190,7 +190,7 @@ void ctrl_sequence_after_apogee(ctrldRogallo* ARES){
 void dump_data(){
 
     uint16_t numPacketDump;
-    fc.read(0x3FFFFE, reinterpret_cast<uint8_t*> (&numPacketDump), 2);
+    flash_chip.read(0x3FFFFE, reinterpret_cast<uint8_t*> (&numPacketDump), 2);
 
     if (numPacketDump == 0xFFFF || numPacketDump == 0) {
         // If it's the default erased value, there are no packets to dump
@@ -201,7 +201,7 @@ void dump_data(){
         // big dumpy
         pc.printf("\nDumping %d packets...", numPacketDump);
         pc.printf("\n==================================\n");
-        fc.dumpAllPackets(numPacketDump);
+        flash_chip.dumpAllPackets(numPacketDump);
         pc.printf("==================================\n");
     }
 
