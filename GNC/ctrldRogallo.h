@@ -21,7 +21,7 @@ typedef enum {
 class ctrldRogallo {
 
     private:
-        float getThetaErr();
+        float getHeadingError();
         float getTargetHeading();
         BMP280 bmp;
         BNO055 bno;
@@ -39,6 +39,7 @@ class ctrldRogallo {
         posLTP ltp;
         uint32_t apogeeThreshold;
         uint32_t groundedThreshold; 
+        uint32_t currentFlashAddress;
 
         float computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
         void updateDistanceToTarget(void);
@@ -55,7 +56,6 @@ class ctrldRogallo {
         GPS gps;
         void setThreshold(); 
         void setTarget(double latitude, double longitude);
-        uint32_t currentFlashAddress; // move to private after testing
         void updateFlightPacket();
         void resetFlightPacket();
         float computeCtrl(float thetaErr); // output in [-1, 1]
@@ -63,8 +63,6 @@ class ctrldRogallo {
         void requestMotorPacket(void);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
-        void logData();
-        void logDataTEST();
         const FlightPacket getState();
         void printCompactState(EUSBSerial* pc);
 };

@@ -331,6 +331,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%u,"        // gps_antenna_status
         "%.4f,"      // heading_deg
         "%.4f,"      // target_heading_deg
+        "%.4f,"      // heading_error_deg
         "%.4f,"      // h_speed_m_s
         "%.4f,"      // v_speed_m_s
         "%.7f,"      // latitude_deg
@@ -384,6 +385,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.gps_antenna_status,
         pkt.heading_deg,
         pkt.target_heading_deg,
+        pkt.heading_error_deg,
         pkt.h_speed_m_s,
         pkt.v_speed_m_s,
         pkt.latitude_deg,

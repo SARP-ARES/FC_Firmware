@@ -134,16 +134,20 @@ float ctrldRogallo::getTargetHeading(){
  * @brief calculates heading error to feed into controller
  * @return heading error (current - target)
  */ 
-float ctrldRogallo::getThetaErr(){
-    float thetaErr_deg = this->state.heading_deg - this->state.target_heading_deg;
+float ctrldRogallo::getHeadingError(){
+    float thetaErr_deg = this->state.target_heading_deg - this->state.heading_deg;
     if (thetaErr_deg > 180){
-        // if its greater than 180 deg, add 360 deg
+        // if its greater than 180 deg, subtract 360 deg
         thetaErr_deg = thetaErr_deg - 360;
     }else if (thetaErr_deg < -180) {
         // if its less than -180 deg, add 360 deg
         thetaErr_deg = thetaErr_deg + 360;
     }
     return thetaErr_deg;
+}
+
+float ctrldRogallo::computeCtrl(float theta_error) {
+    return 0;
 }
 
 void ctrldRogallo::resetFlightPacket() {
@@ -226,8 +230,13 @@ void ctrldRogallo::updateFlightPacket(){
     state.timestamp_utc = gps_state.utc;
     state.fsm_mode = this->mode;
     state.gps_fix = gps_state.fix;
+
+    // Control stuff
     state.heading_deg = gps_state.heading;
     state.target_heading_deg = getTargetHeading();
+    state.heading_error_deg = getHeadingError();
+    state.fc_cmd = computeCtrl(state.heading_error_deg); // TODO: Implement PID
+
     state.h_speed_m_s = gps_state.gspeed;
     // state.h_speed_m_s = getHSpeed();
     state.latitude_deg = gps_state.lat;
@@ -361,15 +370,18 @@ void ctrldRogallo::setThreshold(){
 }
 
 void ctrldRogallo::printCompactState(EUSBSerial* pc) {
-    pc->printf("Lat (deg), Lon (deg), Alt (m):\t%f, %f, %.3f\n", 
+    pc->printf("Lat (deg), Lon (deg), Alt (m):\t\t%f, %f, %.3f\n", 
                 state.latitude_deg, state.longitude_deg, state.altitude_m);
-    pc->printf("Pos North (m), Pos East (m):\t%.2f, %.2f\n", 
+    pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 
                 state.pos_north_m, state.pos_east_m);
-    pc->printf("Distance to Target (m):\t\t%.2f\n", state.distance_to_target_m);
-    pc->printf("FSM mode:\t\t\t%d\n", state.fsm_mode);
-    pc->printf("Apogee Counter:\t\t\t%d\n", state.apogee_counter);
-    pc->printf("Apogee Detected:\t\t%d\n", state.apogee_detected);
-    pc->printf("Grounded Counter:\t\t%d \n", state.groundedCounter);
+    pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
+                state.heading_deg, state.target_heading_deg, state.heading_error_deg);
+    pc->printf("FC CMD:\t\t\t\t\t%.1f\n", state.fc_cmd); // TODO: implement PID 
+    pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
+    pc->printf("FSM mode:\t\t\t\t%d\n", state.fsm_mode);
+    pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
+    pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
+    pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
     pc->printf("==========================================================\n");
 }
 
