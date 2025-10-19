@@ -7,12 +7,14 @@
 #include "flash.h"
 #include "flight_packet.h"
 #include <iostream>
+#include <cstdio>
 #include <cstring>
+#include "rtos.h"
 
-
-ctrldRogallo ARES;
-EUSBSerial pc;
-flash fc(PA_7, PA_6, PA_5, PA_4, &pc);
+// Comment out * for flashing "MCPS"
+ctrldRogallo ARES; //*
+EUSBSerial pc;     //*
+flash fc(PA_7, PA_6, PA_5, PA_4, &pc); //* 
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
 Thread thread;
@@ -22,6 +24,8 @@ Thread thread;
 uint32_t packetSize = sizeof(FlightPacket);
 uint32_t MAX_NUM_PACKETS = 16384; 
 uint32_t eraseAddr = 0;
+
+#define MCPS_ADDR  0x02
 
 
 /*
@@ -295,6 +299,7 @@ void command_line_interface() {
             pc.printf("3. \"set_origin\"\n");
             pc.printf("4. \"clear\"\n");
             pc.printf("5. \"mcps_send\"\n");
+            pc.printf("6. \"mcps_read\"\n");
             pc.printf("\n> ");  // command prompt
             cli_reset = false;
         }
@@ -311,11 +316,29 @@ void command_line_interface() {
                 test_mode(&ARES);
             }
             
-            if (strcmp(cmd_buffer, "mcps_send") == 0 || strcmp(cmd_buffer, "5") == 0) {
+            else if (strcmp(cmd_buffer, "mcps_send") == 0 || strcmp(cmd_buffer, "5") == 0) {
                 pc.printf("\"mcps_send\" cmd received. Sending Data\n");
-                float deflection = 300.69f;
+                int deflection = 69;
                 uint8_t ack = ARES.sendCtrl(deflection);
-                if(ack == 0) led_blinky();
+                if(ack == 0) { 
+                    pc.printf("Data has reached the target!");
+                    led_blinky();
+                } else {
+                    pc.printf("Frick the MCPS");
+                }
+
+            }
+
+            else if(strcmp(cmd_buffer, "mcps_read") == 0 || strcmp(cmd_buffer, "6") == 0){
+                pc.printf("\"mcps_read\" cmd received. requesting Data\n");
+                const char* message = ARES.requestMotorPacket();
+                if(message != NULL) {
+                    pc.printf("Data has reached the target!\n");
+                    led_blinky();
+                    pc.printf("La message %s\n", message);
+                } else {
+                    pc.printf("Frick the MCPS\n");
+                }
             }
 
             // dump data
@@ -382,7 +405,47 @@ void command_line_interface() {
 }
 
 
+// int main() {
+//     command_line_interface();
+// }
+
+
+// // MCPS fake main 
 int main() {
-    command_line_interface();
+    I2CSlave slave(PB_7, PB_6);
+    slave.address(MCPS_ADDR); // Expects shifted into correct position
+
+    char tx_buf[32];
+    char rx_buf[32];
+
+    while(true) {
+        int event = slave.receive();
+        
+        switch(event) {
+            case I2CSlave::WriteAddressed: {
+                // Read exactly 1 byte sent by master
+                int err = slave.read(rx_buf, sizeof(int));
+                int num;
+                memcpy(&num, rx_buf, sizeof(int));
+                if (err == 0) { // successful read
+                    if (num == 69) {
+                        led_blinky(); // LED ON
+                    } 
+                }
+                break;
+            }
+
+            case I2CSlave::ReadAddressed: {
+                // Immediately send exactly 1 byte to master
+                const char* message = "Im Sigma";
+                slave.write(tx_buf, strlen(message) + 1);
+                break;
+            }
+
+            default:
+                // No event; just continue
+                break;
+        }
+    }
 }
 

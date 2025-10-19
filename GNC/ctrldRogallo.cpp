@@ -9,7 +9,9 @@
 
 I2C master(PB_7, PB_8); // Master I2C object 
 
-#define MCPS_I2C_ADDR                   0x01 
+char rx_buf[32];
+
+#define MCPS_I2C_ADDR                   0x02
 #define DEG_LLA_TO_M_CONVERSION         111111
 #define APOGEE_THRESHOLD_BUFFER         600
 #define GROUNDED_THRESHOLD_BUFFER       100
@@ -312,15 +314,20 @@ void ctrldRogallo::updateFlightPacket(void){
 }
 
 
-uint8_t ctrldRogallo::sendCtrl(float ctrl){
+uint8_t ctrldRogallo::sendCtrl(int ctrl){
 
     // Send data over i2c !!!THIS IS A BLOCKING CALL!!!
     uint8_t ack = master.write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
     return ack; 
 }
 
-void ctrldRogallo::requestMotorPacket(void){
-
+char* ctrldRogallo::requestMotorPacket(void){
+    uint8_t ack = master.read(MCPS_I2C_ADDR, rx_buf, strlen("Im Sigma") + 1);
+    if(ack == 0){
+        return rx_buf; 
+    } else {
+        return NULL;
+    }
 }
 
 /**

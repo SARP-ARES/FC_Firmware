@@ -57,8 +57,8 @@ class ctrldRogallo {
         void updateFlightPacket(void);
         void resetFlightPacket(void);
         float computeCtrl(float thetaErr); // output in [-1, 1]
-        uint8_t sendCtrl(float ctrl); // returns ack bit
-        void requestMotorPacket(void);
+        uint8_t sendCtrl(int ctrl); // returns ack bit
+        char* requestMotorPacket(void); // returns ack bit
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
         void logData(void);
