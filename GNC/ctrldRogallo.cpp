@@ -4,6 +4,7 @@
 #include "GPS.h"
 #include "BMP280.h"
 #include "BNO055.h"
+#include "PID.h"
 #include <string>
 
 #define DEG_LLA_TO_M_CONVERSION         111111
@@ -18,7 +19,7 @@
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
 ctrldRogallo::ctrldRogallo() 
-    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51) {
+    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), pid(1.0, 0.001, 0.1) {
     bmp.start();
     bno.setup();
 
@@ -120,6 +121,11 @@ def getThetaErr(actualHeading_deg, targetHeading_deg):
     return error_deg
 */
 
+
+void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) {
+    this->pid.updateGains(Kp, Ki, Kd);
+}
+
 /**
  * @brief calculates target heading to point towards the origin in local tangent plane coords
  * @return target heading 
@@ -146,7 +152,14 @@ float ctrldRogallo::getHeadingError(){
     return thetaErr_deg;
 }
 
-float ctrldRogallo::computeCtrl(float theta_error) {
+float ctrldRogallo::computeCtrl(float heading_error, float dt) {
+    float delta_a_cmd = this->pid.compute(heading_error, dt);
+    return delta_a_cmd;
+}
+
+
+uint8_t ctrldRogallo::sendCtrl(float ctrl){
+    // TODO: IMPLEMENT COMMS
     return 0;
 }
 
@@ -214,6 +227,9 @@ void ctrldRogallo::resetFlightPacket() {
 
 /**
  * @brief updates the state of the system to log as a packet of data
+ * @todo break into two functions. One that outputs a state packet of data
+ *       and another that takes that flight packet as an arg and uses it to 
+         update the internal state field of the CtrldRogallo object 
  */ 
 void ctrldRogallo::updateFlightPacket(){
     BMP280_Values bmp_state = bmp.getState();
@@ -233,9 +249,9 @@ void ctrldRogallo::updateFlightPacket(){
 
     // Control stuff
     state.heading_deg = gps_state.heading;
-    state.target_heading_deg = getTargetHeading();
-    state.heading_error_deg = getHeadingError();
-    state.fc_cmd = computeCtrl(state.heading_error_deg); // TODO: Implement PID
+    // state.target_heading_deg = getTargetHeading();
+    // state.heading_error_deg = getHeadingError();
+    // state.fc_cmd = computeCtrl(state.heading_error_deg); // TODO: Implement PID
 
     state.h_speed_m_s = gps_state.gspeed;
     // state.h_speed_m_s = getHSpeed();
@@ -255,8 +271,6 @@ void ctrldRogallo::updateFlightPacket(){
     // BMP 
     state.temp_c = bmp_state.temp_c;
     state.pressure_pa = bmp_state.press_pa;
-
-    // strncpy(state.flight_id, "BIKE01", sizeof(state.flight_id));
 
     // BNO 
     bno055_vector_t acc = bno.getAccelerometer();

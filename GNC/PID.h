@@ -9,7 +9,8 @@
 class PID {
     public: 
         PID(float Kp, float Ki, float Kd);
-        float compute(float currAngle, float targetAngle, float dt);
+        void updateGains(float Kp, float Ki, float Kd);
+        float compute(float error, float dt);
     private:
         float Kp;
         float Ki;

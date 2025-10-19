@@ -3,6 +3,7 @@
 #include "GPS.h"
 #include "BMP280.h"
 #include "BNO055.h"
+#include "PID.h"
 #include "EUSBSerial.h"
 #include "flash.h"
 #include "flight_packet.h"
@@ -21,10 +22,9 @@ typedef enum {
 class ctrldRogallo {
 
     private:
-        float getHeadingError();
-        float getTargetHeading();
         BMP280 bmp;
         BNO055 bno;
+        PID pid;
         FlightPacket state;
         ModeFSM mode;
         uint32_t apogeeDetected;
@@ -58,13 +58,16 @@ class ctrldRogallo {
         void setTarget(double latitude, double longitude);
         void updateFlightPacket();
         void resetFlightPacket();
-        float computeCtrl(float thetaErr); // output in [-1, 1]
-        void sendCtrl(float ctrl);
+        void setPIDGains(float Kp, float Ki, float Kd);
+        float computeCtrl(float heading_error, float dt); // output in [-1, 1]
+        uint8_t sendCtrl(float ctrl);
         void requestMotorPacket(void);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
         const FlightPacket getState();
         void printCompactState(EUSBSerial* pc);
+        float getHeadingError();
+        float getTargetHeading();
 };
 
 

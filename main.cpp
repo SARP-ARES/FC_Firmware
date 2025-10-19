@@ -35,6 +35,8 @@ enum FlightMode {
 /* SET NUMBER OF PACKETS TO LOG || for for 1.5 hours of logging, log 5400 packets */
 #define NUM_PACKETS_TO_LOG  16000
 
+#define DT_CTRL             0.01 // time step for PID controller to calculate derivative & integral
+
 
 /** @brief clears all data off of the flash chip */
 void clear_data() {
@@ -81,6 +83,49 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr)
     }
 
 } 
+
+
+/** 
+ *  @brief Autonomous flight mode. A PID is used to compute an assymetric deflection command.
+ *  @param ARES pointer to the ctrldRogallo flight object
+ *  @param flash_addr pointer to the current system flash address 
+ */
+void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
+
+    char cmdBuf[32];
+    float theta_error;
+
+    while(true) {
+        // Get current data and put it in the state struct
+        ARES->updateFlightPacket();
+
+        // Write data to flash chip & increment counter
+        *flash_addr = flash_chip.writePacket(*flash_addr, state);
+
+        // TODO: make seeking logic 
+        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+            // SEEKING CODE HERE
+            // Use computeCtrl() and sendCtrl()
+            // the speed of this (outer) loop should define the speed of the control system.
+            // TODO: put GPS in its own thread so it doesnt hold up this loop.
+
+            float target_heading = ARES->getTargetHeading();
+            float heading_error = ARES->getHeadingError();
+            float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+            uint8_t ack = ARES->sendCtrl(delta_a_cmd);
+        }
+
+        // break on "quit" command
+        if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
+            if(strcmp(cmdBuf, "quit") == 0) {
+                pc.printf("\"quit\" cmd recieved...\n");
+                break;
+            }
+        }
+    }
+}
+
+
 
 /** 
  *  @brief Testing mode system runs & logs until "quit" is entered into the CLI 
@@ -215,6 +260,7 @@ void double_check() {
     }
 }
 
+
 /** @brief Sets the relative origin for ARES where ever we are currently */
 void set_origin(ctrldRogallo* ARES) {
     // no lat/lon argument
@@ -340,7 +386,6 @@ void command_line_interface() {
                 } else {
                     pc.printf("\nInvalid format. Use: \"<lat>, <lon>\" or type \"here\".\n");
                 }
-                
                 
             }
 
