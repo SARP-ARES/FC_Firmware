@@ -50,8 +50,13 @@ const FlightPacket ctrldRogallo::getState() {
  * @brief sets the seeking/landing target latitude & longitude
  * @param lat - target latitude
  * @param lon - target longitude
+ * @todo WRITE TARGET TO FLASH CHIP
  */ 
-void ctrldRogallo::setTarget(double lat, double lon) { target_lat = lat; target_lon = lon; }
+void ctrldRogallo::setTarget(double lat, double lon) { 
+    target_lat = lat; 
+    target_lon = lon; 
+    // TODO WRITE TARGET TO FLASH CHIP
+}
 
 
 /**
@@ -232,35 +237,33 @@ void ctrldRogallo::resetFlightPacket() {
          update the internal state field of the CtrldRogallo object 
  */ 
 void ctrldRogallo::updateFlightPacket(){
-    BMP280_Values bmp_state = bmp.getState();
-    state.prevAlt = bmp_state.altitude_m;
-    
-    bmp.updateValues();
-    int success = gps.bigUpdate(); 
-
-    gpsState gps_state = gps.getState();
-    bmp_state = bmp.getState(); 
-
-
-    // GPS 
-    state.timestamp_utc = gps_state.utc;
     state.fsm_mode = this->mode;
-    state.gps_fix = gps_state.fix;
 
-    // Control stuff
-    state.heading_deg = gps_state.heading;
-    // state.target_heading_deg = getTargetHeading();
-    // state.heading_error_deg = getHeadingError();
-    // state.fc_cmd = computeCtrl(state.heading_error_deg); // TODO: Implement PID
+    BMPData bmp_buf = bmp.getData();
+    state.prevAlt = bmp_buf.altitude_m; // get previous altitude before updating
 
-    state.h_speed_m_s = gps_state.gspeed;
-    // state.h_speed_m_s = getHSpeed();
-    state.latitude_deg = gps_state.lat;
-    state.longitude_deg = gps_state.lon;
-    state.altitude_gps_m = gps_state.alt;
-    state.altitude_bmp_m = bmp_state.altitude_m;
-    state.altitude_m = bmp_state.altitude_m;
-    // state.altitude_m = getFuzedAlt(bmp_state.altitude_m, gps_state.alt); // shit don't work
+
+    // BMP 
+    bmp.update(); // update
+    bmp_buf = bmp.getData(); // get new altitude
+    state.altitude_bmp_m = bmp_buf.altitude_m;
+    state.temp_c = bmp_buf.temp_c;
+    state.pressure_pa = bmp_buf.press_pa;
+
+    // GPS
+    GPSData gps_buf = gps.getState();
+    state.timestamp_utc = gps_buf.utc;
+    state.gps_fix = gps_buf.fix;
+
+    state.heading_deg = gps_buf.heading;
+    state.h_speed_m_s = gps_buf.gspeed;
+    state.latitude_deg = gps_buf.lat;
+    state.longitude_deg = gps_buf.lon;
+    state.altitude_gps_m = gps_buf.alt;
+
+    
+    // state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt); // shit don't work
+    state.altitude_m = bmp_buf.altitude_m; // TODO: replace with fuzedAlt
 
     updateHaversineCoords();
     state.pos_east_m = haversineCoordEast;
@@ -268,49 +271,38 @@ void ctrldRogallo::updateFlightPacket(){
     state.distance_to_target_m = distanceToTarget;
     
 
-    // BMP 
-    state.temp_c = bmp_state.temp_c;
-    state.pressure_pa = bmp_state.press_pa;
-
     // BNO 
-    bno055_vector_t acc = bno.getAccelerometer();
-    state.bno_acc_x = acc.x;
-    state.bno_acc_y = acc.y;
-    state.bno_acc_z = acc.z;
+    IMUData bno_buf = bno.getData();
 
-    bno055_vector_t gyr = bno.getGyroscope();
-    state.yaw_rate = gyr.x;
-    state.pitch_rate = gyr.y;
-    state.roll_rate = gyr.z;
+    state.bno_acc_x = bno_buf.acc_x;
+    state.bno_acc_y = bno_buf.acc_y;
+    state.bno_acc_z = bno_buf.acc_z;
 
-    bno055_vector_t mag = bno.getMagnetometer();
-    state.bno_mag_x = mag.x;
-    state.bno_mag_y = mag.y;
-    state.bno_mag_z = mag.z;
+    state.yaw_rate = bno_buf.gyro_x;
+    state.pitch_rate = bno_buf.gyro_y;
+    state.roll_rate = bno_buf.gyro_z;
 
-    bno055_vector_t eul = bno.getEuler();
-    state.bno_eul_x = eul.x;
-    state.bno_eul_y = eul.y;
-    state.bno_eul_z = eul.z;
+    state.bno_mag_x = bno_buf.mag_x;
+    state.bno_mag_y = bno_buf.mag_y;
+    state.bno_mag_z = bno_buf.mag_z;
 
-    bno055_vector_t lin = bno.getLinearAccel();
-    state.bno_lin_x = lin.x;
-    state.bno_lin_y = lin.y;
-    state.bno_lin_z = lin.z;
+    state.bno_eul_x = bno_buf.eul_x;
+    state.bno_eul_y = bno_buf.eul_y;
+    state.bno_eul_z = bno_buf.eul_z;
 
-    bno055_vector_t grav = bno.getGravity();
-    state.bno_grav_x = grav.x;
-    state.bno_grav_y = grav.y;
-    state.bno_grav_z = grav.z;
+    state.bno_lin_x = bno_buf.lin_x;
+    state.bno_lin_y = bno_buf.lin_y;
+    state.bno_lin_z = bno_buf.lin_z;
 
-    bno055_vector_t quat = bno.getQuaternion();
-    state.bno_quat_w = quat.w;
-    state.bno_quat_x = quat.x;
-    state.bno_quat_y = quat.y;
-    state.bno_quat_z = quat.z;
+    state.bno_grav_x = bno_buf.grav_x;
+    state.bno_grav_y = bno_buf.grav_y;
+    state.bno_grav_z = bno_buf.grav_z;
 
+    state.bno_quat_w = bno_buf.quat_w;
+    state.bno_quat_x = bno_buf.quat_x;
+    state.bno_quat_y = bno_buf.quat_y;
+    state.bno_quat_z = bno_buf.quat_z;
 
-    // state.compassDirecton = getCompassDirection(bno.getMagnetometer().z, bno.getMagnetometer().y);
 
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); // checks if descending and above threshold
 
@@ -328,6 +320,39 @@ void ctrldRogallo::updateFlightPacket(){
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = groundedCounter;
 }
+
+/**
+ * @brief updates BMP280 internal data struct (100Hz max)
+ */ 
+void ctrldRogallo::bmpUpdateLoop() {
+    while (true) {
+        bmp.update();
+        ThisThread::sleep_for(10ms);
+    }
+}
+
+/**
+ * @brief updates GPS internal data struct (100Hz max)
+ */ 
+void ctrldRogallo::gpsUpdateLoop(){
+    while (true) {
+        gps.bigUpdate();
+        ThisThread::sleep_for(10ms);
+    }
+}
+
+/**
+ * @brief updates BNO055 internal data struct (100Hz max)
+ */ 
+void ctrldRogallo::bnoUpdateLoop() {
+    while (true) {
+        bno.update();
+        ThisThread::sleep_for(10ms);
+    }
+    
+}
+
+
 
 /**
  * @brief fuzes the altitude of the GPS and BMP reading using a complimentary filter

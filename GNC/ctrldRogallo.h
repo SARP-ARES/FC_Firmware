@@ -24,9 +24,12 @@ class ctrldRogallo {
     private:
         BMP280 bmp;
         BNO055 bno;
-        PID pid;
+        GPS gps;
         FlightPacket state;
+        PID pid;
         ModeFSM mode;
+        Mutex mutex;
+
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
@@ -36,11 +39,13 @@ class ctrldRogallo {
         float haversineCoordNorth;
         float haversineCoordEast;
         float distanceToTarget;
-        posLTP ltp;
         uint32_t apogeeThreshold;
         uint32_t groundedThreshold; 
         uint32_t currentFlashAddress;
 
+        void bmpUpdateLoop();
+        void bnoUpdateLoop();
+        void gpsUpdateLoop();
         float computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
         void updateDistanceToTarget(void);
         void updateHaversineCoords(void);
@@ -49,13 +54,12 @@ class ctrldRogallo {
         float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
         void updateApogeeDetection();
-        // string getCompassDirection(float rollMag, float pitchMag);
 
     public:
         ctrldRogallo();
-        GPS gps;
         void setThreshold(); 
         void setTarget(double latitude, double longitude);
+        const FlightPacket getState();
         void updateFlightPacket();
         void resetFlightPacket();
         void setPIDGains(float Kp, float Ki, float Kd);
@@ -64,7 +68,6 @@ class ctrldRogallo {
         void requestMotorPacket(void);
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
-        const FlightPacket getState();
         void printCompactState(EUSBSerial* pc);
         float getHeadingError();
         float getTargetHeading();
