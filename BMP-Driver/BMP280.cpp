@@ -231,6 +231,6 @@ void BMP280::updateAltitudeM(){
  * @brief returns the BMP280 Values struct 
  * @return the BMP280_Values struct 
  */
-BMP280_Values BMP280::getData() const{
+BMPData BMP280::getData() const{
      return values;
 }

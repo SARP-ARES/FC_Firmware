@@ -43,9 +43,9 @@ struct bno055_vector_t {
 };
 
 struct IMUData {
-    float acc_x
-    float acc_y
-    float acc_z
+    float acc_x;
+    float acc_y;
+    float acc_z;
 
     float gyro_x;
     float gyro_y;
@@ -71,7 +71,7 @@ struct IMUData {
     float quat_x;
     float quat_y;
     float quat_z;
-}
+};
 
 struct offset {
     uint16_t offsetX;
