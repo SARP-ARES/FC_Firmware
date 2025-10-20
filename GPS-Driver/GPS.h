@@ -3,30 +3,10 @@
 #include "mbed.h"
 
 
-
-#define KNOT_TO_M_S 0.5144444444
-
-struct posECEFg {   // Earth-Centered Earth-Fixed Geodic Coordinates
-    float lat; // lattitude    (radians)
-    float lon; // longitude    (radians)
-    float alt; // altitude     (meters)
-};
+#define KNOT_TO_M_S 0.5144444444 
 
 
-struct posECEFr {  // Earth-Centered Earth-Fixed Rectangular Coordinates
-    float x;       // get origin of linear tangent plan in ECEF-r coordinates
-    float y;       // (will likely be the launch pad)
-    float z;
-};
-
-struct posLTP { // Local Tangent Plane Coordinates
-    float e;   // east     (m)
-    float n;   // north    (m)
-    float u;   // up       (m)
-};
- 
-
-struct gpsState{
+struct GPSData{
     float lat;
     float lon;
     float alt;
@@ -70,9 +50,7 @@ const float pi = 3.1415926535898;
 
 class GPS {
     private:
-        gpsState state;
-        posECEFr origin;
-        posLTP pos;
+        GPSData state;
         int getLatSign();
         int getLonSign();
         float utc2sec(float utc);
@@ -92,7 +70,7 @@ class GPS {
     
     public:
         GPS(PinName rx_gps, PinName tx_gps);
-        gpsState getState() const;
+        GPSData getState() const;
         posLTP getPosLTP() const;
         posECEFr getOriginECEFr() const;
         float deg2rad(float deg);
