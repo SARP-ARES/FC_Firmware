@@ -159,7 +159,7 @@ double BMP280::convert_press(int32_t adc_P){
  * @brief updates sensor values (altitude, pressure, temperature)
  * @return number of errors accumlated from each update
  */
-int BMP280::updateValues(){
+int BMP280::update(){
     int errTemp = updateTemperatureData();
     int errPress  = updatePressureData();
     updateAltitudeM();
@@ -231,6 +231,6 @@ void BMP280::updateAltitudeM(){
  * @brief returns the BMP280 Values struct 
  * @return the BMP280_Values struct 
  */
-BMP280_Values BMP280::getState() const{
+BMP280_Values BMP280::getData() const{
      return values;
 }

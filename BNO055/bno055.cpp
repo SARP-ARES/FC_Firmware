@@ -693,3 +693,53 @@ bno055_vector_t BNO055::getGravity() {
 bno055_vector_t BNO055::getQuaternion() {
     return bno055_getVector(BNO055_VECTOR_QUATERNION);  
 }
+
+/**
+ * @brief Updates all IMU data in member struct
+ */
+void update() {
+    bno055_vector_t acc = getAccelerometer();
+    bno_buf.acc_x = acc.x;
+    bno_buf.acc_y = acc.y;
+    bno_buf.acc_z = acc.z;
+
+    bno055_vector_t gyro = getGyroscope();
+    bno_buf.gyro_x = gyro.x;
+    bno_buf.gyro_y = gyro.y;
+    bno_buf.gyro_z = gyro.z;
+
+    bno055_vector_t mag = getMagnetometer();
+    bno_buf.mag_x = mag.x;
+    bno_buf.mag_y = mag.y;
+    bno_buf.mag_z = mag.z;
+
+    bno055_vector_t eul = getEuler();
+    bno_buf.eul_x = eul.x;
+    bno_buf.eul_y = eul.y;
+    bno_buf.eul_z = eul.z;
+
+    bno055_vector_t lin = getLinearAccel();
+    bno_buf.lin_x = lin.x;
+    bno_buf.lin_y = lin.y;
+    bno_buf.lin_z = lin.z;
+
+    bno055_vector_t grav = getGravity();
+    bno_buf.grav_x = grav.x;
+    bno_buf.grav_y = grav.y;
+    bno_buf.grav_z = grav.z;
+
+    bno055_vector_t quat = getQuaternion();
+    bno_buf.quat_w = quat.w;
+    bno_buf.quat_x = quat.x;
+    bno_buf.quat_y = quat.y;
+    bno_buf.quat_z = quat.z;
+}
+
+
+/**
+ * @brief Returns all IMU data
+ * @returns IMUData struct of all data
+ */
+IMUData getData() {
+    return data;
+}

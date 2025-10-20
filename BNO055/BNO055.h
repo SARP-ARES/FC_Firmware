@@ -139,7 +139,8 @@ public:
     bno055_vector_t getLinearAccel();
     bno055_vector_t getGravity();
     bno055_vector_t getQuaternion();
-    IMUData getAllData(); // doesn't include temperature
+    void update();
+    IMUData getData(); // doesn't include temperature
     float getTemperature();
 
     // Calibration 
@@ -153,6 +154,7 @@ private:
     I2C* i2c;
     bool owned;
     char addr;
+    IMUData data;
 
     // Configuration
     void setACC(char GRange, char Bandwidth, char OPMode);

@@ -51,14 +51,14 @@ class BMP280 {
         int writeData(char regaddr, char data);
         int readData(char regaddr, char* data, uint8_t len);
 
-        int updateValues(); // updates the current pressure and temperature values 
+        int update(); // updates the current pressure and temperature values 
 
         int start(); // Awakens the BMP from slumber 
         int sleep(); // Sleeps the BMP 
 
     public: 
 
-        BMPData getState() const;      // retruns the state struct of BMP 
+        BMPData getData() const;      // returns the state struct of BMP 
 
         int updatePressureData();       // updates the pressure value 
         int updateTemperatureData();    // updates the temperature value 
