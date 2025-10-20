@@ -9,7 +9,7 @@
 #include "USBSerial.h"
 using namespace std;
 
-struct BMP280_Values {
+struct BMPData {
     double press_pa;    // Pressure in Pascals 
     double temp_c;      // Temperature in Celcius
     double altitude_m;  // Altitude from Sea Level in m
@@ -58,13 +58,13 @@ class BMP280 {
 
     public: 
 
-         BMP280_Values getState() const;      // retruns the state struct of BMP 
+        BMPData getState() const;      // retruns the state struct of BMP 
 
         int updatePressureData();       // updates the pressure value 
         int updateTemperatureData();    // updates the temperature value 
         void updateAltitudeM();         // updates the current altitude based on temp and pressure
 
-        BMP280_Values values;           // Stores the nessecary values to be returned 
+        BMPData values;           // Stores the nessecary values to be returned 
         BMP280_Calibration c;           // Stores the calibration data nessecary for the sensor 
 
         bool owned;

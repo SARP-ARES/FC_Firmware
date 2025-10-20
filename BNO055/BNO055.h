@@ -42,6 +42,37 @@ struct bno055_vector_t {
     double z;
 };
 
+struct IMUData {
+    float acc_x
+    float acc_y
+    float acc_z
+
+    float gyro_x;
+    float gyro_y;
+    float gyro_z;
+
+    float mag_x;
+    float mag_y;
+    float mag_z;
+
+    float eul_x;
+    float eul_y;
+    float eul_z;
+
+    float lin_x;
+    float lin_y;
+    float lin_z;
+
+    float grav_x;
+    float grav_y;
+    float grav_z;
+
+    float quat_w;
+    float quat_x;
+    float quat_y;
+    float quat_z;
+}
+
 struct offset {
     uint16_t offsetX;
     uint16_t offsetY;
@@ -108,6 +139,7 @@ public:
     bno055_vector_t getLinearAccel();
     bno055_vector_t getGravity();
     bno055_vector_t getQuaternion();
+    IMUData getAllData(); // doesn't include temperature
     float getTemperature();
 
     // Calibration 
