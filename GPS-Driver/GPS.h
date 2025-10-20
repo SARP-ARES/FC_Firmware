@@ -71,8 +71,6 @@ class GPS {
     public:
         GPS(PinName rx_gps, PinName tx_gps);
         GPSData getState() const;
-        posLTP getPosLTP() const;
-        posECEFr getOriginECEFr() const;
         float deg2rad(float deg);
         float lat2deg(float lat_ddmm);
         float lon2deg(float lon_dddmm);
