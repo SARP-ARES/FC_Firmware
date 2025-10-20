@@ -15,7 +15,6 @@ class PID {
         float Kp;
         float Ki;
         float Kd;
-        float setpoint; 
         float errorLast;
         float integralError;
         bool positiveLast;
