@@ -4,7 +4,8 @@
 
 #pragma pack(push, 1) // remove padding to ensure correct memory layout
 struct FlightPacket {
-    float timestamp_utc;         // 4 bytes
+    float timestamp_gps;         // 4 bytes
+    float timestamp_timer;       // 4
     uint8_t fsm_mode;            // 1
     uint16_t gps_fix;            // 2
     uint8_t gps_antenna_status;  // 1

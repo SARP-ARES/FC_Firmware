@@ -263,7 +263,8 @@ uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
 
 void flash::printCSVHeader() {
     pc->printf(
-        "timestamp_utc,"
+        "timestamp_timer,"
+        "timestamp_gps,"
         "fsm_mode,"
         "gps_fix,"
         "gps_antenna_status,"
@@ -325,6 +326,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
     //     return; // garbage packet, skip.
     // }
     pc->printf(
+        "%.3f,"      // timestamp_timer
         "%.3f,"      // timestamp_utc
         "%u,"        // fsm_mode
         "%u,"        // gps_fix
@@ -379,7 +381,8 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // bno_quat_z
         "%s,"        // compass_heading
         "%s\n",      // pkt.flight_id (uncomment if you add it back)
-        pkt.timestamp_utc,
+        pkt.timestamp_timer,
+        pkt.timestamp_gps,
         pkt.fsm_mode,
         pkt.gps_fix,
         pkt.gps_antenna_status,
