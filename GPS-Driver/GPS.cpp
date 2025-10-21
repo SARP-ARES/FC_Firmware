@@ -16,6 +16,7 @@ GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
 ADD DESCRIPTION
 */
 GPSData GPS::getData() const{
+    ScopedLock<Mutex> lock(this->mutex);
     return state; // return a copy of the state (can't be modified bc its private)
 }
 
@@ -150,6 +151,7 @@ int GPS::update_GGA(const char* msg){
                         &lonEW, &fix, &nsats, &hdop, &alt);
               
     // assign values to the state
+    ScopedLock<Mutex> lock(this->mutex);
     this->state.utc = utc2sec(utc);
     this->state.lat = lat2deg(lat);
     this->state.latNS = latNS;
@@ -241,6 +243,7 @@ int GPS::update_GSA(const char* msg){
     result = result + result2;
 
     // Assign values to the state
+    ScopedLock<Mutex> lock(this->mutex);
     this->state.mode1 = mode1;
     this->state.mode2 = mode2;
     this->state.pdop = pdop;
@@ -271,7 +274,9 @@ int GPS::update_RMC(const char* msg){
                         &magneticVariation, &mode, &checksum);
 
     // Assign values to the state
-    this->state.utc = utc2sec(utc);
+    
+    // this->state.utc = utc2sec(utc);
+    ScopedLock<Mutex> lock(this->mutex);
     this->state.rmcStatus = status;
     this->state.lat = lat2deg(lat);
     this->state.latNS = latNS;

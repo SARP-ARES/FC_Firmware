@@ -155,6 +155,7 @@ private:
     bool owned;
     char addr;
     IMUData data;
+    mutable Mutex mutex;
 
     // Configuration
     void setACC(char GRange, char Bandwidth, char OPMode);

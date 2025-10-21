@@ -699,36 +699,32 @@ bno055_vector_t BNO055::getQuaternion() {
  */
 void BNO055::update() {
     bno055_vector_t acc = getAccelerometer();
+    bno055_vector_t gyro = getGyroscope();
+    bno055_vector_t mag = getMagnetometer();
+    bno055_vector_t eul = getEuler();
+    bno055_vector_t lin = getLinearAccel();
+    bno055_vector_t grav = getGravity();
+    bno055_vector_t quat = getQuaternion();
+
+    ScopedLock<Mutex> lock(this->mutex);
     data.acc_x = acc.x;
     data.acc_y = acc.y;
     data.acc_z = acc.z;
-
-    bno055_vector_t gyro = getGyroscope();
     data.gyro_x = gyro.x;
     data.gyro_y = gyro.y;
     data.gyro_z = gyro.z;
-
-    bno055_vector_t mag = getMagnetometer();
     data.mag_x = mag.x;
     data.mag_y = mag.y;
     data.mag_z = mag.z;
-
-    bno055_vector_t eul = getEuler();
     data.eul_x = eul.x;
     data.eul_y = eul.y;
     data.eul_z = eul.z;
-
-    bno055_vector_t lin = getLinearAccel();
     data.lin_x = lin.x;
     data.lin_y = lin.y;
     data.lin_z = lin.z;
-
-    bno055_vector_t grav = getGravity();
     data.grav_x = grav.x;
     data.grav_y = grav.y;
     data.grav_z = grav.z;
-
-    bno055_vector_t quat = getQuaternion();
     data.quat_w = quat.w;
     data.quat_x = quat.x;
     data.quat_y = quat.y;
@@ -741,5 +737,6 @@ void BNO055::update() {
  * @returns IMUData struct of all data
  */
 IMUData BNO055::getData() const{
+    ScopedLock<Mutex> lock(this->mutex);
     return data;
 }

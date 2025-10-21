@@ -78,6 +78,7 @@ class GPS {
         int update(NMEA_Type msgType, const char* msg); // TODO: make private and make wrapper
         int bigUpdate();
         BufferedSerial serial;
+        mutable Mutex mutex;
         void setOriginECEFr(); // uses current position to set origin if nothing is passed
         void setOriginECEFr(float lat_deg, float lon_deg, float h); // can specify origin
         

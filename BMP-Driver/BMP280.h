@@ -56,6 +56,8 @@ class BMP280 {
         int start(); // Awakens the BMP from slumber 
         int sleep(); // Sleeps the BMP 
 
+        mutable Mutex mutex;
+
     public: 
 
         BMPData getData() const;      // returns the state struct of BMP 

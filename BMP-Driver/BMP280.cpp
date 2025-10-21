@@ -160,6 +160,7 @@ double BMP280::convert_press(int32_t adc_P){
  * @return number of errors accumlated from each update
  */
 int BMP280::update(){
+    ScopedLock<Mutex> lock(this->mutex); // THIS IS A HEAVY MUTEX; RESTRUCTURE TO MAKE LIGHTER
     int errTemp = updateTemperatureData();
     int errPress  = updatePressureData();
     updateAltitudeM();
@@ -232,5 +233,6 @@ void BMP280::updateAltitudeM(){
  * @return the BMP280_Values struct 
  */
 BMPData BMP280::getData() const{
-     return values;
+    ScopedLock<Mutex> lock(this->mutex);
+    return values;
 }
