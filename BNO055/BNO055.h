@@ -140,7 +140,7 @@ public:
     bno055_vector_t getGravity();
     bno055_vector_t getQuaternion();
     void update();
-    IMUData getData(); // doesn't include temperature
+    IMUData getData() const;; // doesn't include temperature
     float getTemperature();
 
     // Calibration 

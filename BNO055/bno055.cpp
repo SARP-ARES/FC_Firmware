@@ -740,6 +740,6 @@ void BNO055::update() {
  * @brief Returns all IMU data
  * @returns IMUData struct of all data
  */
-IMUData BNO055::getData() {
+IMUData BNO055::getData() const{
     return data;
 }

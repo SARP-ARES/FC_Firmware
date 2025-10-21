@@ -15,7 +15,7 @@ GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
 /*
 ADD DESCRIPTION
 */
-GPSData GPS::getState() const{
+GPSData GPS::getData() const{
     return state; // return a copy of the state (can't be modified bc its private)
 }
 

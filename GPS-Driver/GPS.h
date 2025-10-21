@@ -70,7 +70,7 @@ class GPS {
     
     public:
         GPS(PinName rx_gps, PinName tx_gps);
-        GPSData getState() const;
+        GPSData getData() const;
         float deg2rad(float deg);
         float lat2deg(float lat_ddmm);
         float lon2deg(float lon_dddmm);
