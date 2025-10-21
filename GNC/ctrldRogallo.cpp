@@ -170,7 +170,8 @@ uint8_t ctrldRogallo::sendCtrl(float ctrl){
 
 void ctrldRogallo::resetFlightPacket() {
     // Set all float fields to NAN
-    state.timestamp_utc      = NAN;
+    state.timestamp_timer    = NAN;
+    state.timestamp_gps      = NAN;
     state.heading_deg        = NAN;
     state.target_heading_deg = NAN;
     state.h_speed_m_s        = NAN;
@@ -237,43 +238,41 @@ void ctrldRogallo::resetFlightPacket() {
          update the internal state field of the CtrldRogallo object 
  */ 
 void ctrldRogallo::updateFlightPacket(){
+    GPSData gps_buf = gps.getData();
+    BMPData bmp_buf = bmp.getData();
+    IMUData bno_buf = bno.getData();
+    
+
+    // lock mutex for state field writes
+    ScopedLock<Mutex> lock(this->state_mutex);
+
+    state.timestamp_timer = getElapsedSeconds();
     state.fsm_mode = this->mode;
 
-    BMPData bmp_buf = bmp.getData();
-    state.prevAlt = bmp_buf.altitude_m; // get previous altitude before updating
-
-
     // BMP 
-    bmp.update(); // update
-    bmp_buf = bmp.getData(); // get new altitude
     state.altitude_bmp_m = bmp_buf.altitude_m;
     state.temp_c = bmp_buf.temp_c;
     state.pressure_pa = bmp_buf.press_pa;
 
     // GPS
-    GPSData gps_buf = gps.getState();
-    state.timestamp_utc = gps_buf.utc;
+    state.timestamp_gps = gps_buf.utc;
     state.gps_fix = gps_buf.fix;
-
     state.heading_deg = gps_buf.heading;
     state.h_speed_m_s = gps_buf.gspeed;
     state.latitude_deg = gps_buf.lat;
     state.longitude_deg = gps_buf.lon;
     state.altitude_gps_m = gps_buf.alt;
 
-    
     // state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt); // shit don't work
     state.altitude_m = bmp_buf.altitude_m; // TODO: replace with fuzedAlt
 
-    updateHaversineCoords();
+    updateHaversineCoords(); // TODO: restructure for lightweight mutex
     state.pos_east_m = haversineCoordEast;
     state.pos_north_m = haversineCoordNorth;
     state.distance_to_target_m = distanceToTarget;
     
 
     // BNO 
-    IMUData bno_buf = bno.getData();
-
     state.bno_acc_x = bno_buf.acc_x;
     state.bno_acc_y = bno_buf.acc_y;
     state.bno_acc_z = bno_buf.acc_z;
@@ -319,10 +318,14 @@ void ctrldRogallo::updateFlightPacket(){
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = groundedCounter;
+
+
+    state.prevAlt = state.altitude_m; 
+    // mutex unlocks outside this scope
 }
 
 /**
- * @brief updates BMP280 internal data struct (100Hz max)
+ * @brief updates BMP280 internal data struct (~100Hz)
  */ 
 void ctrldRogallo::bmpUpdateLoop() {
     while (true) {
@@ -332,26 +335,85 @@ void ctrldRogallo::bmpUpdateLoop() {
 }
 
 /**
- * @brief updates GPS internal data struct (100Hz max)
+ * @brief updates GPS internal data struct
  */ 
 void ctrldRogallo::gpsUpdateLoop(){
     while (true) {
-        gps.bigUpdate();
-        ThisThread::sleep_for(10ms);
+        gps.bigUpdate(); // this takes 100-1000ms
+        ThisThread::sleep_for(1ms); // avoid hammering just in case
     }
 }
 
 /**
- * @brief updates BNO055 internal data struct (100Hz max)
+ * @brief updates BNO055 internal data struct (~100Hz)
  */ 
-void ctrldRogallo::bnoUpdateLoop() {
+void ctrldRogallo::imuUpdateLoop() {
     while (true) {
         bno.update();
         ThisThread::sleep_for(10ms);
     }
-    
 }
 
+void ctrldRogallo::startThreadIMU() {
+    this->thread_imu.start(callback(this, &ctrldRogallo::imuUpdateLoop));
+}
+
+void ctrldRogallo::startThreadBMP() {
+    this->thread_bmp.start(callback(this, &ctrldRogallo::bmpUpdateLoop));
+}
+
+void ctrldRogallo::startThreadGPS(EUSBSerial* pc) {
+    pc->printf("in startThreadGPS\n");
+    this->thread_gps.start(callback(this, &ctrldRogallo::gpsUpdateLoop));
+    pc->printf("started GPS thread!\n");
+}
+
+
+void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
+    pc->printf("now in 'startAllSensorThreads' func\n");
+    // startThreadGPS(pc);
+    pc->printf("starting IMU thread...\n");
+    startThreadIMU();
+    pc->printf("IMU thread started!\n");
+    pc->printf("Starting BMP thread...\n");
+    startThreadBMP();
+    pc->printf("BMP thread started!\n");
+}
+
+
+void ctrldRogallo::logDataLoop(){
+    FlightPacket state_snapshot;
+    while (true){
+
+        {   // take snapshot of current state w/ mutex
+            ScopedLock<Mutex> lock(this->state_mutex);
+            state_snapshot = this->state;
+        }
+
+        // write current state to flash chip & increment address
+        *flash_addr = flash_mem->writePacket(*flash_addr, state_snapshot);
+        
+        // log at 10Hz while seeking or spiraling, 1Hz while idle or grounded
+        if (this->mode == FSM_SEEKING || this->mode == FSM_SPIRAL) {
+            ThisThread::sleep_for(100ms);
+        }
+        else if (this->mode == FSM_GROUNDED){
+            ThisThread::sleep_for(10s); 
+        } else { // FSM_GROUNDED
+            ThisThread::sleep_for(1s); 
+        }   
+    }
+}
+
+
+void ctrldRogallo::startLogging(flash* flash_mem, uint32_t* flash_addr) {
+    this->flash_mem = flash_mem;
+    this->flash_addr = flash_addr;
+
+    flight_timer.reset();
+    flight_timer.start(); // start timer once logging begins
+    thread_logging.start(callback(this, &ctrldRogallo::logDataLoop));
+}
 
 
 /**

@@ -18,17 +18,27 @@ typedef enum {
 } ModeFSM;
 
 
-
 class ctrldRogallo {
 
     private:
         BMP280 bmp;
         BNO055 bno;
         GPS gps;
-        FlightPacket state;
         PID pid;
+        flash* flash_mem = nullptr;
+        uint32_t* flash_addr = nullptr;
+        Timer flight_timer;
+        FlightPacket state;
         ModeFSM mode;
-        Mutex mutex;
+        Mutex state_mutex;
+        Mutex imu_mutex;
+        Mutex bmp_mutex;
+        Mutex gps_mutex;
+
+        Thread thread_logging;
+        Thread thread_imu;
+        Thread thread_bmp;
+        Thread thread_gps;
 
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;
@@ -43,9 +53,11 @@ class ctrldRogallo {
         uint32_t groundedThreshold; 
         uint32_t currentFlashAddress;
 
+        // sensor thread handling
         void bmpUpdateLoop();
-        void bnoUpdateLoop();
+        void imuUpdateLoop();
         void gpsUpdateLoop();
+
         float computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
         void updateDistanceToTarget(void);
         void updateHaversineCoords(void);
@@ -57,21 +69,41 @@ class ctrldRogallo {
 
     public:
         ctrldRogallo();
-        void setThreshold(); 
-        void setTarget(double latitude, double longitude);
+        
+        // thread handling
+        void startThreadGPS(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
+        void startThreadIMU();
+        void startThreadBMP();
+        void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
+        void logDataLoop();
+        void startLogging(flash* flash_mem, uint32_t* flash_addr);
+
+        // state handlers
         const FlightPacket getState();
         void updateFlightPacket();
         void resetFlightPacket();
+
+        float getElapsedSeconds();
+        void setThreshold(); 
+        void setTarget(double latitude, double longitude);
         void setPIDGains(float Kp, float Ki, float Kd);
+
+        float getHeadingError();
+        float getTargetHeading();
         float computeCtrl(float heading_error, float dt); // output in [-1, 1]
+
+        // MC/PS comms
         uint8_t sendCtrl(float ctrl);
         void requestMotorPacket(void);
+
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
         void printCompactState(EUSBSerial* pc);
-        float getHeadingError();
-        float getTargetHeading();
 };
 
+inline float ctrldRogallo::getElapsedSeconds() {
+    using namespace std::chrono;
+    return duration_cast<duration<float>>(flight_timer.elapsed_time()).count();
+}
 
 #endif

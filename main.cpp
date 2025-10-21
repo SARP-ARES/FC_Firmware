@@ -86,7 +86,8 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr)
 
 
 /** 
- *  @brief Autonomous flight mode. A PID is used to compute an assymetric deflection command.
+ *  @brief Autonomous flight mode. A PID controller is used to compute 
+ *         an assymetric deflection command.
  *  @param ARES pointer to the ctrldRogallo flight object
  *  @param flash_addr pointer to the current system flash address 
  */
@@ -95,12 +96,17 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
     char cmdBuf[32];
     float theta_error;
 
-    while(true) {
-        // Get current data and put it in the state struct
-        ARES->updateFlightPacket();
+    ARES->startAllSensorThreads(&pc);
+    ARES->startLogging(&flash_chip, flash_addr);
 
-        // Write data to flash chip & increment counter
-        *flash_addr = flash_chip.writePacket(*flash_addr, state);
+    while(true) {
+        // Get current sensor data and put it in the state struct
+
+        ARES->updateFlightPacket();
+        FlightPacket state = ARES->getState();
+
+        // // Write data to flash chip & increment counter
+        // *flash_addr = flash_chip.writePacket(*flash_addr, state);
 
         // TODO: make seeking logic 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
@@ -122,38 +128,52 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
                 break;
             }
         }
+
+        ThisThread::sleep_for(50ms); // ~20Hz
     }
 }
 
 
 
 /** 
- *  @brief Testing mode system runs & logs until "quit" is entered into the CLI 
+ *  @brief Testing mode system prints & logs state until "quit" is entered into the CLI 
  *  @param ARES pointer to the ctrldRogallo flight object
  *  @param flash_addr pointer to the current system flash address 
  */
 void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
 
     char cmdBuf[32];
+    float theta_error;
+
+    pc.printf("entered test_mode...\n");
+    ThisThread::sleep_for(500ms);
+    ARES->startAllSensorThreads(&pc);
+    pc.printf("started sensor threads...\n");
+    ThisThread::sleep_for(500ms);
+    
+    ARES->startLogging(&flash_chip, flash_addr);
+    pc.printf("started logging...\n");
+    ThisThread::sleep_for(500ms);
 
     while(true) {
-        // Get current data and put it in the state struct
+        // Get current sensor data and put it in the state struct
         ARES->updateFlightPacket();
-        state = ARES->getState();
-        
-        // Print data to serial port
+
+        // print state for testing
         ARES->printCompactState(&pc);
+        FlightPacket state = ARES->getState();
 
-        // Write data to flash chip & increment counter
-        *flash_addr = flash_chip.writePacket(*flash_addr, state);
-
-        // TODO: make control sequence / seeking logic 
+        // TODO: make seeking logic 
         if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
             // SEEKING CODE HERE
             // Use computeCtrl() and sendCtrl()
             // the speed of this (outer) loop should define the speed of the control system.
             // TODO: put GPS in its own thread so it doesnt hold up this loop.
-            int x = 0;
+
+            float target_heading = ARES->getTargetHeading();
+            float heading_error = ARES->getHeadingError();
+            float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+            uint8_t ack = ARES->sendCtrl(delta_a_cmd);
         }
 
         // break on "quit" command
@@ -163,6 +183,8 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 break;
             }
         }
+
+        ThisThread::sleep_for(500ms); // ~2Hz
     }
 }
 
