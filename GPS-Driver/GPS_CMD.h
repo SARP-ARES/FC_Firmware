@@ -23,6 +23,7 @@ static constexpr GPSCmd CMD_UPDATE_10HZ { "$PMTK220,100*2F\r\n",    17 };
 // Controls position fix interval
 static constexpr GPSCmd CMD_FIXCTL_1HZ  { "$PMTK500,1000,0,0,0.0,0.0*1A\r\n",  32 };
 static constexpr GPSCmd CMD_FIXCTL_5HZ  { "$PMTK500,200,0,0,0.0,0.0*29\r\n",   31 };
+static constexpr GPSCmd CMD_FIXCTL_NEW_5HZ  { "$PMTK300,200,0,0,0,0*2F\r\n",   27 };
 static constexpr GPSCmd CMD_FIXCTL_10HZ { "$PMTK500,100,0,0,0.0,0.0*2A\r\n",   30 };
 
 // ------------------- Antenna Status --------------------------
