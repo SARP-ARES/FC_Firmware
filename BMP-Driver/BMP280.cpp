@@ -102,6 +102,8 @@ int BMP280::updateTemperatureData(){
 
     //Shifts each byte into useful position
     int32_t rawTemperature = ((int32_t)msb << 12) | ((int32_t)lsb << 4 ) | ((int32_t)xlsb >> 4);
+    
+    ScopedLock<Mutex> lock(this->mutex);
     values.temp_c = convert_temp(rawTemperature) - 3.5; // offsets temperature by experimentally gathered amount
     values.temp_f = values.temp_c * 9.0/5.0 + 32.0; 
     return totalErr; 
@@ -121,6 +123,8 @@ int BMP280::updatePressureData(){
 
     // Shifts each byte into useful position 
     uint32_t rawPressure = ((uint32_t)msb << 12) | ((uint32_t)lsb << 4 ) | ((uint32_t)xlsb >> 4);
+    
+    ScopedLock<Mutex> lock(this->mutex);
     values.press_pa = convert_press(rawPressure) - 944.6; // offset from experimental data
     values.press_psi = values.press_pa * 0.000145038;
     return totalErr; 
@@ -174,11 +178,10 @@ double BMP280::convert_press(int32_t adc_P){
  * @return number of errors accumlated from each update
  */
 int BMP280::update(){
-    ScopedLock<Mutex> lock(this->mutex); // THIS IS A HEAVY MUTEX; RESTRUCTURE TO MAKE LIGHTER
     int errTemp = updateTemperatureData();
     int errPress  = updatePressureData();
     updateAltitudeM();
-    return(errPress + errTemp);
+    return errPress + errTemp;
 }
 
 /** 
@@ -232,6 +235,8 @@ void BMP280::updateAltitudeM(){
     double tempLapseRate = -.0065;
     double gravity = 9.80665;
     double molarMassAir = .0289655;
+
+    ScopedLock<Mutex> lock(this->mutex);
     double h2 = (sealvlTemp_K/tempLapseRate) \
                         *(pow((values.press_pa/staticPress), \
                             -((univesalGasConst*tempLapseRate)/(gravity*molarMassAir)))-1.0); 
