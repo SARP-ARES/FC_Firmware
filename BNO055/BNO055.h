@@ -94,7 +94,7 @@ public:
      * Constructor using an existing I2C object.
      * @param i2c Pointer to an existing I2C interface
      */
-    BNO055(I2C* i2c, char addr);
+    BNO055(I2C* i2c, char addr, Mutex* lock);
 
     /**
      * Destructor.
@@ -156,6 +156,7 @@ private:
     char addr;
     IMUData data;
     mutable Mutex mutex;
+    Mutex* bus_lock;
 
     // Configuration
     void setACC(char GRange, char Bandwidth, char OPMode);

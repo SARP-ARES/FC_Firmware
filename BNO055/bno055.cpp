@@ -23,9 +23,11 @@ BNO055::BNO055(PinName SDA, PinName SCL, char addr) {
  * @brief Constructor that uses an external I2C object (not owned by this class).
  * @param i2c Pointer to an already-initialized I2C object
  */
-BNO055::BNO055(I2C* i2c, char addr) {
+BNO055::BNO055(I2C* i2c, char addr, Mutex* lock) {
     BNO055::i2c = i2c;
-    BNO055::addr = addr;;
+    BNO055::addr = addr;
+    BNO055::bus_lock = lock;
+    owned = false;
 }
 
 /**
@@ -52,8 +54,12 @@ void BNO055::dummy(){
  * @return 0 on success, non-zero on failure
  */
 int BNO055::readData(char regaddr, char* data, uint8_t len) {
+    if (bus_lock) bus_lock->lock();
     i2c->write(addr, &regaddr, 1);
-    return i2c->read(addr, data, len);
+    i2c->read(addr, data, len);
+    if (bus_lock) bus_lock->unlock();
+    return 1;
+
 }
 
 /**
@@ -64,10 +70,15 @@ int BNO055::readData(char regaddr, char* data, uint8_t len) {
  * @return 0 on success, non-zero on failure
  */
 int BNO055::writeData(char regaddr, char data, uint8_t len) {
+    if (bus_lock) bus_lock->lock();
+
     char buffer[2];
     buffer[0] = regaddr;
     buffer[1] = data;
-    return i2c->write(addr, buffer, 2);
+    i2c->write(addr, buffer, 2);
+    if (bus_lock) bus_lock->unlock();
+    return 1;
+
 }
 
 /**
@@ -559,7 +570,7 @@ BNO055Result BNO055::readSelfTest() {
 }
 
 /**
- * @brief Basic setup function for the BNO055:
+ * @brief Basic setup function for the BNO055:v
  *        - Resets the device
  *        - Sets page to 0
  *        - Configures to NDOF (sensor-fusion) operating mode
