@@ -17,6 +17,13 @@ BMP280::BMP280(PinName SDA, PinName SCL, char addr){
     BMP280::addr = addr; 
 }
 
+BMP280::BMP280(I2C* i2c, char addr, Mutex* lock){
+    BMP280::i2c = i2c;
+    BMP280::addr = addr;
+    BMP280::bus_lock = lock;
+    owned = false;
+}
+
 /** Destructor
  * @brief Deletes I2C if created in object
  */ 
@@ -34,8 +41,11 @@ BMP280::~BMP280() {
  * @return 0 on success, non-zero on failure
  */
 int BMP280::readData(char regaddr, char* data, uint8_t len) {
+    if (bus_lock) bus_lock->lock();
     i2c->write(addr, &regaddr, 1);
-    return i2c->read(addr, data, len);
+    i2c->read(addr, data, len);
+    if (bus_lock) bus_lock->unlock();
+    return 1;
 }
 
 /** 
@@ -45,10 +55,14 @@ int BMP280::readData(char regaddr, char* data, uint8_t len) {
  * @return 0 on success, non-zero on failure
  */
 int BMP280::writeData(char regaddr, char data) {
+    if (bus_lock) bus_lock->lock();
     char buffer[2];
     buffer[0] = regaddr;
     buffer[1] = data;
-    return i2c->write(addr, buffer, 2);
+    i2c->write(addr, buffer, 2);
+    if (bus_lock) bus_lock->unlock();
+    return 1;
+
 }
 
 // Temperature 2x, Pressure 16x -> 0b11101011

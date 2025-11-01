@@ -41,6 +41,8 @@ class BMP280 {
         */
         BMP280(PinName SDA, PinName SCL, char addr); 
 
+        BMP280(I2C* i2c, char addr, Mutex* lock);
+
         /* Destructor 
         * Deletes I2C for this object
         */ 
@@ -72,6 +74,7 @@ class BMP280 {
         bool owned;
         char addr;                      // Address of BMP280 
         I2C* i2c;                       // Initialize i2c object
+        Mutex* bus_lock;
         int32_t t_fine;                 // Nesscary temperature for calibration
 
         float readTemperatureData();            // Reads the temperature data from the register 
