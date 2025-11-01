@@ -18,8 +18,28 @@
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
-ctrldRogallo::ctrldRogallo() 
-    : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), pid(1.0, 0.001, 0.1) {
+// ctrldRogallo::ctrldRogallo() 
+//     : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), pid(1.0, 0.001, 0.1) {
+//     bmp.start();
+//     bno.setup();
+
+//     apogeeDetected = 0; // false
+//     apogeeCounter = 0;
+//     groundedCounter = 0; 
+
+//     //target lat/lon
+//     target_lat = NAN;
+//     target_lon = NAN;
+
+//     groundedThreshold = NAN;
+//     apogeeThreshold = NAN; 
+
+//     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
+//     mode = FSM_IDLE; // initialize in idle mode
+// } 
+
+ctrldRogallo::ctrldRogallo()
+    : i2c(PB_7, PB_8), gps(PA_2, PA_3), bmp(&i2c, 0xEE, &i2c_mutex), bno(&i2c, 0x51, &i2c_mutex), pid(1.0, 0.001, 0.1) {
     bmp.start();
     bno.setup();
 
@@ -45,6 +65,15 @@ ctrldRogallo::ctrldRogallo()
 const FlightPacket ctrldRogallo::getState() {
     return this->state;
 }
+
+/**
+ * @brief getter for the current FSM mode of the system
+ * @returns FSM mode of the ctrldRogallo
+ */ 
+const ModeFSM ctrldRogallo::getMode() {
+    return this->mode;
+}
+
 
 /**
  * @brief sets the seeking/landing target latitude & longitude
@@ -91,6 +120,7 @@ float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg, double la
           meters east and north of the target and updates distance to target
  */ 
 void ctrldRogallo::updateHaversineCoords(void){
+    ScopedLock<Mutex> lock(this->state_mutex);
     // only compute distance between latitudes to get NORTH coord
     haversineCoordNorth = computeHaversine(state.latitude_deg, target_lon, target_lat, target_lon);
     // make negative if south of target
@@ -136,6 +166,7 @@ void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) {
  * @return target heading 
  */ 
 float ctrldRogallo::getTargetHeading(){
+    ScopedLock<Mutex> lock(this->state_mutex);
     float targetHeading_rad = atan2(state.pos_east_m, state.pos_north_m) + pi;
     float targetHeading_deg = targetHeading_rad * 180 / pi;
     return targetHeading_deg;
@@ -146,6 +177,7 @@ float ctrldRogallo::getTargetHeading(){
  * @return heading error (current - target)
  */ 
 float ctrldRogallo::getHeadingError(){
+    ScopedLock<Mutex> lock(this->state_mutex);
     float thetaErr_deg = this->state.target_heading_deg - this->state.heading_deg;
     if (thetaErr_deg > 180){
         // if its greater than 180 deg, subtract 360 deg
@@ -169,6 +201,7 @@ uint8_t ctrldRogallo::sendCtrl(float ctrl){
 }
 
 void ctrldRogallo::resetFlightPacket() {
+    ScopedLock<Mutex> lock(this->state_mutex);
     // Set all float fields to NAN
     state.timestamp_timer    = NAN;
     state.timestamp_gps      = NAN;
@@ -231,8 +264,10 @@ void ctrldRogallo::resetFlightPacket() {
 
 
 
+
+
 /**
- * @brief updates the state of the system to log as a packet of data
+ * @brief updates the state of the system for control purposes and logging
  * @todo break into two functions. One that outputs a state packet of data
  *       and another that takes that flight packet as an arg and uses it to 
          update the internal state field of the CtrldRogallo object 
@@ -241,7 +276,6 @@ void ctrldRogallo::updateFlightPacket(){
     GPSData gps_buf = gps.getData();
     BMPData bmp_buf = bmp.getData();
     IMUData bno_buf = bno.getData();
-    
 
     // lock mutex for state field writes
     ScopedLock<Mutex> lock(this->state_mutex);
@@ -264,7 +298,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.altitude_gps_m = gps_buf.alt;
 
     // state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt); // shit don't work
-    state.altitude_m = bmp_buf.altitude_m; // TODO: replace with fuzedAlt
+    // state.altitude_m = bmp_buf.altitude_m; // TODO: replace with fuzedAlt
 
     updateHaversineCoords(); // TODO: restructure for lightweight mutex
     state.pos_east_m = haversineCoordEast;
@@ -305,8 +339,10 @@ void ctrldRogallo::updateFlightPacket(){
 
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); // checks if descending and above threshold
 
-    if(apogeeCounter >= 5) apogeeDetected = 1;
-    
+    if(apogeeCounter >= 200) {
+        apogeeDetected = 1;
+    }
+
     if(apogeeDetected == 1) {
         if(isWithinTarget())    mode = FSM_SPIRAL; // checks if ARES is within spiral target range mode = FSM_SPIRAL; 
         else                    mode = FSM_SEEKING;
@@ -315,22 +351,22 @@ void ctrldRogallo::updateFlightPacket(){
         if(groundedCounter >= 15)    mode = FSM_GROUNDED;
     }
 
+
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = groundedCounter;
-
 
     state.prevAlt = state.altitude_m; 
     // mutex unlocks outside this scope
 }
 
 /**
- * @brief updates BMP280 internal data struct (~100Hz)
+ * @brief updates BMP280 internal data struct (~50Hz)
  */ 
 void ctrldRogallo::bmpUpdateLoop() {
     while (true) {
         bmp.update();
-        ThisThread::sleep_for(10ms);
+        ThisThread::sleep_for(20ms);
     }
 }
 
@@ -345,12 +381,12 @@ void ctrldRogallo::gpsUpdateLoop(){
 }
 
 /**
- * @brief updates BNO055 internal data struct (~100Hz)
+ * @brief updates BNO055 internal data struct (~50Hz)
  */ 
 void ctrldRogallo::imuUpdateLoop() {
     while (true) {
         bno.update();
-        ThisThread::sleep_for(10ms);
+        ThisThread::sleep_for(20ms);
     }
 }
 
@@ -371,14 +407,36 @@ void ctrldRogallo::startThreadGPS(EUSBSerial* pc) {
 
 void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
     pc->printf("now in 'startAllSensorThreads' func\n");
-    // startThreadGPS(pc);
-    pc->printf("starting IMU thread...\n");
+    startThreadGPS(pc);
+    pc->printf("Starting IMU thread...\n");
     startThreadIMU();
     pc->printf("IMU thread started!\n");
     pc->printf("Starting BMP thread...\n");
     startThreadBMP();
     pc->printf("BMP thread started!\n");
 }
+
+
+void ctrldRogallo::killThreadIMU() {
+    this->thread_imu.terminate();
+}
+
+void ctrldRogallo::killThreadBMP() {
+    this->thread_bmp.terminate();
+}
+
+void ctrldRogallo::killThreadGPS() {
+    this->thread_gps.terminate();
+}
+
+
+void ctrldRogallo::killAllSensorThreads(){
+    killThreadGPS();
+    killThreadIMU();
+    killThreadBMP();
+}
+
+
 
 
 void ctrldRogallo::logDataLoop(){
@@ -398,22 +456,34 @@ void ctrldRogallo::logDataLoop(){
             ThisThread::sleep_for(100ms);
         }
         else if (this->mode == FSM_GROUNDED){
-            ThisThread::sleep_for(10s); 
-        } else { // FSM_GROUNDED
+            this->thread_logging.terminate();
+        } else { // FSM_GROUNDED,  FSM_IDLE
             ThisThread::sleep_for(1s); 
         }   
     }
 }
 
 
-void ctrldRogallo::startLogging(flash* flash_mem, uint32_t* flash_addr) {
+void ctrldRogallo::startLogging(flash* flash_mem, uint32_t* flash_addr, EUSBSerial* pc) {
+    pc->printf("made it into startLogging\n");
     this->flash_mem = flash_mem;
     this->flash_addr = flash_addr;
-
+    pc->printf("made it past flash mem and addr assignments\n");
     flight_timer.reset();
     flight_timer.start(); // start timer once logging begins
+    pc->printf("flash_mem=%p, flash_addr=%p\n", flash_mem, flash_addr);
     thread_logging.start(callback(this, &ctrldRogallo::logDataLoop));
 }
+
+void ctrldRogallo::stopLogging(){
+    this->thread_logging.terminate();
+}
+
+void ctrldRogallo::stopAllThreads(){
+    this->stopLogging();
+    this->killAllSensorThreads();
+}
+
 
 
 /**
@@ -466,11 +536,13 @@ uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
 }
 
 void ctrldRogallo::setThreshold(){
+    ScopedLock<Mutex> lock(this->state_mutex);
     groundedThreshold = state.altitude_m + GROUNDED_THRESHOLD_BUFFER;
     apogeeThreshold = state.altitude_m + APOGEE_THRESHOLD_BUFFER; 
 }
 
 void ctrldRogallo::printCompactState(EUSBSerial* pc) {
+    ScopedLock<Mutex> lock(this->state_mutex);
     pc->printf("Lat (deg), Lon (deg), Alt (m):\t\t%f, %f, %.3f\n", 
                 state.latitude_deg, state.longitude_deg, state.altitude_m);
     pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 

@@ -21,6 +21,8 @@ typedef enum {
 class ctrldRogallo {
 
     private:
+    // Test stuff
+        I2C i2c;
         BMP280 bmp;
         BNO055 bno;
         GPS gps;
@@ -30,10 +32,12 @@ class ctrldRogallo {
         Timer flight_timer;
         FlightPacket state;
         ModeFSM mode;
+    
         Mutex state_mutex;
         Mutex imu_mutex;
         Mutex bmp_mutex;
         Mutex gps_mutex;
+        Mutex i2c_mutex;
 
         Thread thread_logging;
         Thread thread_imu;
@@ -53,11 +57,12 @@ class ctrldRogallo {
         uint32_t groundedThreshold; 
         uint32_t currentFlashAddress;
 
-        // sensor thread handling
+        // ---- threads ----
         void bmpUpdateLoop();
         void imuUpdateLoop();
         void gpsUpdateLoop();
 
+        // ---- navigation utilities ----
         float computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
         void updateDistanceToTarget(void);
         void updateHaversineCoords(void);
@@ -70,19 +75,27 @@ class ctrldRogallo {
     public:
         ctrldRogallo();
         
-        // thread handling
+        // ---- thread handlers ----
         void startThreadGPS(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
         void startThreadIMU();
         void startThreadBMP();
         void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
+        void killThreadGPS();
+        void killThreadIMU();
+        void killThreadBMP();
+        void killAllSensorThreads();
         void logDataLoop();
-        void startLogging(flash* flash_mem, uint32_t* flash_addr);
+        void startLogging(flash* flash_mem, uint32_t* flash_addr, EUSBSerial* pc);
+        void stopLogging();
+        void stopAllThreads();
 
-        // state handlers
+        // ---- state handlers ---
         const FlightPacket getState();
+        const ModeFSM getMode();
         void updateFlightPacket();
         void resetFlightPacket();
 
+        // ---- other stuff ----
         float getElapsedSeconds();
         void setThreshold(); 
         void setTarget(double latitude, double longitude);
@@ -92,12 +105,14 @@ class ctrldRogallo {
         float getTargetHeading();
         float computeCtrl(float heading_error, float dt); // output in [-1, 1]
 
-        // MC/PS comms
+        // ---- MC/PS comms ----
         uint8_t sendCtrl(float ctrl);
         void requestMotorPacket(void);
 
+        // ---- FSM mode ----
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
+
         void printCompactState(EUSBSerial* pc);
 };
 
