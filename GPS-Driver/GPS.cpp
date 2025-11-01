@@ -404,13 +404,13 @@ int GPS::bigUpdate(){
             index = 0; // reset buffer index
         }
 
-        if (GGA_processed && GSA_processed && RMC_processed && VTG_processed) {
-            break; // break out once all message types have been processed
+        if (GGA_processed && GSA_processed && RMC_processed && VTG_processed ||
+        t.read_ms() > 2000) {
+            break; // break out once all message types have been processed or 2s have passed
         }
 
-        if (t.read_ms() > 2000) { // something fishy is going on
-            break;
-        }
+
+        ThisThread::sleep_for(5ms);
     }
     return success; // number of messages processed with result > 0 (matched some items)
 }

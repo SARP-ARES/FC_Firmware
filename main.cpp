@@ -17,8 +17,8 @@ DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
 Thread thread;
 
-FlightPacket state; // global state makes more sense than individual logging states (could be moved to 
-                    // logging multi-function as a pointer)
+FlightPacket state; // global state makes more sense than individual logging states (could be moved to logging multi-function as a pointer)
+uint32_t flash_addr = 0; 
 
 enum FlightMode {
     test,
@@ -97,19 +97,15 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
     float theta_error;
 
     ARES->startAllSensorThreads(&pc);
-    ARES->startLogging(&flash_chip, flash_addr);
+    // ARES->startLogging(&flash_chip, flash_addr);
 
     while(true) {
         // Get current sensor data and put it in the state struct
 
         ARES->updateFlightPacket();
-        FlightPacket state = ARES->getState();
-
-        // // Write data to flash chip & increment counter
-        // *flash_addr = flash_chip.writePacket(*flash_addr, state);
-
+        ModeFSM mode = ARES->getMode();
         // TODO: make seeking logic 
-        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+        if (mode == FSM_SEEKING) { // mode is set after apogee detection
             // SEEKING CODE HERE
             // Use computeCtrl() and sendCtrl()
             // the speed of this (outer) loop should define the speed of the control system.
@@ -119,12 +115,17 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
             float heading_error = ARES->getHeadingError();
             float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
             uint8_t ack = ARES->sendCtrl(delta_a_cmd);
+        } else if (mode == FSM_GROUNDED){
+            ARES->stopLogging();
+            ARES->killAllSensorThreads();
         }
 
         // break on "quit" command
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
                 pc.printf("\"quit\" cmd recieved...\n");
+                ARES->killAllSensorThreads();
+                ARES->stopLogging();
                 break;
             }
         }
@@ -144,27 +145,28 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
 
     char cmdBuf[32];
     float theta_error;
-
+    
     pc.printf("entered test_mode...\n");
     ThisThread::sleep_for(500ms);
     ARES->startAllSensorThreads(&pc);
     pc.printf("started sensor threads...\n");
     ThisThread::sleep_for(500ms);
-    
-    ARES->startLogging(&flash_chip, flash_addr);
+    pc.printf("entering startLogging...\n");
+    ARES->startLogging(&flash_chip, flash_addr, &pc);
     pc.printf("started logging...\n");
     ThisThread::sleep_for(500ms);
 
     while(true) {
         // Get current sensor data and put it in the state struct
         ARES->updateFlightPacket();
+        ModeFSM mode = ARES->getMode();
 
         // print state for testing
         ARES->printCompactState(&pc);
         FlightPacket state = ARES->getState();
 
         // TODO: make seeking logic 
-        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+        if (mode == FSM_SEEKING) { // mode is set after apogee detection
             // SEEKING CODE HERE
             // Use computeCtrl() and sendCtrl()
             // the speed of this (outer) loop should define the speed of the control system.
@@ -174,12 +176,18 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
             float heading_error = ARES->getHeadingError();
             float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
             uint8_t ack = ARES->sendCtrl(delta_a_cmd);
+        } else if (mode == FSM_GROUNDED) {
+            ARES->stopLogging();
+            ARES->killAllSensorThreads();
         }
+
 
         // break on "quit" command
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
                 pc.printf("\"quit\" cmd recieved...\n");
+                ARES->stopLogging();
+                ARES->killAllSensorThreads();
                 break;
             }
         }
@@ -321,7 +329,6 @@ void flight_mode(FlightMode mode, ctrldRogallo* ARES, uint32_t num_packets) {
     ARES->setThreshold();
     ARES->updateFlightPacket();
     ThisThread::sleep_for(1s);
-    uint32_t flash_addr = 0; 
     switch (mode) {
         case packetlog:
             flight_log(ARES, num_packets, &flash_addr);      // Packet logging
@@ -334,7 +341,7 @@ void flight_mode(FlightMode mode, ctrldRogallo* ARES, uint32_t num_packets) {
             pc.printf("\nEntering Testing mode... %s\n", ' ');
             pc.printf("==========================================================\n");
             break; 
-
+        
         case ctrl_sequence:
             ctrl_sequence_after_apogee(ARES, &flash_addr);   // Controlled mode
             pc.printf("\nBeginning control sequence... %s\n", ' ');

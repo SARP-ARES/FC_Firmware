@@ -270,6 +270,7 @@ void flash::printCSVHeader() {
         "gps_antenna_status,"
         "heading_deg,"
         "target_heading_deg,"
+        "target_heading_deg,"
         "h_speed_m_s,"
         "v_speed_m_s,"
         "latitude_deg,"
