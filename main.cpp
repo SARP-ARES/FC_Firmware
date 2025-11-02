@@ -2,6 +2,7 @@
 #include "EUSBSerial.h"
 #include "GPS.h"
 #include "GPS_CMD.h"
+// #include <Adafruit_GPS>
 
 
 GPS gps(PA_2, PA_3); // instantiate
@@ -80,7 +81,6 @@ void poll_gps(GPS* gps) {
 int main(){
     led_B.write(1);
     
-
     gps.setOriginECEFr(47.664612, -122.303568, 60); // set lat/lon/alt origin
     // setup timer for use in secondary actions
     Timer t;
@@ -91,7 +91,7 @@ int main(){
     - Pasco launch rail: 
     - 47.664612, -122.303568
     */
-
+ 
     // Thread thred; // thread to automatically set origin if needed
     // thred.start()
 
@@ -102,8 +102,6 @@ int main(){
     ThisThread::sleep_for(2s); // Wait for serial port to connect
     pc.printf("\n\nStarting GPS Testing...");
 
-
-
     // trying to turn on antenna status messages
     // const char* buffy1 = "$CDCMD,33,1*7C";
     // const char* buffy2 = "$PGCMD,33,1*6C"; 
@@ -113,6 +111,9 @@ int main(){
 
     // int rslt1 = gps.serial.write(antenna_status_cmd, sizeof(tenHurtzCmd));
     // pc.printf("\nsent command to enable antenna status messages... result: %d", rslt1);
+
+/* 
+    // These commands should just work
 
     int rslt1 = gps.serial.write(CMD_BAUD_9600.cmd, CMD_BAUD_9600.len);
     ThisThread::sleep_for(100ms);
@@ -127,6 +128,26 @@ int main(){
     int rslt3 = gps.serial.write(CMD_FIXCTL_1HZ.cmd, CMD_FIXCTL_1HZ.len);
     ThisThread::sleep_for(100ms);
     pc.printf("\n\n...Wrote 1Hz fix cmd... result: %d", rslt3);
+*/
+
+    int rslt1 = gps.serial.write(CMD_BAUD_115200.cmd, CMD_BAUD_115200.len);
+    ThisThread::sleep_for(100ms);
+    gps.serial.set_baud(115200); // also change baud rate of USART2 on STM32 so the GPS and STM can communicate
+    ThisThread::sleep_for(100ms);
+    pc.printf("\n\n...Wrote 115200 baud rate cmd... result: %d", rslt1);
+    // 9600, 38400, 57600, 115200
+    int rslt2 = gps.serial.write(CMD_UPDATE_10HZ.cmd, CMD_UPDATE_10HZ.len);
+    ThisThread::sleep_for(100ms);
+    pc.printf("\n\n...Wrote 10Hz cmd... result: %d", rslt2);
+
+    int rslt3 = gps.serial.write(CMD_FIXCTL_10HZ.cmd, CMD_FIXCTL_10HZ.len);
+    ThisThread::sleep_for(100ms);
+    pc.printf("\n\n...Wrote 10Hz fix cmd... result: %d", rslt3);
+
+    //Test NEMA sentence filter (so GPS only sends RMC and GGA)
+    int rslt4 = gps.serial.write(CMD_NMEA_NECESSARY.cmd, CMD_NMEA_NECESSARY.len);
+    ThisThread::sleep_for(100ms);
+    pc.printf("\n\n...Wrote NMEA sentence set cmd... result: %d", rslt4);
 
     
     ThisThread::sleep_for(5s);
@@ -134,6 +155,7 @@ int main(){
     ThisThread::sleep_for(500ms);
     led_B.write(1);
     t.start();
+
     while(true){
         // // BELOW SENDS FAKE MESSAGES TO TEST UPDATES
 
@@ -274,4 +296,3 @@ int main(){
         */
     }
 }
-

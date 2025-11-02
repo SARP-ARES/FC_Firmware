@@ -21,15 +21,19 @@ static constexpr GPSCmd CMD_UPDATE_10HZ { "$PMTK220,100*2F\r\n",    17 };
 
 // ------------------- Fix Control (PMTK500) -------------------
 // Controls position fix interval
-static constexpr GPSCmd CMD_FIXCTL_1HZ  { "$PMTK500,1000,0,0,0.0,0.0*1A\r\n",  32 };
-static constexpr GPSCmd CMD_FIXCTL_5HZ  { "$PMTK500,200,0,0,0.0,0.0*29\r\n",   31 };
-static constexpr GPSCmd CMD_FIXCTL_NEW_5HZ  { "$PMTK300,200,0,0,0,0*2F\r\n",   27 };
-static constexpr GPSCmd CMD_FIXCTL_10HZ { "$PMTK500,100,0,0,0.0,0.0*2A\r\n",   30 };
+static constexpr GPSCmd CMD_FIXCTL_1HZ      { "$PMTK500,1000,0,0,0.0,0.0*1A\r\n",  32 };
+static constexpr GPSCmd CMD_FIXCTL_5HZ      { "$PMTK500,200,0,0,0.0,0.0*29\r\n",   31 };
+static constexpr GPSCmd CMD_FIXCTL_NEW_5HZ  { "$PMTK300,200,0,0,0,0*2F\r\n",   25 };
+static constexpr GPSCmd CMD_FIXCTL_10HZ     { "$PMTK500,100,0,0,0.0,0.0*2A\r\n",   30 };
 
 // ------------------- Antenna Status --------------------------
 static constexpr GPSCmd CMD_ENABLE_ANTENNA_STATUS { "$CDCMD,33,1*7C\r\n", 16 };
 static constexpr GPSCmd CMD_DISABLE_ANTENNA_STATUS { "$CDCMD,33,0*7D\r\n", 16 };
 
+// ------------------- NMEA Output -----------------------------
+static constexpr GPSCmd CMD_NMEA_DEFUALT_RESET   { "$PMTK314,-1*04<CR><LF>\r\n",  24 }; //Reset to default NMEAsettings
+static constexpr GPSCmd CMD_NMEA_EXAMPLE         { "$PMTK314,1,1,1,1,1,5,0,0,0,0,0,0,0,0,0,0,0,0,0*2C<CR><LF>\r\n",  59 }; //Datasheet example
+static constexpr GPSCmd CMD_NMEA_NECESSARY       { "$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*2C<CR><LF>\r\n",  59 }; //RMC & GGA
 
 
 #endif // GPS_CMD

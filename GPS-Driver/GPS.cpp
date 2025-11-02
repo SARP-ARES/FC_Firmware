@@ -70,20 +70,6 @@ gpsState GPS::getState() const{
 /*
 ADD DESCRIPTION
 */
-posLTP GPS::getPosLTP() const{
-    return pos; // return a copy of the state (can't be modified bc its private)
-}
-
-/*
-ADD DESCRIPTION
-*/
-posECEFr GPS::getOriginECEFr() const{
-    return origin;
-}
-
-/*
-ADD DESCRIPTION
-*/
 // say "const" so that it can't be modified (only reading it)
 // msg will be the entire line 
 NMEA_Type GPS::getMsgType(const char* msg) {
