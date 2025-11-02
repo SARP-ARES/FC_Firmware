@@ -1,68 +1,19 @@
 #include"mbed.h"
 #include"BMP280.h" 
 #include"BMP280_const.h" 
+#include"Mutex_I2C.h"
 #include<map> 
 #include<iostream>
 #include<cmath>
 using namespace std;
 
 /** Constructor 
- * @param Pin address of the SDA Pin on the processor 
- * @param Pin address of the SCL Pin on the processor    
- * @param The I2C address for the BMP280
+ * @param i2c  pointer to the I2C reference
+ * @param addr Desired I2C address 
  */
-BMP280::BMP280(PinName SDA, PinName SCL, char addr){ 
-    owned = true; 
-    BMP280::i2c = new I2C(SDA,SCL);
-    BMP280::addr = addr; 
-}
-
-BMP280::BMP280(I2C* i2c, char addr, Mutex* lock){
+BMP280::BMP280(Mutex_I2C* i2c, char addr){
     BMP280::i2c = i2c;
     BMP280::addr = addr;
-    BMP280::bus_lock = lock;
-    owned = false;
-}
-
-/** Destructor
- * @brief Deletes I2C if created in object
- */ 
-BMP280::~BMP280() {
-    if(owned){
-        delete i2c; 
-    }
-}
-
-/**
- * @brief Reads a chunk of data from the BNO055 over I2C.
- * @param regaddr The register address to read from
- * @param data Pointer to a buffer for storing data
- * @param len Number of bytes to read
- * @return 0 on success, non-zero on failure
- */
-int BMP280::readData(char regaddr, char* data, uint8_t len) {
-    if (bus_lock) bus_lock->lock();
-    i2c->write(addr, &regaddr, 1);
-    i2c->read(addr, data, len);
-    if (bus_lock) bus_lock->unlock();
-    return 1;
-}
-
-/** 
- * @brief Writes data to a BNO055 register over I2C.
- * @param regaddr The register address to write to
- * @param data The value to be written
- * @return 0 on success, non-zero on failure
- */
-int BMP280::writeData(char regaddr, char data) {
-    if (bus_lock) bus_lock->lock();
-    char buffer[2];
-    buffer[0] = regaddr;
-    buffer[1] = data;
-    i2c->write(addr, buffer, 2);
-    if (bus_lock) bus_lock->unlock();
-    return 1;
-
 }
 
 // Temperature 2x, Pressure 16x -> 0b11101011
@@ -72,7 +23,7 @@ int BMP280::writeData(char regaddr, char data) {
  * @return - state of write 0 if written 1 if error 
  */
 int BMP280::start(){
-    int result = writeData(BMP280_CTRL_MEAS, 0b11101011);
+    int result = i2c->writeData(addr, BMP280_CTRL_MEAS, 0b11101011);
     // 11 = normal mode
     return result;
 }
@@ -82,7 +33,7 @@ int BMP280::start(){
  * @return - state of write 0 if written 1 if error 
  */
 int BMP280::sleep(){
-    int result = writeData(BMP280_CTRL_MEAS, 0b11101000);
+    int result = i2c->writeData(addr, BMP280_CTRL_MEAS, 0b11101000);
     // 00 = sleep mode
     return result;
 }
@@ -94,9 +45,10 @@ int BMP280::sleep(){
 int BMP280::updateTemperatureData(){
     char xlsb, lsb, msb; 
     int msbErr, lsbErr, xlsbErr; 
-    xlsbErr = readData(BMP280_TEMP_XLSB, &xlsb, 1);
-    lsbErr = readData(BMP280_TEMP_LSB, &lsb, 1);
-    msbErr = readData(BMP280_TEMP_MSB, &msb, 1);
+
+    xlsbErr = i2c->readData(addr, BMP280_TEMP_XLSB, &xlsb, 1);
+    lsbErr = i2c->readData(addr, BMP280_TEMP_LSB, &lsb, 1);
+    msbErr = i2c->readData(addr, BMP280_TEMP_MSB, &msb, 1);
     
     int totalErr = xlsbErr + lsbErr + msbErr;
 
@@ -114,9 +66,9 @@ int BMP280::updateTemperatureData(){
 int BMP280::updatePressureData(){
     char xlsb, lsb, msb;
     int msbErr, lsbErr, xlsbErr; 
-    xlsbErr = readData(BMP280_PRESS_XLSB, &xlsb, 1); // Extra least significant byte 
-    lsbErr = readData(BMP280_PRESS_LSB, &lsb, 1);// Least significant byte 
-    msbErr = readData(BMP280_PRESS_MSB, &msb, 1); // Most significant byte 
+    xlsbErr = i2c->readData(addr, BMP280_PRESS_XLSB, &xlsb, 1); // Extra least significant byte 
+    lsbErr = i2c->readData(addr, BMP280_PRESS_LSB, &lsb, 1);// Least significant byte 
+    msbErr = i2c->readData(addr, BMP280_PRESS_MSB, &msb, 1); // Most significant byte 
     int totalErr = xlsbErr + lsbErr + msbErr;
 
     // Shifts each byte into useful position 
@@ -174,7 +126,6 @@ double BMP280::convert_press(int32_t adc_P){
  * @return number of errors accumlated from each update
  */
 int BMP280::update(){
-    ScopedLock<Mutex> lock(this->mutex); // THIS IS A HEAVY MUTEX; RESTRUCTURE TO MAKE LIGHTER
     int errTemp = updateTemperatureData();
     int errPress  = updatePressureData();
     updateAltitudeM();
@@ -188,7 +139,7 @@ int BMP280::update(){
  */
 int BMP280::BMP280_CalibrateTemp(){
     char calib[6];
-    readData(0x88, calib, 6);
+    i2c->readData(addr, 0x88, calib, 6);
     c.dig_T1 = calib[1] << 8 | calib[0];
     c.dig_T2 = (calib[3] << 8 | calib[2]);
     c.dig_T3 = (calib[5] << 8 | calib[4]);
@@ -205,7 +156,8 @@ int BMP280::BMP280_CalibratePress(){
     char calib[18];
 
     // Read Calibration data 
-    readData(0x8E, calib, 18);
+    // 0x8E?
+    i2c->readData(addr, 0x8E, calib, 18);
 
     //Store Calibration data
     c.dig_P1 = calib[0] | calib[1] << 8;

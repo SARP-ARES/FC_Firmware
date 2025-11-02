@@ -7,6 +7,7 @@
 #include "EUSBSerial.h"
 #include "flash.h"
 #include "flight_packet.h"
+#include "Mutex_I2C.h"
 #include <cstdint>
 
 // Finite State Machine Modes
@@ -68,7 +69,7 @@ class ctrldRogallo {
         void updateApogeeDetection();
 
     public:
-        ctrldRogallo();
+        ctrldRogallo(Mutex_I2C* i2c);
         
         // thread handling
         void startThreadGPS(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
