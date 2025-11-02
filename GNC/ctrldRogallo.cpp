@@ -120,7 +120,9 @@ float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg, double la
           meters east and north of the target and updates distance to target
  */ 
 void ctrldRogallo::updateHaversineCoords(void){
-    ScopedLock<Mutex> lock(this->state_mutex);
+    // FIXME: this causes a deadlock due to the existing ScopedLock in #updateFlightPacket
+    // ScopedLock<Mutex> lock(this->state_mutex);
+
     // only compute distance between latitudes to get NORTH coord
     haversineCoordNorth = computeHaversine(state.latitude_deg, target_lon, target_lat, target_lon);
     // make negative if south of target
