@@ -7,11 +7,9 @@
 #include <string>
 #include "mbed.h"
 
-I2C master(PB_7, PB_8); // Master I2C object 
-
 char rx_buf[32];
 
-#define MCPS_I2C_ADDR                   0x02
+#define MCPS_I2C_ADDR                   0x02 << 1 
 #define DEG_LLA_TO_M_CONVERSION         111111
 #define APOGEE_THRESHOLD_BUFFER         600
 #define GROUNDED_THRESHOLD_BUFFER       100
@@ -26,7 +24,8 @@ char rx_buf[32];
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
 ctrldRogallo::ctrldRogallo() 
-    : gps(PA_2, PA_3), bmp(PB_7, PB_8, BMP_I2C_ADDR), bno(PB_7, PB_8, BNO_I2C_ADDR) {
+    : gps(PA_2, PA_3), bmp(PB_7, PB_8, BMP_I2C_ADDR), bno(PB_7, PB_8, BNO_I2C_ADDR), master(PB_7,PB_8) {
+
     bmp.start();
     bno.setup();
 

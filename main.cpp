@@ -11,6 +11,8 @@
 #include <cstring>
 #include "rtos.h"
 
+#define MCPS_ADDR  0x02 << 1
+
 // Comment out * for flashing "MCPS"
 ctrldRogallo ARES; //*
 EUSBSerial pc;     //*
@@ -24,9 +26,6 @@ Thread thread;
 uint32_t packetSize = sizeof(FlightPacket);
 uint32_t MAX_NUM_PACKETS = 16384; 
 uint32_t eraseAddr = 0;
-
-#define MCPS_ADDR  0x02
-
 
 /*
  * SET NUMBER OF PACKETS TO LOG
@@ -252,14 +251,6 @@ void double_check() {
         
 }
 
-void led_blinky(void) {
-    for(uint8_t i = 0; i < 10; i++) {
-        led_B.write(1);
-        ThisThread::sleep_for(500ms);
-        led_B.write(0);
-        ThisThread::sleep_for(500ms);
-    }
-}
 
 void set_origin(ctrldRogallo* ARES) {
     // no lat/lon argument
@@ -318,11 +309,11 @@ void command_line_interface() {
             
             else if (strcmp(cmd_buffer, "mcps_send") == 0 || strcmp(cmd_buffer, "5") == 0) {
                 pc.printf("\"mcps_send\" cmd received. Sending Data\n");
-                int deflection = 69;
-                uint8_t ack = ARES.sendCtrl(deflection);
+                int deflection = 0x69;
+                uint8_t ack;
+                ack = ARES.sendCtrl(deflection);
                 if(ack == 0) { 
                     pc.printf("Data has reached the target!");
-                    led_blinky();
                 } else {
                     pc.printf("Frick the MCPS");
                 }
@@ -334,7 +325,6 @@ void command_line_interface() {
                 const char* message = ARES.requestMotorPacket();
                 if(message != NULL) {
                     pc.printf("Data has reached the target!\n");
-                    led_blinky();
                     pc.printf("La message %s\n", message);
                 } else {
                     pc.printf("Frick the MCPS\n");
@@ -405,47 +395,77 @@ void command_line_interface() {
 }
 
 
+int main() {
+    command_line_interface();
+}
+
 // int main() {
-//     command_line_interface();
+//     int deflection = 69;
+//     DigitalOut p7(PB_8);
+//     while(true){
+//         ThisThread::sleep_for(1ms);
+//         p7.write(1);
+//         ThisThread::sleep_for(1ms);
+//         p7.write(0);
+//     }
 // }
 
+// // I2C pull fake main 
+// int main() {
+//     I2C master(PB_7, PB_8);
+//     char data = 0x69; 
+//     while(true){
+//         ThisThread::sleep_for(50ms);
+//         master.write(MCPS_ADDR, reinterpret_cast<const char*>(&data), sizeof(char));
+//         ThisThread::sleep_for(50ms);
+//     }
+// }
+
+// DigitalOut led(PC_13);
+
+// void led_blinky(void) {
+//     for(uint8_t i = 0; i < 10; i++) {
+//         led.write(1);
+//         ThisThread::sleep_for(500ms);
+//         led.write(0);
+//         ThisThread::sleep_for(500ms);
+//     }
+// }
 
 // // MCPS fake main 
-int main() {
-    I2CSlave slave(PB_7, PB_6);
-    slave.address(MCPS_ADDR); // Expects shifted into correct position
+// int main() {
 
-    char tx_buf[32];
-    char rx_buf[32];
+//     I2CSlave slave(PB_7, PB_6);
+//     slave.address(MCPS_ADDR); // Expects shifted into correct position
 
-    while(true) {
-        int event = slave.receive();
+//     char tx_buf[32];
+//     char rx_buf[32];
+
+//     while(true) {
+//         int event = slave.receive();
         
-        switch(event) {
-            case I2CSlave::WriteAddressed: {
-                // Read exactly 1 byte sent by master
-                int err = slave.read(rx_buf, sizeof(int));
-                int num;
-                memcpy(&num, rx_buf, sizeof(int));
-                if (err == 0) { // successful read
-                    if (num == 69) {
-                        led_blinky(); // LED ON
-                    } 
-                }
-                break;
-            }
+//         switch(event) {
+//             case I2CSlave::WriteAddressed: {
+//                 int err = slave.read(rx_buf, sizeof(int));
+//                 int num;
+//                 memcpy(&num, rx_buf, sizeof(int));
+//                 if (num == 0x69) {
+//                     led_blinky(); // LED ON
+//                 } 
+//                 break;
+//             }
 
-            case I2CSlave::ReadAddressed: {
-                // Immediately send exactly 1 byte to master
-                const char* message = "Im Sigma";
-                slave.write(tx_buf, strlen(message) + 1);
-                break;
-            }
+//             case I2CSlave::ReadAddressed: {
+//                 // Immediately send exactly 1 byte to master
+//                 const char* message = "Im Sigma";
+//                 slave.write(tx_buf, strlen(message) + 1);
+//                 break;
+//             }
 
-            default:
-                // No event; just continue
-                break;
-        }
-    }
-}
+//             default:
+//                 // No event; just continue
+//                 break;
+//         }
+//     }
+// }
 

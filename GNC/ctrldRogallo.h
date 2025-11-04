@@ -25,6 +25,7 @@ class ctrldRogallo {
         BNO055 bno;
         FlightPacket state;
         ModeFSM mode;
+        I2C master;
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
