@@ -11,9 +11,11 @@
 #include <cstring>
 
 #define BMP_I2C 0xEE
+#define BNO_I2C 0x51 
 
 Mutex_I2C i2c(PB_7, PB_8);
 BMP280 bmp(&i2c, BMP_I2C);
+BNO055 bno(&i2c, BNO_I2C);
 EUSBSerial pc;
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
@@ -34,11 +36,16 @@ Thread thread;
 // Ts works
 int main(void){
     bmp.start();
+    bno.setup();
     BMPData val;
+    IMUData imu; 
     while(true){
         ThisThread::sleep_for(500ms);
         bmp.update();
+        bno.update();
+        imu = bno.getData(); 
         val = bmp.getData(); 
         pc.printf("Pressure %lf\n", val.press_psi);
+        pc.printf("Accel Z: %f | X: %f | Y: %f", imu.acc_z, imu.acc_x, imu.acc_y)
     }
 }
