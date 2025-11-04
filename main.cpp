@@ -456,9 +456,9 @@ int main() {
 //             }
 
 //             case I2CSlave::ReadAddressed: {
-//                 // Immediately send exactly 1 byte to master
 //                 const char* message = "Im Sigma";
-//                 slave.write(tx_buf, strlen(message) + 1);
+//                 memcpy(tx_buf, message, strlen(message))
+//                 slave.write(tx_buf, strlen(message));
 //                 break;
 //             }
 

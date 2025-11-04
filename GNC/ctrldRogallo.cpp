@@ -321,7 +321,7 @@ uint8_t ctrldRogallo::sendCtrl(int ctrl){
 }
 
 char* ctrldRogallo::requestMotorPacket(void){
-    uint8_t ack = master.read(MCPS_I2C_ADDR, rx_buf, strlen("Im Sigma") + 1);
+    uint8_t ack = master.read(MCPS_I2C_ADDR, rx_buf, strlen("Im Sigma"));
     if(ack == 0){
         return rx_buf; 
     } else {
