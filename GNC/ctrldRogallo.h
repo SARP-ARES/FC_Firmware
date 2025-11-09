@@ -34,9 +34,6 @@ class ctrldRogallo {
         ModeFSM mode;
     
         Mutex state_mutex;
-        Mutex imu_mutex;
-        Mutex bmp_mutex;
-        Mutex gps_mutex;
         Mutex i2c_mutex;
 
         Thread thread_logging;
