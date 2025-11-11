@@ -317,11 +317,13 @@ uint8_t ctrldRogallo::sendCtrl(int ctrl){
 
     // Send data over i2c !!!THIS IS A BLOCKING CALL!!!
     uint8_t ack = master.write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
+    wait_us(10); // Let bus propagate
     return ack; 
 }
 
 char* ctrldRogallo::requestMotorPacket(void){
-    uint8_t ack = master.read(MCPS_I2C_ADDR, rx_buf, strlen("Im Sigma"));
+    uint8_t ack = master.read(MCPS_I2C_ADDR, rx_buf, strlen("Bash") + 1);
+    wait_us(10); // Let bus propagate
     if(ack == 0){
         return rx_buf; 
     } else {
@@ -387,7 +389,7 @@ void ctrldRogallo::printCompactState(EUSBSerial* pc) {
     pc->printf("Lat (deg), Lon (deg), Alt (m):\t%f, %f, %.3f\n", 
                 state.latitude_deg, state.longitude_deg, state.altitude_m);
     pc->printf("Pos North (m), Pos East (m):\t%.2f, %.2f\n", 
-                state.pos_north_m, state.pos_east_m);
+                state.pos_north_m, state.pos_east_m);s
     pc->printf("Distance to Target (m):\t\t%.2f\n", state.distance_to_target_m);
     pc->printf("FSM mode:\t\t\t%d\n", state.fsm_mode);
     pc->printf("Apogee Counter:\t\t\t%d\n", state.apogee_counter);

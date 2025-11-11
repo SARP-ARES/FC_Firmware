@@ -13,9 +13,8 @@
 
 #define MCPS_ADDR  0x02 << 1
 
-// Comment out * for flashing "MCPS"
-ctrldRogallo ARES; //*
-EUSBSerial pc;     //*
+ctrldRogallo ARES; 
+EUSBSerial pc;     
 flash fc(PA_7, PA_6, PA_5, PA_4, &pc); //* 
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
@@ -399,32 +398,10 @@ int main() {
     command_line_interface();
 }
 
-// int main() {
-//     int deflection = 69;
-//     DigitalOut p7(PB_8);
-//     while(true){
-//         ThisThread::sleep_for(1ms);
-//         p7.write(1);
-//         ThisThread::sleep_for(1ms);
-//         p7.write(0);
-//     }
-// }
-
-// // I2C pull fake main 
-// int main() {
-//     I2C master(PB_7, PB_8);
-//     char data = 0x69; 
-//     while(true){
-//         ThisThread::sleep_for(50ms);
-//         master.write(MCPS_ADDR, reinterpret_cast<const char*>(&data), sizeof(char));
-//         ThisThread::sleep_for(50ms);
-//     }
-// }
-
 // DigitalOut led(PC_13);
 
 // void led_blinky(void) {
-//     for(uint8_t i = 0; i < 10; i++) {
+//     for(uint8_t i = 0; i < 1; i++) {
 //         led.write(1);
 //         ThisThread::sleep_for(500ms);
 //         led.write(0);
@@ -452,13 +429,16 @@ int main() {
 //                 if (num == 0x69) {
 //                     led_blinky(); // LED ON
 //                 } 
+//                 ThisThread::sleep_for(1ms);
 //                 break;
 //             }
 
 //             case I2CSlave::ReadAddressed: {
-//                 const char* message = "Im Sigma";
-//                 memcpy(tx_buf, message, strlen(message))
-//                 slave.write(tx_buf, strlen(message));
+//                 // Immediately send exactly 1 byte to master
+//                 const char* message = "Bash";
+//                 strcpy(tx_buf, message);
+//                 ThisThread::sleep_for(1ms);
+//                 slave.write(tx_buf, strlen(message) + 1);
 //                 break;
 //             }
 
