@@ -20,7 +20,7 @@
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c) 
-    : gps(PA_2, PA_3), bmp(i2c, 0xEE), bno(PB_7, PB_8, 0x51), pid(1.0, 0.001, 0.1) {
+    : gps(PA_2, PA_3), bmp(i2c, 0xEE), bno(i2c, 0x51), pid(1.0, 0.001, 0.1) {
     bmp.start();
     bno.setup();
 

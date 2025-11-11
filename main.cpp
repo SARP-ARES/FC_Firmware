@@ -19,7 +19,8 @@ BNO055 bno(&i2c, BNO_I2C);
 EUSBSerial pc;
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
-Thread thread;
+Thread bmpThread;
+Thread bnoThread;
 
 
 // = # of pages, 4.55 hours at 1Hz
@@ -33,19 +34,41 @@ Thread thread;
 
 #define DT_CTRL             0.01 // time step for PID controller to calculate derivative & integral
 
-// Ts works
+
+void bmp_thread(BMP280* bmp){
+    while(true){
+        bmp->update(); 
+        ThisThread::sleep_for(1ms);
+    }
+}
+
+void bno_thread(BNO055* bno){
+    while(true){
+        bno->update();
+        ThisThread::sleep_for(1ms);
+    }
+}
+
+
 int main(void){
+
+    //Start sensors
     bmp.start();
     bno.setup();
+    
+    //Data Structs
     BMPData val;
     IMUData imu; 
+
+    // Start threads
+    bmpThread.start(callback(bmp_thread, &bmp)); // function callback
+    bnoThread.start(callback(bno_thread, &bno));
+
     while(true){
         ThisThread::sleep_for(500ms);
-        bmp.update();
-        bno.update();
         imu = bno.getData(); 
         val = bmp.getData(); 
-        pc.printf("Pressure %lf\n", val.press_psi);
-        pc.printf("Accel Z: %f | X: %f | Y: %f", imu.acc_z, imu.acc_x, imu.acc_y)
+        pc.printf("Pressure %lf ", val.press_psi);
+        pc.printf("Gyro Z: %f | X: %f | Y: %f \n", imu.gyro_z, imu.gyro_x, imu.gyro_y);
     }
 }

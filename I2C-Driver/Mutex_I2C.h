@@ -29,6 +29,7 @@ class Mutex_I2C {
 
     private:
         I2C i2c; // i2c api owns a mutex  
+        Mutex mutex; 
 };
 
 #endif 
