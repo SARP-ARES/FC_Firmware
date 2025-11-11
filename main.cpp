@@ -422,6 +422,7 @@ int main() {
 //         int event = slave.receive();
         
 //         switch(event) {
+
 //             case I2CSlave::WriteAddressed: {
 //                 int err = slave.read(rx_buf, sizeof(int));
 //                 int num;
@@ -434,7 +435,6 @@ int main() {
 //             }
 
 //             case I2CSlave::ReadAddressed: {
-//                 // Immediately send exactly 1 byte to master
 //                 const char* message = "Bash";
 //                 strcpy(tx_buf, message);
 //                 ThisThread::sleep_for(1ms);

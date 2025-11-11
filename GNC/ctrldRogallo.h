@@ -11,7 +11,7 @@
 // Finite State Machine Modes
 typedef enum {
     FSM_IDLE,       // 0
-    FSM_SEEKING,    // 1
+    FSM_SEEKING,    // 1s
     FSM_SPIRAL,     // 2
     FSM_GROUNDED,   // 3
 } ModeFSM;

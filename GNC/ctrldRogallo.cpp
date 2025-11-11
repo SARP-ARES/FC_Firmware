@@ -322,6 +322,7 @@ uint8_t ctrldRogallo::sendCtrl(int ctrl){
 }
 
 char* ctrldRogallo::requestMotorPacket(void){
+    // Change size depending on motor packet
     uint8_t ack = master.read(MCPS_I2C_ADDR, rx_buf, strlen("Bash") + 1);
     wait_us(10); // Let bus propagate
     if(ack == 0){
