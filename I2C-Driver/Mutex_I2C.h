@@ -26,6 +26,8 @@ class Mutex_I2C {
         // Functions
         int readData(char addr, char regAddr, char* data, uint8_t len);
         int writeData(char addr, char regAddr, char data);
+        int write(char addr, const char *data, int length);
+        int read(char addr, char *data, int length);
 
     private:
         I2C i2c; // i2c api owns a mutex  

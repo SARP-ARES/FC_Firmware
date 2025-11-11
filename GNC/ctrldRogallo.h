@@ -31,6 +31,9 @@ class ctrldRogallo {
         Timer flight_timer;
         FlightPacket state;
         ModeFSM mode;
+
+        Mutex_I2C* i2c; 
+
         Mutex state_mutex;
         Mutex imu_mutex;
         Mutex bmp_mutex;
@@ -94,8 +97,8 @@ class ctrldRogallo {
         float computeCtrl(float heading_error, float dt); // output in [-1, 1]
 
         // MC/PS comms
-        uint8_t sendCtrl(float ctrl);
-        void requestMotorPacket(void);
+        uint8_t sendCtrl(int ctrl);
+        char* requestMotorPacket(void);
 
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);

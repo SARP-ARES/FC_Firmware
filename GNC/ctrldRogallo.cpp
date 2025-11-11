@@ -26,7 +26,7 @@ char rx_buf[32];
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c) 
-    : gps(PA_2, PA_3), bmp(i2c, 0xEE), bno(i2c, 0x51), pid(1.0, 0.001, 0.1) {
+    : gps(PA_2, PA_3), bmp(i2c, 0xEE), bno(i2c, 0x51), pid(1.0, 0.001, 0.1), i2c(i2c) {
     bmp.start();
     bno.setup();
 
@@ -329,14 +329,14 @@ void ctrldRogallo::updateFlightPacket(){
 uint8_t ctrldRogallo::sendCtrl(int ctrl){
 
     // Send data over i2c !!!THIS IS A BLOCKING CALL!!!
-    uint8_t ack = master.write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
+    uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
     wait_us(10); // Let bus propagate
     return ack; 
 }
 
 char* ctrldRogallo::requestMotorPacket(void){
     // Change size depending on motor packet
-    uint8_t ack = master.read(MCPS_I2C_ADDR, rx_buf, strlen("Bash") + 1);
+    uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, strlen("Bash") + 1);
     wait_us(10); // Let bus propagate
     if(ack == 0){
         return rx_buf; 

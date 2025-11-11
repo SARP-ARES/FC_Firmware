@@ -38,3 +38,17 @@ int Mutex_I2C::writeData(char addr, char regAddr, char data) {
     mutex.unlock();
     return status; 
 }
+
+int Mutex_I2C::write(char addr, const char *data, int length) { 
+    mutex.lock();
+    uint8_t status = i2c.write(addr, data, length);
+    mutex.unlock();
+    return status;
+}
+
+int Mutex_I2C::read(char addr, char *data, int length) {
+    mutex.lock();
+    uint8_t status = i2c.read(addr, data, length);
+    mutex.unlock(); 
+    return status; 
+}
