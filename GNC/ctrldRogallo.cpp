@@ -7,7 +7,11 @@
 #include "Mutex_I2C.h"
 #include "PID.h"
 #include <string>
+#include "mbed.h"
 
+char rx_buf[32];
+
+#define MCPS_I2C_ADDR                   0x02 << 1 
 #define DEG_LLA_TO_M_CONVERSION         111111
 #define APOGEE_THRESHOLD_BUFFER         600
 #define GROUNDED_THRESHOLD_BUFFER       100
@@ -15,6 +19,8 @@
 #define SPIRAL_RADIUS                   10
 #define PI                              3.1415926535
 #define DEG_TO_RAD                      PI/180.0
+#define BMP_I2C_ADDR                    0xEE
+#define BNO_I2C_ADDR                    0x51
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
@@ -136,7 +142,7 @@ void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) {
  * @brief calculates target heading to point towards the origin in local tangent plane coords
  * @return target heading 
  */ 
-float ctrldRogallo::getTargetHeading(){
+float ctrldRogallo::getTargetHeading(void){
     float targetHeading_rad = atan2(state.pos_east_m, state.pos_north_m) + pi;
     float targetHeading_deg = targetHeading_rad * 180 / pi;
     return targetHeading_deg;
@@ -161,12 +167,6 @@ float ctrldRogallo::getHeadingError(){
 float ctrldRogallo::computeCtrl(float heading_error, float dt) {
     float delta_a_cmd = this->pid.compute(heading_error, dt);
     return delta_a_cmd;
-}
-
-
-uint8_t ctrldRogallo::sendCtrl(float ctrl){
-    // TODO: IMPLEMENT COMMS
-    return 0;
 }
 
 void ctrldRogallo::resetFlightPacket() {
@@ -323,6 +323,26 @@ void ctrldRogallo::updateFlightPacket(){
 
     state.prevAlt = state.altitude_m; 
     // mutex unlocks outside this scope
+}
+
+
+uint8_t ctrldRogallo::sendCtrl(int ctrl){
+
+    // Send data over i2c !!!THIS IS A BLOCKING CALL!!!
+    uint8_t ack = master.write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
+    wait_us(10); // Let bus propagate
+    return ack; 
+}
+
+char* ctrldRogallo::requestMotorPacket(void){
+    // Change size depending on motor packet
+    uint8_t ack = master.read(MCPS_I2C_ADDR, rx_buf, strlen("Bash") + 1);
+    wait_us(10); // Let bus propagate
+    if(ack == 0){
+        return rx_buf; 
+    } else {
+        return NULL;
+    }
 }
 
 /**
