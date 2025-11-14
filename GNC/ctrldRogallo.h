@@ -97,7 +97,7 @@ class ctrldRogallo {
         float computeCtrl(float heading_error, float dt); // output in [-1, 1]
 
         // MC/PS comms
-        uint8_t sendCtrl(int ctrl);
+        uint8_t sendCtrl(float ctrl);
         char* requestMotorPacket(void);
 
         uint32_t apogeeDetection(double prevAlt, double currAlt);
