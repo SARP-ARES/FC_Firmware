@@ -8,9 +8,6 @@
 #include "PID.h"
 #include <string>
 #include "mbed.h"
-
-char rx_buf[32];
-
 #define MCPS_I2C_ADDR                   0x02 << 1 
 #define DEG_LLA_TO_M_CONVERSION         111111
 #define APOGEE_THRESHOLD_BUFFER         600
@@ -21,7 +18,6 @@ char rx_buf[32];
 #define DEG_TO_RAD                      PI/180.0
 #define BMP_I2C_ADDR                    0xEE
 #define BNO_I2C_ADDR                    0x51
-#define MOTOR_PACKET_LEN                1       // Stand in, change to sizeof(motorpacket)
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
@@ -334,26 +330,22 @@ void ctrldRogallo::updateFlightPacket(){
  */
 uint8_t ctrldRogallo::sendCtrl(float ctrl){
 
-    // Send data over i2c !!!THIS IS A BLOCKING CALL!!!
     uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
-    wait_us(10); // Let bus propagate
     return ack; 
 }
 
 /**
  * @brief reads motor packet off of mcps 
- * @return packet read over i2c
+ * @return packet read over i2c, true if success, false if fail
  */
-char* ctrldRogallo::requestMotorPacket(void){
-    // Change size depending on motor packet
-    uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, strlen("Bash") + 1); // test
-    // uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, MOTOR_PACKET_LEN);
-    wait_us(10); // Let bus propagate
-    if(ack == 0){
-        return rx_buf; 
-    } else {
-        return NULL;
-    }
+bool ctrldRogallo::requestMotorPacket(motorPacket* motor){
+    // grab motor packet over i2c
+    uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, sizeof(motorPacket)); 
+
+    if(ack != 0) return false; // failed
+
+    memcpy(motor, rx_buf, sizeof(motorPacket));
+    return true; // success
 }
 
 /**

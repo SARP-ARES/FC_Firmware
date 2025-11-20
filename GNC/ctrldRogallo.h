@@ -18,6 +18,13 @@ typedef enum {
     FSM_GROUNDED,   // 3
 } ModeFSM;
 
+typedef struct {
+    float leftDegrees; 
+    float rightDegrees;
+    float leftPower;
+    float rightPower;
+} motorPacket;
+
 
 class ctrldRogallo {
 
@@ -31,6 +38,8 @@ class ctrldRogallo {
         Timer flight_timer;
         FlightPacket state;
         ModeFSM mode;
+
+        char rx_buf[32];
 
         Mutex_I2C* i2c; 
 
@@ -98,7 +107,7 @@ class ctrldRogallo {
 
         // MC/PS comms
         uint8_t sendCtrl(float ctrl);
-        char* requestMotorPacket(void);
+        bool requestMotorPacket(motorPacket* motor);
 
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
