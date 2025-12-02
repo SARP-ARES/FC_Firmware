@@ -16,6 +16,7 @@
 EUSBSerial pc;
 Mutex_I2C i2c(PB_7, PB_8);
 ctrldRogallo ARES(&i2c);
+DigitalOut led(PA_8);
 
 motorPacket motor;
 
@@ -52,13 +53,15 @@ int main(void){
     pc.printf("\nStarting testing sequence! Wait about 1 min\n");
 
     FlightPacket state;
-    float deflection = 1;
+    float deflection = -1;
     int counter = 0; 
     int successful_sends = 0;
     int successful_reads = 0;
     int max = 2500;
 
     pc.printf("Running %i tests at 50Hz\n", max);
+
+    bool going_up = true;
 
     while(counter < max){
         ThisThread::sleep_for(20ms);
@@ -68,6 +71,15 @@ int main(void){
         state = ARES.getState();
 
         int ack = ARES.sendCtrl(deflection);
+
+        if (deflection > 0)  led.write(1);
+        else                 led.write(0);
+
+        if ((going_up && deflection > 1) || (!going_up && deflection < -1)) going_up = !going_up;
+        
+        if (going_up)    deflection += 0.01;
+        else             deflection -= 0.01;
+
         if (ack == 0) successful_sends++;
         bool success = ARES.requestMotorPacket(&motor); 
         if(verify_mp(motor)) successful_reads++;
