@@ -331,6 +331,7 @@ void ctrldRogallo::updateFlightPacket(){
 uint8_t ctrldRogallo::sendCtrl(float ctrl){
 
     uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
+    wait_us(10);
     return ack; 
 }
 
@@ -341,6 +342,7 @@ uint8_t ctrldRogallo::sendCtrl(float ctrl){
 bool ctrldRogallo::requestMotorPacket(motorPacket* motor){
     // grab motor packet over i2c
     uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, sizeof(motorPacket)); 
+    wait_us(10);
 
     if(ack != 0) return false; // failed
 

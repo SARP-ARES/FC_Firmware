@@ -12,9 +12,10 @@
 #include <cstring>
 #include "rtos.h"
 
+
+EUSBSerial pc;
 Mutex_I2C i2c(PB_7, PB_8);
 ctrldRogallo ARES(&i2c);
-EUSBSerial pc;
 
 motorPacket motor;
 
@@ -44,7 +45,7 @@ bool verify_mp(motorPacket m){
 
 int main(void){
 
-    // ARES.startAllSensorThreads(&pc); // start threads 
+    ARES.startAllSensorThreads(&pc); // start threads 
 
     ThisThread::sleep_for(2s);
 
@@ -59,17 +60,17 @@ int main(void){
 
     pc.printf("Running %i tests at 50Hz\n", max);
 
-    while(true){
+    while(counter < max){
         ThisThread::sleep_for(20ms);
 
         // test normal functions
-        // ARES.updateFlightPacket();
-        // state = ARES.getState();
+        ARES.updateFlightPacket();
+        state = ARES.getState();
 
         int ack = ARES.sendCtrl(deflection);
         if (ack == 0) successful_sends++;
-        // bool success = ARES.requestMotorPacket(&motor); 
-        // if(verify_mp(motor)) successful_reads++;
+        bool success = ARES.requestMotorPacket(&motor); 
+        if(verify_mp(motor)) successful_reads++;
         counter++;
     }
 
