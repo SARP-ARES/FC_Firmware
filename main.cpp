@@ -254,7 +254,7 @@ void dump_data(){
 void double_check() {
     char cmdBuf[32];
     pc.printf("Are you sure you want to erase all data from ARES?\n");
-    pc.printf("1. \"yes\"\n2. \"no\"\n3. \"yo mama\"\n");
+    pc.printf("1. \"yes\"\n2. \"no\"\n");
     
     Timer t;
     t.start();
