@@ -451,13 +451,13 @@ void ctrldRogallo::logDataLoop(){
         // write current state to flash chip & increment address
         *flash_addr = flash_mem->writePacket(*flash_addr, state_snapshot);
         
-        // log at 10Hz while seeking or spiraling, 1Hz while idle or grounded
+        // log at 10Hz while seeking or spiraling, 1Hz while idle, turn off once grounded
         if (this->mode == FSM_SEEKING || this->mode == FSM_SPIRAL) {
             ThisThread::sleep_for(100ms);
         }
         else if (this->mode == FSM_GROUNDED){
             this->thread_logging.terminate();
-        } else { // FSM_GROUNDED,  FSM_IDLE
+        } else { // FSM_IDLE
             ThisThread::sleep_for(1s); 
         }   
     }

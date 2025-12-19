@@ -130,7 +130,7 @@ void flash::eraseSector(uint32_t address) {
     cmd[3] = address & 0xFF;
 
     csLow();
-    _spi.write((const char *)cmd, 4, NULL, 0);
+    _spi.write((const char *)&cmd, 4, NULL, 0);
     csHigh();
 
     wait_us(500000);
@@ -152,7 +152,7 @@ int flash::eraseAll() {
     uint8_t status; 
     t.start();
     while(true){
-        wait_us(10000);
+        wait_us(1000);
         
         csLow();
         _spi.write((const char *)&cmd, 1, NULL, 0);
@@ -244,14 +244,13 @@ uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
 
     uint16_t count;
-    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);  // Read current count
+    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);  // Read current count (stored in the last two bytes of flash memory)
 
     if (count == 0xFFFF) {
         // If it's the default erased value, initialize to 1
         eraseSector(0x3FFFFE);  // Align to the base of the sector containing 0xFFFFFF
         count = 1; 
         write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
-
     } else {
         // Increment count and write back
         eraseSector(0x3FFFFE);
@@ -259,7 +258,7 @@ uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
         write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
     }
 
-    return address + 256;
+    return address + 256; // increment write address to the next page
 } 
 
 // Read packet
