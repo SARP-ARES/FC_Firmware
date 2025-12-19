@@ -164,10 +164,9 @@ int flash::eraseSector(uint32_t address) {
     _spi.write((const char *)&cmd, 4, NULL, 0);
     csHigh();
 
-    wait_us(10000); // 10ms
-
     // wait for erase to finish and return status
     return waitForWriteToFinish();
+
 }
 
 /**
