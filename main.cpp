@@ -333,20 +333,20 @@ void flight_mode(FlightMode mode, ctrldRogallo* ARES, uint32_t num_packets) {
     ThisThread::sleep_for(1s);
     switch (mode) {
         case packetlog:
+            pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n",                        num_packets, FLIGHT_PACKET_SIZE);
             flight_log(ARES, num_packets, &flash_addr);      // Packet logging
-            pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", num_packets, FLIGHT_PACKET_SIZE);
             pc.printf("==========================================================\n");
             break; 
         
         case test:  
-            test_mode(ARES, &flash_addr);                    // Testing mode
             pc.printf("\nEntering Testing mode... %s\n", ' ');
+            test_mode(ARES, &flash_addr);                    // Testing mode
             pc.printf("==========================================================\n");
             break; 
         
         case ctrl_sequence:
-            ctrl_sequence_after_apogee(ARES, &flash_addr);   // Controlled mode
             pc.printf("\nBeginning control sequence... %s\n", ' ');
+            ctrl_sequence_after_apogee(ARES, &flash_addr);   // Controlled mode
             pc.printf("==========================================================\n");
             break; 
     }
