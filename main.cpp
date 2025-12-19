@@ -40,16 +40,18 @@ enum FlightMode {
 
 /** @brief clears all data off of the flash chip */
 void clear_data() {
-    led_B.write(0);
+    led_B.write(1);
     Timer t;
     t.start();
-
     pc.printf("\nErasing flash chip memory...\n\n");
-    flash_chip.eraseAll(); 
-    int ms = t.read_ms();   
-    pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
-    
-    led_B.write(1);
+    int erase_err = flash_chip.eraseAll(); 
+    int ms = t.read_ms(); 
+    if (erase_err == 0) {
+        pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
+    } else if(erase_err == 1) {
+        pc.printf("...Erasing timed out... something went wrong");
+    }
+    led_B.write(0);
 }
 
 /** 

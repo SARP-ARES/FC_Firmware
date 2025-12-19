@@ -89,7 +89,7 @@ void flash::read(uint32_t address, uint8_t *buffer, size_t length) {
     cmd[1] = (address >> 16) & 0xFF;
     cmd[2] = (address >> 8) & 0xFF;
     cmd[3] = address & 0xFF;
-
+    
     csLow();
     _spi.write((const char *)cmd, 4, NULL, 0);
     _spi.write(NULL, 0, (char *)buffer, length); // Only receive data
@@ -137,11 +137,11 @@ void flash::eraseSector(uint32_t address) {
 }
 
 /**
- * Erases a all sectors.
+ * Erases all sectors.
  */
-void flash::eraseAll() {
+int flash::eraseAll() {
+    Timer t;
     enableWrite();
-
     uint8_t cmd = 0xC7; 
 
     csLow();
@@ -149,17 +149,24 @@ void flash::eraseAll() {
     csHigh();
 
     cmd = 0x05;
-    uint8_t s1; 
+    uint8_t status; 
+    t.start();
     while(true){
         wait_us(10000);
-
+        
         csLow();
-        _spi.write((const char *)cmd, 1, NULL, 0);
-        _spi.write(NULL, 0, (char *) &s1, 1); // Only receive data
+        _spi.write((const char *)&cmd, 1, NULL, 0);
+        _spi.write(NULL, 0, (char *)&status, 1); // Only receive data
         csHigh();
 
-        if((s1 & 0b1) == 0){
-            break;
+        // ensure "write-in-progress" flag (at bit zero) is zero (not writing)
+        if((status & 0b1) == 0){ 
+            return 0; // no error
+        }
+
+        // timeout
+        if (t.elapsed_time() > 30s) {
+            return 1; // error
         }
     }
 }
