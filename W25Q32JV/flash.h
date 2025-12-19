@@ -35,8 +35,9 @@ public:
     
 
     // Erase operations
-    void eraseSector(uint32_t address);
+    int eraseSector(uint32_t address);
     int eraseAll();
+    int waitForWriteToFinish();
 
     // Control operations
     void enableWrite();
@@ -47,8 +48,6 @@ private:
     SPI _spi;       // SPI communication interface
     DigitalOut _cs; // Chip Select (CS) pin
     EUSBSerial* pc;
-    Mutex lock;
-
 
     // Helper functions for SPI communication
     void csLow();

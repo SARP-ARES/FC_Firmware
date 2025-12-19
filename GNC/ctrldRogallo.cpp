@@ -437,8 +437,6 @@ void ctrldRogallo::killAllSensorThreads(){
 }
 
 
-
-
 void ctrldRogallo::logDataLoop(){
     FlightPacket state_snapshot;
     while (true){

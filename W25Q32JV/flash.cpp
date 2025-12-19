@@ -116,47 +116,22 @@ void flash::writeByte(uint32_t address, uint8_t data) {
     write(address, &data, 1);
 }
 
-/**
- * Erases a 4KB sector at the given address.
- * @param address - Address within the sector to erase
- */
-void flash::eraseSector(uint32_t address) {
-    enableWrite();
-
-    uint8_t cmd[4];
-    cmd[0] = 0x20; // Sector Erase command
-    cmd[1] = (address >> 16) & 0xFF;
-    cmd[2] = (address >> 8) & 0xFF;
-    cmd[3] = address & 0xFF;
-
-    csLow();
-    _spi.write((const char *)&cmd, 4, NULL, 0);
-    csHigh();
-
-    wait_us(500000);
-}
 
 /**
- * Erases all sectors.
+ * Wait for the flash chip to finish writing
+ * @returns integer indicating timeout (1) or proper funciton (0)
  */
-int flash::eraseAll() {
+int flash::waitForWriteToFinish() {
     Timer t;
-    enableWrite();
-    uint8_t cmd = 0xC7; 
-
-    csLow();
-    _spi.write((const char *)&cmd, 1, NULL, 0);
-    csHigh();
-
-    cmd = 0x05;
     uint8_t status; 
+    t.start();
+    uint8_t read_status_cmd = 0x05;
     t.start();
     while(true){
         wait_us(1000);
         
         csLow();
-        _spi.write((const char *)&cmd, 1, NULL, 0);
-        _spi.write(NULL, 0, (char *)&status, 1); // Only receive data
+        _spi.write((const char *)&read_status_cmd, 1, (char *)&status, 1);
         csHigh();
 
         // ensure "write-in-progress" flag (at bit zero) is zero (not writing)
@@ -169,6 +144,45 @@ int flash::eraseAll() {
             return 1; // error
         }
     }
+}
+
+/**
+ * Erases a 4KB sector at the given address.
+ * @param address - Address within the sector to erase
+ * @returns integer indicating timeout (1) or proper funciton (0)
+ */
+int flash::eraseSector(uint32_t address) {
+    enableWrite();
+
+    uint8_t cmd[4];
+    cmd[0] = 0x20; // Sector Erase command
+    cmd[1] = (address >> 16) & 0xFF;
+    cmd[2] = (address >> 8) & 0xFF;
+    cmd[3] = address & 0xFF;
+
+    csLow();
+    _spi.write((const char *)&cmd, 4, NULL, 0);
+    csHigh();
+
+    wait_us(10000); // 10ms
+
+    // wait for erase to finish and return status
+    return waitForWriteToFinish();
+}
+
+/**
+ * Erases all sectors.
+ */
+int flash::eraseAll() {
+    Timer t;
+    enableWrite();
+    uint8_t erase_all_cmd = 0xC7; 
+
+    csLow();
+    _spi.write((const char *)&erase_all_cmd, 1, NULL, 0);
+    csHigh();
+
+    return waitForWriteToFinish();
 }
 
 
