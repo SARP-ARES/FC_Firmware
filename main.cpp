@@ -167,6 +167,11 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         ARES->printCompactState(&pc);
         FlightPacket state = ARES->getState();
 
+        // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
+        uint16_t packet_count;
+        packet_count = flash_chip.getNumPacketsWritten();
+        pc.printf("Packet Count Logged: %d\n", packet_count);
+
         // TODO: make seeking logic 
         if (mode == FSM_SEEKING) { // mode is set after apogee detection
             // SEEKING CODE HERE

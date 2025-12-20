@@ -21,6 +21,7 @@ public:
     uint8_t readByte(uint32_t address);
     float readNum(uint32_t address);
     uint32_t readPacket(uint32_t address, FlightPacket& pkt);
+    uint16_t getNumPacketsWritten();
 
     // Read data to CSV
     void printCSVHeader();
@@ -48,6 +49,7 @@ private:
     SPI _spi;       // SPI communication interface
     DigitalOut _cs; // Chip Select (CS) pin
     EUSBSerial* pc;
+    Mutex flash_lock;
 
     // Helper functions for SPI communication
     void csLow();

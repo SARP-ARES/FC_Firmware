@@ -68,6 +68,7 @@ uint32_t flash::write(uint32_t address, const uint8_t *buffer, size_t length) {
     cmd[2] = (address >> 8) & 0xFF;
     cmd[3] = address & 0xFF;
 
+    ScopedLock<Mutex> lock(this->flash_lock);
     csLow();
     _spi.write((const char *)cmd, 4, NULL, 0);
     _spi.write((const char *)buffer, length, NULL, 0);
@@ -90,6 +91,7 @@ void flash::read(uint32_t address, uint8_t *buffer, size_t length) {
     cmd[2] = (address >> 8) & 0xFF;
     cmd[3] = address & 0xFF;
     
+    ScopedLock<Mutex> lock(this->flash_lock);
     csLow();
     _spi.write((const char *)cmd, 4, NULL, 0);
     _spi.write(NULL, 0, (char *)buffer, length); // Only receive data
@@ -164,9 +166,10 @@ int flash::eraseSector(uint32_t address) {
     _spi.write((const char *)&cmd, 4, NULL, 0);
     csHigh();
 
-    // wait for erase to finish and return status
-    return waitForWriteToFinish();
-
+    // // wait for erase to finish and return status
+    // return waitForWriteToFinish();
+    wait_us(500000);
+    return 0;
 }
 
 /**
@@ -252,27 +255,42 @@ float flash::readNum(uint32_t address) {
     return bytes2float(rData);
 }
 
+
+uint16_t flash::getNumPacketsWritten() {
+    uint16_t count;
+    // Read current count (stored in the last two bytes of flash memory)
+    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+    wait_us(100);
+    return count;
+}
+
 // Write entire data packet (struct)
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
+    // write the packet
     write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
 
-    uint16_t count;
-    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);  // Read current count (stored in the last two bytes of flash memory)
-
+    // figure out the current number of packets
+    uint16_t count = getNumPacketsWritten();
     if (count == 0xFFFF) {
-        // If it's the default erased value, initialize to 1
-        eraseSector(0x3FFFFE);  // Align to the base of the sector containing 0xFFFFFF
-        count = 1; 
-        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+        // If it's the default erased value, write a packet and set count to 1
+        { // lock to make sure erased count isn't read elsewhere before new count is written
+            ScopedLock<Mutex> lock(this->flash_lock);
+            eraseSector(0x3FFFFE);
+            count = 1;
+            write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+        }
     } else {
-        // Increment count and write back
-        eraseSector(0x3FFFFE);
-        count += 1;  // Again, erase the entire sector before writing
-        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+        // If there are packets already, just increment the counter
+        { // lock to make sure erased count isn't read elsewhere before new count is written
+            ScopedLock<Mutex> lock(this->flash_lock);
+            // erase sector before writing
+            eraseSector(0x3FFFFE);
+            count += 1;
+            write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+        }
     }
-
     return address + 256; // increment write address to the next page
-} 
+}
 
 // Read packet
 uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
