@@ -261,34 +261,33 @@ uint16_t flash::getNumPacketsWritten() {
     // Read current count (stored in the last two bytes of flash memory)
     read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
     wait_us(100);
-    return count;
+    if (count == 0xFFFF) {
+        // unitialized, no packets logged
+        return 0;
+    } else {
+        // there are packets written
+        return count;
+    }
+}
+
+void flash::updateNumPacketsWritten() {
+    // get the current number of packets logged
+    uint16_t count = getNumPacketsWritten();
+    { 
+        // lock to make sure erased count isn't read elsewhere before new count is written
+        ScopedLock<Mutex> lock(this->flash_lock);
+        // erase sector before writing
+        eraseSector(0x3FFFFE);
+        count += 1;
+        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+    }
 }
 
 // Write entire data packet (struct)
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     // write the packet
     write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
-
-    // figure out the current number of packets
-    uint16_t count = getNumPacketsWritten();
-    if (count == 0xFFFF) {
-        // If it's the default erased value, write a packet and set count to 1
-        { // lock to make sure erased count isn't read elsewhere before new count is written
-            ScopedLock<Mutex> lock(this->flash_lock);
-            eraseSector(0x3FFFFE);
-            count = 1;
-            write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
-        }
-    } else {
-        // If there are packets already, just increment the counter
-        { // lock to make sure erased count isn't read elsewhere before new count is written
-            ScopedLock<Mutex> lock(this->flash_lock);
-            // erase sector before writing
-            eraseSector(0x3FFFFE);
-            count += 1;
-            write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
-        }
-    }
+    updateNumPacketsWritten();
     return address + 256; // increment write address to the next page
 }
 

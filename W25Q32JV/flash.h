@@ -33,6 +33,7 @@ public:
     void writeByte(uint32_t address, uint8_t data);
     uint32_t writeNum(uint32_t address, float data);
     uint32_t writePacket(uint32_t address, const FlightPacket& pkt);
+    void updateNumPacketsWritten();
     
 
     // Erase operations
