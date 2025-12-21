@@ -57,7 +57,7 @@ ctrldRogallo::ctrldRogallo()
     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
 } 
-
+ 
 /**
  * @brief getter for the current state of the system
  * @returns system state as a FlightPacket struct
@@ -391,14 +391,18 @@ void ctrldRogallo::imuUpdateLoop() {
 }
 
 void ctrldRogallo::startThreadIMU() {
+    // send event flag to start the thread
     this->thread_imu.start(callback(this, &ctrldRogallo::imuUpdateLoop));
 }
 
 void ctrldRogallo::startThreadBMP() {
+    Thread thread_bmp; // make new thread
+    this->thread_bmp = new_bmp_thread;
     this->thread_bmp.start(callback(this, &ctrldRogallo::bmpUpdateLoop));
 }
 
 void ctrldRogallo::startThreadGPS(EUSBSerial* pc) {
+    Thread thread_gps; // make new thread
     pc->printf("in startThreadGPS\n");
     this->thread_gps.start(callback(this, &ctrldRogallo::gpsUpdateLoop));
     pc->printf("started GPS thread!\n");
@@ -447,7 +451,7 @@ void ctrldRogallo::logDataLoop(){
         }
 
         // write current state to flash chip & increment address
-        *flash_addr = flash_mem->writePacket(*flash_addr, state_snapshot);
+        flash_addr = flash_mem->writePacket(flash_addr, state_snapshot);
         
         // log at 10Hz while seeking or spiraling, 1Hz while idle, turn off once grounded
         if (this->mode == FSM_SEEKING || this->mode == FSM_SPIRAL) {
@@ -461,15 +465,19 @@ void ctrldRogallo::logDataLoop(){
     }
 }
 
-
-void ctrldRogallo::startLogging(flash* flash_mem, uint32_t* flash_addr, EUSBSerial* pc) {
+void ctrldRogallo::startLogging(flash* flash_mem, EUSBSerial* pc) {
+    Thread thread_logging; // make new thread
     pc->printf("made it into startLogging\n");
+    // flash_mem and flash_addr are initalized in the main program and passed in here
     this->flash_mem = flash_mem;
-    this->flash_addr = flash_addr;
+    pc->printf("about to getNumPacketsWritten\n");
+    uint32_t previous_num_packets = flash_mem->getNumPacketsWritten();
+    pc->printf("made it past getNumPacketsWritten... previous packets: %d\n", previous_num_packets);
+    flash_addr = previous_num_packets * 256; // start logging at next empty page
     pc->printf("made it past flash mem and addr assignments\n");
     flight_timer.reset();
     flight_timer.start(); // start timer once logging begins
-    pc->printf("flash_mem=%p, flash_addr=%p\n", flash_mem, flash_addr);
+    pc->printf("flash_mem=%p, flash_addr=%d\n", flash_mem, flash_addr);
     thread_logging.start(callback(this, &ctrldRogallo::logDataLoop));
 }
 

@@ -28,7 +28,7 @@ class ctrldRogallo {
         GPS gps;
         PID pid;
         flash* flash_mem = nullptr;
-        uint32_t* flash_addr = nullptr;
+        uint32_t flash_addr;
         Timer flight_timer;
         FlightPacket state;
         ModeFSM mode;
@@ -36,10 +36,10 @@ class ctrldRogallo {
         Mutex state_mutex;
         Mutex i2c_mutex;
 
-        Thread thread_logging;
-        Thread thread_imu;
-        Thread thread_bmp;
-        Thread thread_gps;
+        // Thread thread_logging;
+        // Thread thread_imu;
+        // Thread thread_bmp;
+        // Thread thread_gps;
 
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;
@@ -82,7 +82,7 @@ class ctrldRogallo {
         void killThreadBMP();
         void killAllSensorThreads();
         void logDataLoop();
-        void startLogging(flash* flash_mem, uint32_t* flash_addr, EUSBSerial* pc);
+        void startLogging(flash* flash_mem, EUSBSerial* pc);
         void stopLogging();
         void stopAllThreads();
 

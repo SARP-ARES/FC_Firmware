@@ -18,7 +18,8 @@ DigitalOut led_G(PA_15);
 Thread thread;
 
 FlightPacket state; // global state makes more sense than individual logging states (could be moved to logging multi-function as a pointer)
-uint32_t flash_addr = 0; 
+
+uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256; 
 
 enum FlightMode {
     test,
@@ -155,7 +156,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     pc.printf("started sensor threads...\n");
     ThisThread::sleep_for(500ms);
     pc.printf("entering startLogging...\n");
-    ARES->startLogging(&flash_chip, flash_addr, &pc);
+    ARES->startLogging(&flash_chip, &pc);
     pc.printf("started logging...\n\n");
     ThisThread::sleep_for(500ms);
 
