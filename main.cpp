@@ -147,6 +147,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
 
     char cmdBuf[32];
     float theta_error;
+    uint16_t packet_count;
     
     pc.printf("entered test_mode...\n");
     ThisThread::sleep_for(500ms);
@@ -155,7 +156,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     ThisThread::sleep_for(500ms);
     pc.printf("entering startLogging...\n");
     ARES->startLogging(&flash_chip, flash_addr, &pc);
-    pc.printf("started logging...\n");
+    pc.printf("started logging...\n\n");
     ThisThread::sleep_for(500ms);
 
     while(true) {
@@ -165,12 +166,12 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
 
         // print state for testing
         ARES->printCompactState(&pc);
-        FlightPacket state = ARES->getState();
+        state = ARES->getState();
 
         // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
-        uint16_t packet_count;
+        
         packet_count = flash_chip.getNumPacketsWritten();
-        pc.printf("Packet Count Logged: %d\n", packet_count);
+        pc.printf("Packets Logged: %d\n", packet_count);
 
         // TODO: make seeking logic 
         if (mode == FSM_SEEKING) { // mode is set after apogee detection

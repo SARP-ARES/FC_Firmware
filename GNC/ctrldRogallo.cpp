@@ -366,7 +366,7 @@ void ctrldRogallo::updateFlightPacket(){
 void ctrldRogallo::bmpUpdateLoop() {
     while (true) {
         bmp.update();
-        ThisThread::sleep_for(20ms);
+        ThisThread::sleep_for(20ms); // TODO: replace with timer
     }
 }
 
@@ -386,7 +386,7 @@ void ctrldRogallo::gpsUpdateLoop(){
 void ctrldRogallo::imuUpdateLoop() {
     while (true) {
         bno.update();
-        ThisThread::sleep_for(20ms);
+        ThisThread::sleep_for(20ms); // TODO: replace with timer
     }
 }
 
@@ -451,12 +451,12 @@ void ctrldRogallo::logDataLoop(){
         
         // log at 10Hz while seeking or spiraling, 1Hz while idle, turn off once grounded
         if (this->mode == FSM_SEEKING || this->mode == FSM_SPIRAL) {
-            ThisThread::sleep_for(100ms);
+            ThisThread::sleep_for(100ms); // TODO: replace with timer
         }
         else if (this->mode == FSM_GROUNDED){
             this->thread_logging.terminate();
         } else { // FSM_IDLE
-            ThisThread::sleep_for(1s); 
+            ThisThread::sleep_for(1s); // TODO: replace with timer
         }   
     }
 }
@@ -541,6 +541,7 @@ void ctrldRogallo::setThreshold(){
 
 void ctrldRogallo::printCompactState(EUSBSerial* pc) {
     ScopedLock<Mutex> lock(this->state_mutex);
+    pc->printf("Timer:\t\t\t\t\t%f s\n", state.timestamp_timer);
     pc->printf("Lat (deg), Lon (deg), Alt (m):\t\t%f, %f, %.3f\n", 
                 state.latitude_deg, state.longitude_deg, state.altitude_m);
     pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 
