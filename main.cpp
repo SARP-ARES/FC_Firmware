@@ -104,7 +104,6 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
 
     while(true) {
         // Get current sensor data and put it in the state struct
-
         ARES->updateFlightPacket();
         ModeFSM mode = ARES->getMode();
         // TODO: make seeking logic 
@@ -145,22 +144,28 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
  *  @param flash_addr pointer to the current system flash address 
  */
 void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
+    Timer execution_timer;
+    execution_timer.start();
+    auto EXECUTION_PERIOD = 500ms; // 500ms = 2Hz
+    // constexpr chrono::milliseconds EXECUTION_PERIOD{500}; // ms
+    // constexpr Kernel::Clock::duration_u32 EXECUTION_PERIOD = 500ms;
 
     char cmdBuf[32];
     float theta_error;
     uint16_t packet_count;
     
     pc.printf("entered test_mode...\n");
-    ThisThread::sleep_for(500ms);
+    ThisThread::sleep_for(100ms);
     ARES->startAllSensorThreads(&pc);
     pc.printf("started sensor threads...\n");
-    ThisThread::sleep_for(500ms);
+    ThisThread::sleep_for(100ms);
     pc.printf("entering startLogging...\n");
     ARES->startLogging(&flash_chip, &pc);
     pc.printf("started logging...\n\n");
-    ThisThread::sleep_for(500ms);
+    ThisThread::sleep_for(100ms);
 
     while(true) {
+        execution_timer.reset();
         // Get current sensor data and put it in the state struct
         ARES->updateFlightPacket();
         ModeFSM mode = ARES->getMode();
@@ -170,7 +175,6 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         state = ARES->getState();
 
         // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
-        
         packet_count = flash_chip.getNumPacketsWritten();
         pc.printf("Packets Logged: %d\n", packet_count);
 
@@ -190,7 +194,6 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
             ARES->killAllSensorThreads();
         }
 
-
         // break on "quit" command
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
@@ -201,7 +204,14 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
             }
         }
 
-        ThisThread::sleep_for(500ms); // ~2Hz
+        auto elapsed_time = execution_timer.elapsed_time();
+        if (elapsed_time < EXECUTION_PERIOD) {
+            ThisThread::sleep_for(
+                chrono::duration_cast<Kernel::Clock::duration>(
+                    EXECUTION_PERIOD - elapsed_time
+                )
+            );
+        } // else run again asap
     }
 }
 
@@ -450,7 +460,6 @@ void command_line_interface() {
             cli_reset = true; // reset CLI after user input is recieved 
         }
 
-        // Avoid hammering CPU
         ThisThread::sleep_for(100ms);
     }
 }

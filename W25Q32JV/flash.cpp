@@ -255,7 +255,6 @@ float flash::readNum(uint32_t address) {
     return bytes2float(rData);
 }
 
-
 uint16_t flash::getNumPacketsWritten() {
     uint16_t count;
     // Read current count (stored in the last two bytes of flash memory)
@@ -270,7 +269,7 @@ uint16_t flash::getNumPacketsWritten() {
     }
 }
 
-void flash::updateNumPacketsWritten() {
+void flash::incrementNumPacketsWritten() {
     // get the current number of packets logged
     uint16_t count = getNumPacketsWritten();
     { 
@@ -287,7 +286,7 @@ void flash::updateNumPacketsWritten() {
 uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     // write the packet
     write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
-    updateNumPacketsWritten();
+    incrementNumPacketsWritten();
     return address + 256; // increment write address to the next page
 }
 
