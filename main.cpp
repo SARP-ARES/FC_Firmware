@@ -12,16 +12,13 @@
 #include <cstring>
 #include "rtos.h"
 
-
 EUSBSerial pc;
 Mutex_I2C i2c(PB_7, PB_8);
 ctrldRogallo ARES(&i2c);
 DigitalOut led(PA_8);
 
-motorPacket motor;
-
-// // // = # of pages, 4.55 hours at 1Hz
-// // // 16 pages per sector
+// = # of pages, 4.55 hours at 1Hz
+// 16 pages per sector
 flash flash_chip(PA_7, PA_6, PA_5, PA_4, &pc);
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
@@ -40,13 +37,13 @@ enum FlightMode {
 // = # of pages, 4.55 hours at 1Hz
 // 16 pages per sector
 
-// // #define FLIGHT_PACKET_SIZE  sizeof(FlightPacket) // Size in bytes of one flight packet 
-// // #define MAX_NUM_PACKETS     16384
+#define FLIGHT_PACKET_SIZE  sizeof(FlightPacket) // Size in bytes of one flight packet 
+#define MAX_NUM_PACKETS     16384
 
-// // /* SET NUMBER OF PACKETS TO LOG || for for 1.5 hours of logging, log 5400 packets */
-// // #define NUM_PACKETS_TO_LOG  16000
+/* SET NUMBER OF PACKETS TO LOG || for for 1.5 hours of logging, log 5400 packets */
+#define NUM_PACKETS_TO_LOG  16000
 
-// // #define DT_CTRL             0.01 // time step for PID controller to calculate derivative & integral
+#define DT_CTRL             0.01 // time step for PID controller to calculate derivative & integral
 
 
 /** @brief clears all data off of the flash chip */
@@ -96,7 +93,6 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr)
     }
 
 } 
-
 
 /** 
  *  @brief Autonomous flight mode. A PID controller is used to compute 

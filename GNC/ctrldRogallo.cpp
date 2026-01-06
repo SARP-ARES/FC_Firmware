@@ -338,7 +338,6 @@ void ctrldRogallo::updateFlightPacket(){
     // mutex unlocks outside this scope
 }
 
-
 /** 
  *  @brief Sends control command over i2c to the MCPS 
  *  @param ctrl - asymetric deflection 
@@ -355,42 +354,15 @@ uint8_t ctrldRogallo::sendCtrl(float ctrl){
  * @brief reads motor packet off of mcps 
  * @return packet read over i2c, true if success, false if fail
  */
-bool ctrldRogallo::requestMotorPacket(motorPacket* motor){
+bool ctrldRogallo::requestMotorPacket(){
     // grab motor packet over i2c
     uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, sizeof(motorPacket)); 
     wait_us(10);
 
     if(ack != 0) return false; // failed
-
-    memcpy(motor, rx_buf, sizeof(motorPacket));
-    return true; // success
-}
-
-
-/** 
- *  @brief Sends control command over i2c to the MCPS 
- *  @param ctrl - asymetric deflection 
- *  @return 0 if success 1 if failure
- */
-uint8_t ctrldRogallo::sendCtrl(float ctrl){
-
-    uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
-    wait_us(10);
-    return ack; 
-}
-
-/**
- * @brief reads motor packet off of mcps 
- * @return packet read over i2c, true if success, false if fail
- */
-bool ctrldRogallo::requestMotorPacket(motorPacket* motor){
-    // grab motor packet over i2c
-    uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, sizeof(motorPacket)); 
-    wait_us(10);
-
-    if(ack != 0) return false; // failed
-
-    memcpy(motor, rx_buf, sizeof(motorPacket));
+    
+    // motor is a motorpacket object owned by ctrldRogallo
+    memcpy(&motor, rx_buf, sizeof(motorPacket));
     return true; // success
 }
 

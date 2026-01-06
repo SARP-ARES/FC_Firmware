@@ -25,17 +25,19 @@ typedef struct {
     float rightPower;
 } motorPacket;
 
-
 class ctrldRogallo {
 
     private:
     // Test stuff
-        I2C i2c;
+
+        /* Drivers */
         BMP280 bmp;
         BNO055 bno;
         GPS gps;
         PID pid;
+        Mutex_I2C* i2c; 
         flash* flash_mem = nullptr;
+        
         uint32_t flash_addr;
         Timer flight_timer;
         FlightPacket state;
@@ -43,16 +45,19 @@ class ctrldRogallo {
 
         char rx_buf[32];
 
-        Mutex_I2C* i2c; 
+        /* Comms */ 
+        motorPacket motor;
 
+        /* Mutex */ 
         Mutex state_mutex;
-        Mutex i2c_mutex;
 
+        /* Threads */ 
         Thread thread_logging;
         Thread thread_imu;
         Thread thread_bmp;
         Thread thread_gps;
 
+        /* State local vars */ 
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
