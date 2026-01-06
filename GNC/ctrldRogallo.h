@@ -36,10 +36,10 @@ class ctrldRogallo {
         Mutex state_mutex;
         Mutex i2c_mutex;
 
-        // Thread thread_logging;
-        // Thread thread_imu;
-        // Thread thread_bmp;
-        // Thread thread_gps;
+        Thread thread_logging;
+        Thread thread_imu;
+        Thread thread_bmp;
+        Thread thread_gps;
 
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;

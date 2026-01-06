@@ -396,8 +396,6 @@ void ctrldRogallo::startThreadIMU() {
 }
 
 void ctrldRogallo::startThreadBMP() {
-    Thread thread_bmp; // make new thread
-    this->thread_bmp = new_bmp_thread;
     this->thread_bmp.start(callback(this, &ctrldRogallo::bmpUpdateLoop));
 }
 
@@ -433,18 +431,17 @@ void ctrldRogallo::killThreadGPS() {
     this->thread_gps.terminate();
 }
 
-
 void ctrldRogallo::killAllSensorThreads(){
     killThreadGPS();
     killThreadIMU();
     killThreadBMP();
 }
 
-
 void ctrldRogallo::logDataLoop(){
     FlightPacket state_snapshot;
+    Kernel::Clock::duration LOG_PERIOD = 1s; // default 1Hz
     while (true){
-
+        auto start_time = flight_timer.elapsed_time();
         {   // take snapshot of current state w/ mutex
             ScopedLock<Mutex> lock(this->state_mutex);
             state_snapshot = this->state;
@@ -454,14 +451,22 @@ void ctrldRogallo::logDataLoop(){
         flash_addr = flash_mem->writePacket(flash_addr, state_snapshot);
         
         // log at 10Hz while seeking or spiraling, 1Hz while idle, turn off once grounded
-        if (this->mode == FSM_SEEKING || this->mode == FSM_SPIRAL) {
-            ThisThread::sleep_for(100ms); // TODO: replace with timer
-        }
-        else if (this->mode == FSM_GROUNDED){
-            this->thread_logging.terminate();
-        } else { // FSM_IDLE
-            ThisThread::sleep_for(1s); // TODO: replace with timer
+        switch (this->mode) {
+            case FSM_IDLE:      LOG_PERIOD = 1s; break; // 1Hz
+            case FSM_SEEKING:   LOG_PERIOD = 100ms; break; // 10Hz
+            case FSM_SPIRAL:    LOG_PERIOD = 100ms; break; // 10Hz
+            case FSM_GROUNDED:  stopLogging(); return;
         }   
+        auto end_time = flight_timer.elapsed_time();
+        auto compute_time = end_time - start_time;
+        // wait until next period to log next packet
+        if (compute_time < LOG_PERIOD) {
+            ThisThread::sleep_for(
+                chrono::duration_cast<Kernel::Clock::duration>(
+                    LOG_PERIOD - compute_time
+                )
+            );
+        } // else log the next packet ASAP
     }
 }
 
@@ -475,9 +480,8 @@ void ctrldRogallo::startLogging(flash* flash_mem, EUSBSerial* pc) {
     pc->printf("made it past getNumPacketsWritten... previous packets: %d\n", previous_num_packets);
     flash_addr = previous_num_packets * 256; // start logging at next empty page
     pc->printf("made it past flash mem and addr assignments\n");
-    flight_timer.reset();
-    flight_timer.start(); // start timer once logging begins
     pc->printf("flash_mem=%p, flash_addr=%d\n", flash_mem, flash_addr);
+    flight_timer.start(); // start timer once logging begins
     thread_logging.start(callback(this, &ctrldRogallo::logDataLoop));
 }
 
