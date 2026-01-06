@@ -22,6 +22,7 @@ public:
     float readNum(uint32_t address);
     uint32_t readPacket(uint32_t address, FlightPacket& pkt);
     uint16_t getNumPacketsWritten();
+    void incrementNumPacketsWritten();
 
     // Read data to CSV
     void printCSVHeader();
@@ -35,7 +36,6 @@ public:
     uint32_t writePacket(uint32_t address, const FlightPacket& pkt);
     void updateNumPacketsWritten();
     
-
     // Erase operations
     int eraseSector(uint32_t address);
     int eraseAll();
@@ -55,6 +55,7 @@ private:
     // Helper functions for SPI communication
     void csLow();
     void csHigh();
+
 };
 
 // Float conversion functions
