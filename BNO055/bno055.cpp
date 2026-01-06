@@ -8,26 +8,12 @@ void wait (int time_ms){
 }
 
 /**
- * @brief Constructor that owns and creates an I2C object internally.
- * @param SDA PinName for the SDA line
- * @param SCL PinName for the SCL line
- * @param addr The I2C address of the BNO055 (default might be 0x28 or 0x29)
- */
-BNO055::BNO055(PinName SDA, PinName SCL, char addr) {
-    owned = true;
-    BNO055::i2c = new I2C(SDA, SCL);
-    BNO055::addr = addr;
-}
-
-/**
  * @brief Constructor that uses an external I2C object (not owned by this class).
  * @param i2c Pointer to an already-initialized I2C object
  */
-BNO055::BNO055(I2C* i2c, char addr, Mutex* lock) {
+BNO055::BNO055(Mutex_I2C* i2c, char addr) {
     BNO055::i2c = i2c;
     BNO055::addr = addr;
-    BNO055::bus_lock = lock;
-    owned = false;
 }
 
 /**
@@ -47,47 +33,12 @@ void BNO055::dummy(){
 }
 
 /**
- * @brief Reads a chunk of data from the BNO055 over I2C.
- * @param regaddr The register address to read from
- * @param data Pointer to a buffer for storing data
- * @param len Number of bytes to read
- * @return 0 on success, non-zero on failure
- */
-int BNO055::readData(char regaddr, char* data, uint8_t len) {
-    if (bus_lock) bus_lock->lock();
-    i2c->write(addr, &regaddr, 1);
-    i2c->read(addr, data, len);
-    if (bus_lock) bus_lock->unlock();
-    return 1;
-
-}
-
-/**
- * @brief Writes data to a BNO055 register over I2C.
- * @param regaddr The register address to write to
- * @param data The value to be written
- * @param len (Unused in this function, always writes 1 byte of data)
- * @return 0 on success, non-zero on failure
- */
-int BNO055::writeData(char regaddr, char data, uint8_t len) {
-    if (bus_lock) bus_lock->lock();
-
-    char buffer[2];
-    buffer[0] = regaddr;
-    buffer[1] = data;
-    i2c->write(addr, buffer, 2);
-    if (bus_lock) bus_lock->unlock();
-    return 1;
-
-}
-
-/**
  * @brief Checks the system calibration status.
  * @return 0 if system is fully calibrated, 1 otherwise
  */
 int BNO055::getSysCalib(){
     char stat;
-    readData(BNO055_CALIB_STAT, &stat, 1);
+    i2c->readData(addr, BNO055_CALIB_STAT, &stat, 1);
     // Bits 6-7 hold the system calibration status (3 = fully calibrated)
     if (((stat >> 6) & 0x03) != 3){
         return 1;
@@ -101,7 +52,7 @@ int BNO055::getSysCalib(){
  */
 int BNO055::getGyrCalib(){
     char stat;
-    readData(BNO055_CALIB_STAT, &stat, 1);
+    i2c->readData(addr, BNO055_CALIB_STAT, &stat, 1);
     // Bits 4-5 hold the gyroscope calibration status (3 = fully calibrated)
     if (((stat >> 4) & 0x03) != 3){
         return 1;
@@ -115,7 +66,7 @@ int BNO055::getGyrCalib(){
  */
 int BNO055::getAccCalib(){
     char stat;
-    readData(BNO055_CALIB_STAT, &stat, 1);
+    i2c->readData(addr,BNO055_CALIB_STAT, &stat, 1);
     // Bits 2-3 hold the accelerometer calibration status (3 = fully calibrated)
     if (((stat >> 2) & 0x03) != 3){
         return 1;
@@ -129,7 +80,7 @@ int BNO055::getAccCalib(){
  */
 int BNO055::getMagCalib(){
     char stat;
-    readData(BNO055_CALIB_STAT, &stat, 1);
+    i2c->readData(addr, BNO055_CALIB_STAT, &stat, 1);
     // Bits 0-1 hold the magnetometer calibration status (3 = fully calibrated)
     if (((stat) & 0x03) != 3){
         return 1;
@@ -148,7 +99,7 @@ void BNO055::setPWR(PWRMode mode) {
         case PWRMode::LowPower: modeData = 0x01; break;
         case PWRMode::Suspend:  modeData = 0x02; break;
     }
-    writeData(BNO055_PWR_MODE, modeData, 1);
+    i2c->writeData(addr, BNO055_PWR_MODE, modeData);
 }
 
 /**
@@ -158,7 +109,7 @@ void BNO055::setPWR(PWRMode mode) {
 char BNO055::getOPMode() {
     setPage(0);
     char mode;
-    readData(BNO055_OPR_MODE, &mode, 1);
+    i2c->readData(addr, BNO055_OPR_MODE, &mode, 1);
     return mode;
 }
 
@@ -169,7 +120,7 @@ char BNO055::getOPMode() {
  */
 void BNO055::setOPMode(char mode) {
     setPage(0);
-    writeData(BNO055_OPR_MODE, mode, 1);
+    i2c->writeData(addr, BNO055_OPR_MODE, mode);
 
     // According to Bosch datasheet, wait times vary after setting OPR_MODE:
     // 19ms if switching to CONFIG mode, 7ms otherwise.
@@ -189,7 +140,7 @@ void BNO055::setOPMode(char mode) {
 void BNO055::setACC(char GRange, char Bandwidth, char OPMode) {
     setPage(0);
     char config = GRange | Bandwidth | OPMode;
-    writeData(BNO055_ACC_CONFIG, config, 1);
+    i2c->writeData(addr, BNO055_ACC_CONFIG, config);
     wait(20);
 }
 
@@ -203,9 +154,9 @@ void BNO055::setGYR(char Range, char Bandwidth, char OPMode) {
     setPage(0);
     char config0 = Range | Bandwidth;
     char config1 = OPMode;
-    writeData(BNO055_GYRO_CONFIG_0, config0, 1);
+    i2c->writeData(addr, BNO055_GYRO_CONFIG_0, config0);
     wait(20);
-    writeData(BNO055_GYRO_CONFIG_1, config1, 1);
+    i2c->writeData(addr, BNO055_GYRO_CONFIG_1, config1);
     wait(20);
 }
 
@@ -218,7 +169,7 @@ void BNO055::setGYR(char Range, char Bandwidth, char OPMode) {
 void BNO055::setMAG(char Rate, char OPMode, char Power) {
     setPage(0);
     char config = Rate | OPMode | Power;
-    writeData(BNO055_MAG_CONFIG, config, 1);
+    i2c->writeData(addr, BNO055_MAG_CONFIG, config);
     wait(20);
 }
 
@@ -228,7 +179,7 @@ void BNO055::setMAG(char Rate, char OPMode, char Power) {
  */
 void BNO055::setPage(uint8_t page) {
     char pageChar = static_cast<char>(page);
-    writeData(BNO055_PAGE_ID, pageChar, 1);
+    i2c->writeData(addr, BNO055_PAGE_ID, pageChar);
 }
 
 /**
@@ -239,9 +190,9 @@ void BNO055::setPage(uint8_t page) {
 void BNO055::setCLK(bool external) {
     setPage(0);
     char tmp = 0x00;
-    readData(BNO055_SYS_TRIGGER, &tmp, 1);
+    i2c->readData(addr,BNO055_SYS_TRIGGER, &tmp, 1);
     tmp |= external ? 0x80 : 0x00;
-    writeData(BNO055_SYS_TRIGGER, tmp, 1);
+    i2c->writeData(addr,BNO055_SYS_TRIGGER, tmp);
     wait(700);
 }
 
@@ -261,7 +212,7 @@ void BNO055::setUnit(bool acc, bool angular, bool euler, bool temp, bool fusion)
     config |= (euler << 2);
     config |= (temp << 4);
     config |= (fusion << 7);
-    writeData(BNO055_UNIT_SEL, config, 1);
+    i2c->writeData(addr,BNO055_UNIT_SEL, config);
     wait(20);
 }
 
@@ -271,7 +222,7 @@ void BNO055::setUnit(bool acc, bool angular, bool euler, bool temp, bool fusion)
  */
 void BNO055::reset() {
     char resetVal = 0x20;
-    writeData(BNO055_SYS_TRIGGER, resetVal, 1);
+    i2c->writeData(addr,BNO055_SYS_TRIGGER, resetVal);
     wait(700);
 }
 
@@ -298,10 +249,10 @@ void BNO055::nReset() {
  */
 void BNO055::setAxes(Axes newX, Axes newY, Axes newZ, bool xNeg, bool yNeg, bool zNeg) {
     char axes = getAxes(newX, newY, newZ);
-    writeData(BNO055_AXIS_MAP_CONFIG, axes, 1);
+    i2c->writeData(addr,BNO055_AXIS_MAP_CONFIG, axes);
     wait(20);
     char sign = getAxesSign(xNeg, yNeg, zNeg);
-    writeData(BNO055_AXIS_MAP_SIGN, sign, 1);
+    i2c->writeData(addr, BNO055_AXIS_MAP_SIGN, sign);
     wait(20);
     // If sign inversion is desired, call setAxesSign(...) or integrate it here
 }
@@ -347,18 +298,18 @@ char BNO055::getAxesSign(bool xNeg, bool yNeg, bool zNeg) {
 void BNO055::setACCOffset(uint16_t offsetX, uint16_t offsetY, uint16_t offsetZ) {
     char lsbX  = (char)(offsetX & 0xFF); 
     char msbX = (char)((offsetX >> 8) & 0xFF);
-    writeData(BNO055_ACC_OFFSET_X_LSB, lsbX, 1);
-    writeData(BNO055_ACC_OFFSET_X_MSB, msbX, 1);
+    i2c->writeData(addr,BNO055_ACC_OFFSET_X_LSB, lsbX);
+    i2c->writeData(addr,BNO055_ACC_OFFSET_X_MSB, msbX);
 
     char lsbY  = (char)(offsetY & 0xFF); 
     char msbY = (char)((offsetY >> 8) & 0xFF);
-    writeData(BNO055_ACC_OFFSET_Y_LSB, lsbY, 1);
-    writeData(BNO055_ACC_OFFSET_Y_MSB, msbY, 1);
+    i2c->writeData(addr,BNO055_ACC_OFFSET_Y_LSB, lsbY);
+    i2c->writeData(addr,BNO055_ACC_OFFSET_Y_MSB, msbY);
 
     char lsbZ  = (char)(offsetZ & 0xFF); 
     char msbZ = (char)((offsetZ >> 8) & 0xFF);
-    writeData(BNO055_ACC_OFFSET_Z_LSB, lsbZ, 1);
-    writeData(BNO055_ACC_OFFSET_Z_MSB, msbZ, 1);
+    i2c->writeData(addr,BNO055_ACC_OFFSET_Z_LSB, lsbZ);
+    i2c->writeData(addr,BNO055_ACC_OFFSET_Z_MSB, msbZ);
 }
 
 /**
@@ -367,18 +318,18 @@ void BNO055::setACCOffset(uint16_t offsetX, uint16_t offsetY, uint16_t offsetZ) 
 void BNO055::setMAGOffset(uint16_t offsetX, uint16_t offsetY, uint16_t offsetZ) {
     char lsbX  = (char)(offsetX & 0xFF); 
     char msbX = (char)((offsetX >> 8) & 0xFF);
-    writeData(BNO055_MAG_OFFSET_X_LSB, lsbX, 1);
-    writeData(BNO055_MAG_OFFSET_X_MSB, msbX, 1);
+    i2c->writeData(addr,BNO055_MAG_OFFSET_X_LSB, lsbX);
+    i2c->writeData(addr,BNO055_MAG_OFFSET_X_MSB, msbX);
 
     char lsbY  = (char)(offsetY & 0xFF); 
     char msbY = (char)((offsetY >> 8) & 0xFF);
-    writeData(BNO055_MAG_OFFSET_Y_LSB, lsbY, 1);
-    writeData(BNO055_MAG_OFFSET_Y_MSB, msbY, 1);
+    i2c->writeData(addr,BNO055_MAG_OFFSET_Y_LSB, lsbY);
+    i2c->writeData(addr,BNO055_MAG_OFFSET_Y_MSB, msbY);
 
     char lsbZ  = (char)(offsetZ & 0xFF); 
     char msbZ = (char)((offsetZ >> 8) & 0xFF);
-    writeData(BNO055_MAG_OFFSET_Z_LSB, lsbZ, 1);
-    writeData(BNO055_MAG_OFFSET_Z_MSB, msbZ, 1); 
+    i2c->writeData(addr,BNO055_MAG_OFFSET_Z_LSB, lsbZ);
+    i2c->writeData(addr,BNO055_MAG_OFFSET_Z_MSB, msbZ); 
 }
 
 /**
@@ -387,18 +338,18 @@ void BNO055::setMAGOffset(uint16_t offsetX, uint16_t offsetY, uint16_t offsetZ) 
 void BNO055::setGYROffset(uint16_t offsetX, uint16_t offsetY, uint16_t offsetZ) {
     char lsbX  = (char)(offsetX & 0xFF); 
     char msbX = (char)((offsetX >> 8) & 0xFF);
-    writeData(BNO055_GYR_OFFSET_X_LSB, lsbX, 1);
-    writeData(BNO055_GYR_OFFSET_X_MSB, msbX, 1);
+    i2c->writeData(addr,BNO055_GYR_OFFSET_X_LSB, lsbX);
+    i2c->writeData(addr,BNO055_GYR_OFFSET_X_MSB, msbX);
 
     char lsbY  = (char)(offsetY & 0xFF); 
     char msbY = (char)((offsetY >> 8) & 0xFF);
-    writeData(BNO055_GYR_OFFSET_Y_LSB, lsbY, 1);
-    writeData(BNO055_GYR_OFFSET_Y_MSB, msbY, 1);
+    i2c->writeData(addr,BNO055_GYR_OFFSET_Y_LSB, lsbY);
+    i2c->writeData(addr,BNO055_GYR_OFFSET_Y_MSB, msbY);
 
     char lsbZ  = (char)(offsetZ & 0xFF); 
     char msbZ = (char)((offsetZ >> 8) & 0xFF);
-    writeData(BNO055_GYR_OFFSET_Z_LSB, lsbZ, 1);
-    writeData(BNO055_GYR_OFFSET_Z_MSB, msbZ, 1);
+    i2c->writeData(addr,BNO055_GYR_OFFSET_Z_LSB, lsbZ);
+    i2c->writeData(addr,BNO055_GYR_OFFSET_Z_MSB, msbZ);
 }
 
 /**
@@ -407,13 +358,13 @@ void BNO055::setGYROffset(uint16_t offsetX, uint16_t offsetY, uint16_t offsetZ) 
 void BNO055::setRadius(uint16_t accRadius, uint16_t magRadius) {
     char lsbAcc  = (char)(accRadius & 0xFF); 
     char msbAcc = (char)((accRadius >> 8) & 0xFF);
-    writeData(BNO055_ACC_RADIUS_LSB, lsbAcc, 1);
-    writeData(BNO055_ACC_RADIUS_MSB, msbAcc, 1);
+    i2c->writeData(addr,BNO055_ACC_RADIUS_LSB, lsbAcc);
+    i2c->writeData(addr,BNO055_ACC_RADIUS_MSB, msbAcc);
 
     char lsbMag  = (char)(magRadius & 0xFF); 
     char msbMag = (char)((magRadius >> 8) & 0xFF);
-    writeData(BNO055_MAG_RADIUS_LSB, lsbMag, 1);
-    writeData(BNO055_MAG_RADIUS_MSB, msbMag, 1);
+    i2c->writeData(addr,BNO055_MAG_RADIUS_LSB, lsbMag);
+    i2c->writeData(addr,BNO055_MAG_RADIUS_MSB, msbMag);
 }
 
 /**
@@ -422,8 +373,8 @@ void BNO055::setRadius(uint16_t accRadius, uint16_t magRadius) {
  */
 uint16_t BNO055::getAccRadius(){
     char lsb, msb;
-    readData(BNO055_ACC_RADIUS_LSB, &lsb, 1);
-    readData(BNO055_ACC_RADIUS_MSB, &msb, 1);
+    i2c->readData(addr, BNO055_ACC_RADIUS_LSB, &lsb, 1);
+    i2c->readData(addr, BNO055_ACC_RADIUS_MSB, &msb, 1);
     uint16_t radius = static_cast<uint16_t>((msb << 8) | lsb);
     return radius;
 }
@@ -434,8 +385,8 @@ uint16_t BNO055::getAccRadius(){
  */
 uint16_t BNO055::getMagRadius(){
     char lsb, msb;
-    readData(BNO055_MAG_RADIUS_LSB, &lsb, 1);
-    readData(BNO055_MAG_RADIUS_MSB, &msb, 1);
+    i2c->readData(addr,BNO055_MAG_RADIUS_LSB, &lsb, 1);
+    i2c->readData(addr,BNO055_MAG_RADIUS_MSB, &msb, 1);
     uint16_t radius = static_cast<uint16_t>((msb << 8) | lsb);
     return radius;  
 }
@@ -446,18 +397,18 @@ uint16_t BNO055::getMagRadius(){
  */
 offset BNO055::getMagOffset(){
     char lsbX, msbX;
-    readData(BNO055_MAG_OFFSET_X_LSB, &lsbX, 1);
-    readData(BNO055_MAG_OFFSET_X_MSB, &msbX, 1);
+    i2c->readData(addr,BNO055_MAG_OFFSET_X_LSB, &lsbX, 1);
+    i2c->readData(addr,BNO055_MAG_OFFSET_X_MSB, &msbX, 1);
     uint16_t offsetX = static_cast<uint16_t>((msbX << 8) | lsbX);
 
     char lsbY, msbY;
-    readData(BNO055_MAG_OFFSET_Y_LSB, &lsbY, 1);
-    readData(BNO055_MAG_OFFSET_Y_MSB, &msbY, 1);
+    i2c->readData(addr,BNO055_MAG_OFFSET_Y_LSB, &lsbY, 1);
+    i2c->readData(addr,BNO055_MAG_OFFSET_Y_MSB, &msbY, 1);
     uint16_t offsetY = static_cast<uint16_t>((msbY << 8) | lsbY);
 
     char lsbZ, msbZ;
-    readData(BNO055_MAG_OFFSET_Z_LSB, &lsbZ, 1);
-    readData(BNO055_MAG_OFFSET_Z_MSB, &msbZ, 1);
+    i2c->readData(addr,BNO055_MAG_OFFSET_Z_LSB, &lsbZ, 1);
+    i2c->readData(addr,BNO055_MAG_OFFSET_Z_MSB, &msbZ, 1);
     uint16_t offsetZ = static_cast<uint16_t>((msbZ << 8) | lsbZ);
     
     return offset{offsetX, offsetY, offsetZ};
@@ -468,18 +419,18 @@ offset BNO055::getMagOffset(){
  */
 offset BNO055::getAccOffset(){
     char lsbX, msbX;
-    readData(BNO055_ACC_OFFSET_X_LSB, &lsbX, 1);
-    readData(BNO055_ACC_OFFSET_X_MSB, &msbX, 1);
+    i2c->readData(addr,BNO055_ACC_OFFSET_X_LSB, &lsbX, 1);
+    i2c->readData(addr,BNO055_ACC_OFFSET_X_MSB, &msbX, 1);
     uint16_t offsetX = static_cast<uint16_t>((msbX << 8) | lsbX);
 
     char lsbY, msbY;
-    readData(BNO055_ACC_OFFSET_Y_LSB, &lsbY, 1);
-    readData(BNO055_ACC_OFFSET_Y_MSB, &msbY, 1);
+    i2c->readData(addr,BNO055_ACC_OFFSET_Y_LSB, &lsbY, 1);
+    i2c->readData(addr,BNO055_ACC_OFFSET_Y_MSB, &msbY, 1);
     uint16_t offsetY = static_cast<uint16_t>((msbY << 8) | lsbY);
 
     char lsbZ, msbZ;
-    readData(BNO055_ACC_OFFSET_Z_LSB, &lsbZ, 1);
-    readData(BNO055_ACC_OFFSET_Z_MSB, &msbZ, 1);
+    i2c->readData(addr,BNO055_ACC_OFFSET_Z_LSB, &lsbZ, 1);
+    i2c->readData(addr,BNO055_ACC_OFFSET_Z_MSB, &msbZ, 1);
     uint16_t offsetZ = static_cast<uint16_t>((msbZ << 8) | lsbZ);
     
     return offset{offsetX, offsetY, offsetZ};
@@ -490,18 +441,18 @@ offset BNO055::getAccOffset(){
  */
 offset BNO055::getGyrOffset(){
     char lsbX, msbX;
-    readData(BNO055_GYR_OFFSET_X_LSB, &lsbX, 1);
-    readData(BNO055_GYR_OFFSET_X_MSB, &msbX, 1);
+    i2c->readData(addr,BNO055_GYR_OFFSET_X_LSB, &lsbX, 1);
+    i2c->readData(addr,BNO055_GYR_OFFSET_X_MSB, &msbX, 1);
     uint16_t offsetX = static_cast<uint16_t>((msbX << 8) | lsbX);
 
     char lsbY, msbY;
-    readData(BNO055_GYR_OFFSET_Y_LSB, &lsbY, 1);
-    readData(BNO055_GYR_OFFSET_Y_MSB, &msbY, 1);
+    i2c->readData(addr,BNO055_GYR_OFFSET_Y_LSB, &lsbY, 1);
+    i2c->readData(addr,BNO055_GYR_OFFSET_Y_MSB, &msbY, 1);
     uint16_t offsetY = static_cast<uint16_t>((msbY << 8) | lsbY);
 
     char lsbZ, msbZ;
-    readData(BNO055_GYR_OFFSET_Z_LSB, &lsbZ, 1);
-    readData(BNO055_GYR_OFFSET_Z_MSB, &msbZ, 1);
+    i2c->readData(addr,BNO055_GYR_OFFSET_Z_LSB, &lsbZ, 1);
+    i2c->readData(addr,BNO055_GYR_OFFSET_Z_MSB, &msbZ, 1);
     uint16_t offsetZ = static_cast<uint16_t>((msbZ << 8) | lsbZ);
     
     return offset{offsetX, offsetY, offsetZ};
@@ -514,7 +465,7 @@ offset BNO055::getGyrOffset(){
 char BNO055::get_SysErr() {
     setPage(0);
     char err = 0x00;
-    readData(BNO055_SYS_ERR, &err, 1);
+    i2c->readData(addr, BNO055_SYS_ERR, &err, 1);
     return err;
 }
 
@@ -525,7 +476,7 @@ char BNO055::get_SysErr() {
 char BNO055::get_SysStatus() {
     setPage(0);
     char status = 0x00;
-    readData(BNO055_SYS_STATUS, &status, 1);
+    i2c->readData(addr,BNO055_SYS_STATUS, &status, 1);
     return status;
 }
 
@@ -534,9 +485,9 @@ char BNO055::get_SysStatus() {
  */
 void BNO055::runSelfTest() {
     char set;
-    readData(BNO055_SYS_TRIGGER, &set, 1);
+    i2c->readData(addr, BNO055_SYS_TRIGGER, &set, 1);
     set |= 0x01; // Set SELF_TEST bit
-    writeData(BNO055_SYS_TRIGGER, set, 1);
+    i2c->writeData(addr, BNO055_SYS_TRIGGER, set);
     wait(20);
 }
 
@@ -547,7 +498,7 @@ void BNO055::runSelfTest() {
 BNO055Result BNO055::readSelfTest() {
     setPage(0);
     char res = 0;
-    readData(BNO055_ST_RESULT, &res, 1);
+    i2c->readData(addr,BNO055_ST_RESULT, &res, 1);
 
     // Bits in ST_RESULT:
     // [3] = System test, [2] = Gyro, [1] = Acc, [0] = Mag
@@ -606,9 +557,9 @@ bno055_vector_t BNO055::bno055_getVector(char vec) {
     // Quaternion reads 8 bytes, others read 6 bytes
     char buffer[8] = {0};
     if (vec == BNO055_VECTOR_QUATERNION) {
-        readData(vec, buffer, 8);
+        i2c->readData(addr,vec, buffer, 8);
     } else {
-        readData(vec, buffer, 6);
+        i2c->readData(addr,vec, buffer, 6);
     }
 
     // Determine scaling based on vector type
@@ -652,7 +603,7 @@ bno055_vector_t BNO055::bno055_getVector(char vec) {
  */
 float BNO055::getTemperature(){
     char temp;
-    readData(BNO055_TEMP, &temp, 1);
+    i2c->readData(addr,BNO055_TEMP, &temp, 1);
     return temp;
 }
 

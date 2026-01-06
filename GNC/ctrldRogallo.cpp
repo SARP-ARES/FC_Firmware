@@ -4,9 +4,11 @@
 #include "GPS.h"
 #include "BMP280.h"
 #include "BNO055.h"
+#include "Mutex_I2C.h"
 #include "PID.h"
 #include <string>
-
+#include "mbed.h"
+#define MCPS_I2C_ADDR                   0x02 << 1 
 #define DEG_LLA_TO_M_CONVERSION         111111
 #define APOGEE_THRESHOLD_BUFFER         600
 #define GROUNDED_THRESHOLD_BUFFER       100
@@ -14,32 +16,14 @@
 #define SPIRAL_RADIUS                   10
 #define PI                              3.1415926535
 #define DEG_TO_RAD                      PI/180.0
+#define BMP_I2C_ADDR                    0xEE
+#define BNO_I2C_ADDR                    0x51
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
-// ctrldRogallo::ctrldRogallo() 
-//     : gps(PA_2, PA_3), bmp(PB_7, PB_8, 0xEE), bno(PB_7, PB_8, 0x51), pid(1.0, 0.001, 0.1) {
-//     bmp.start();
-//     bno.setup();
-
-//     apogeeDetected = 0; // false
-//     apogeeCounter = 0;
-//     groundedCounter = 0; 
-
-//     //target lat/lon
-//     target_lat = NAN;
-//     target_lon = NAN;
-
-//     groundedThreshold = NAN;
-//     apogeeThreshold = NAN; 
-
-//     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
-//     mode = FSM_IDLE; // initialize in idle mode
-// } 
-
-ctrldRogallo::ctrldRogallo()
-    : i2c(PB_7, PB_8), gps(PA_2, PA_3), bmp(&i2c, 0xEE, &i2c_mutex), bno(&i2c, 0x51, &i2c_mutex), pid(1.0, 0.001, 0.1) {
+ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c) 
+    : gps(PA_2, PA_3), bmp(i2c, 0xEE), bno(i2c, 0x51), pid(1.0, 0.001, 0.1), i2c(i2c) {
     bmp.start();
     bno.setup();
 
@@ -192,12 +176,6 @@ float ctrldRogallo::getHeadingError(){
 float ctrldRogallo::computeCtrl(float heading_error, float dt) {
     float delta_a_cmd = this->pid.compute(heading_error, dt);
     return delta_a_cmd;
-}
-
-
-uint8_t ctrldRogallo::sendCtrl(float ctrl){
-    // TODO: IMPLEMENT COMMS
-    return 0;
 }
 
 void ctrldRogallo::resetFlightPacket() {
@@ -358,6 +336,62 @@ void ctrldRogallo::updateFlightPacket(){
 
     state.prevAlt = state.altitude_m; 
     // mutex unlocks outside this scope
+}
+
+
+/** 
+ *  @brief Sends control command over i2c to the MCPS 
+ *  @param ctrl - asymetric deflection 
+ *  @return 0 if success 1 if failure
+ */
+uint8_t ctrldRogallo::sendCtrl(float ctrl){
+
+    uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
+    wait_us(10);
+    return ack; 
+}
+
+/**
+ * @brief reads motor packet off of mcps 
+ * @return packet read over i2c, true if success, false if fail
+ */
+bool ctrldRogallo::requestMotorPacket(motorPacket* motor){
+    // grab motor packet over i2c
+    uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, sizeof(motorPacket)); 
+    wait_us(10);
+
+    if(ack != 0) return false; // failed
+
+    memcpy(motor, rx_buf, sizeof(motorPacket));
+    return true; // success
+}
+
+
+/** 
+ *  @brief Sends control command over i2c to the MCPS 
+ *  @param ctrl - asymetric deflection 
+ *  @return 0 if success 1 if failure
+ */
+uint8_t ctrldRogallo::sendCtrl(float ctrl){
+
+    uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
+    wait_us(10);
+    return ack; 
+}
+
+/**
+ * @brief reads motor packet off of mcps 
+ * @return packet read over i2c, true if success, false if fail
+ */
+bool ctrldRogallo::requestMotorPacket(motorPacket* motor){
+    // grab motor packet over i2c
+    uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, sizeof(motorPacket)); 
+    wait_us(10);
+
+    if(ack != 0) return false; // failed
+
+    memcpy(motor, rx_buf, sizeof(motorPacket));
+    return true; // success
 }
 
 /**

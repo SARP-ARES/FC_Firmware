@@ -4,6 +4,7 @@
 #include <cstdint> // For std::uint16_t
 #include "mbed.h"
 #include "USBSerial.h"
+#include "Mutex_I2C.h"
 
 enum class BNO055Result {
     Ok,
@@ -82,19 +83,12 @@ struct offset {
 
 class BNO055 {
 public:
-    /**
-     * Constructor using pins for I2C and a device address.
-     * @param SDA I2C data pin
-     * @param SCL I2C clock pin
-     * @param addr 8-bit device address (convert from 7 to 8 bit)
-     */
-    BNO055(PinName SDA, PinName SCL, char addr);
 
     /**
      * Constructor using an existing I2C object.
      * @param i2c Pointer to an existing I2C interface
      */
-    BNO055(I2C* i2c, char addr, Mutex* lock);
+    BNO055(Mutex_I2C* i2c, char addr);
 
     /**
      * Destructor.
@@ -140,7 +134,7 @@ public:
     bno055_vector_t getGravity();
     bno055_vector_t getQuaternion();
     void update();
-    IMUData getData() const;; // doesn't include temperature
+    IMUData getData() const; // doesn't include temperature
     float getTemperature();
 
     // Calibration 
@@ -151,7 +145,7 @@ public:
     uint16_t getAccRadius();
 
 private:
-    I2C* i2c;
+    Mutex_I2C* i2c;
     bool owned;
     char addr;
     IMUData data;

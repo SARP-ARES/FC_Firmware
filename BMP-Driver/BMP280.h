@@ -7,6 +7,7 @@
 #include <cstdint> 
 #include "mbed.h"
 #include "USBSerial.h"
+#include "Mutex_I2C.h"
 using namespace std;
 
 struct BMPData {
@@ -34,20 +35,8 @@ struct BMP280_Calibration {
 
 class BMP280 { 
     public:
-        /** Constructor 
-        * @param Pin address of the SDA Pin on the processor 
-        * @param Pin address of the SCL Pin on the processor 
-        * @param The I2C address for the BMP280
-        */
-        BMP280(PinName SDA, PinName SCL, char addr); 
 
-        BMP280(I2C* i2c, char addr, Mutex* lock);
-
-        /* Destructor 
-        * Deletes I2C for this object
-        */ 
-        ~BMP280();
-
+        BMP280(Mutex_I2C* i2c, char addr);
 
         // I2C functional methods
         int writeData(char regaddr, char data);
@@ -71,10 +60,8 @@ class BMP280 {
         BMPData values;           // Stores the nessecary values to be returned 
         BMP280_Calibration c;           // Stores the calibration data nessecary for the sensor 
 
-        bool owned;
         char addr;                      // Address of BMP280 
-        I2C* i2c;                       // Initialize i2c object
-        Mutex* bus_lock;
+        Mutex_I2C* i2c;                 // Reference to the safe I2C
         int32_t t_fine;                 // Nesscary temperature for calibration
 
         float readTemperatureData();            // Reads the temperature data from the register 

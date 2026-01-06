@@ -7,15 +7,23 @@
 #include "EUSBSerial.h"
 #include "flash.h"
 #include "flight_packet.h"
+#include "Mutex_I2C.h"
 #include <cstdint>
 
 // Finite State Machine Modes
 typedef enum {
     FSM_IDLE,       // 0
-    FSM_SEEKING,    // 1
+    FSM_SEEKING,    // 1s
     FSM_SPIRAL,     // 2
     FSM_GROUNDED,   // 3
 } ModeFSM;
+
+typedef struct {
+    float leftDegrees; 
+    float rightDegrees;
+    float leftPower;
+    float rightPower;
+} motorPacket;
 
 
 class ctrldRogallo {
@@ -32,7 +40,11 @@ class ctrldRogallo {
         Timer flight_timer;
         FlightPacket state;
         ModeFSM mode;
-    
+
+        char rx_buf[32];
+
+        Mutex_I2C* i2c; 
+
         Mutex state_mutex;
         Mutex i2c_mutex;
 
@@ -70,7 +82,7 @@ class ctrldRogallo {
         void updateApogeeDetection();
 
     public:
-        ctrldRogallo();
+        ctrldRogallo(Mutex_I2C* i2c);
         
         // ---- thread handlers ----
         void startThreadGPS(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
@@ -104,7 +116,7 @@ class ctrldRogallo {
 
         // ---- MC/PS comms ----
         uint8_t sendCtrl(float ctrl);
-        void requestMotorPacket(void);
+        bool requestMotorPacket(motorPacket* motor);
 
         // ---- FSM mode ----
         uint32_t apogeeDetection(double prevAlt, double currAlt);
