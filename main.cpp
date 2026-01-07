@@ -440,8 +440,8 @@ void command_line_interface() {
 
             // flight log
             if (strcmp(cmd_buffer, "test_mode") == 0 || strcmp(cmd_buffer, "1") == 0) {
-                pc.printf("\"test_mode\" cmd received. \n Use \"quit\" cmd to stop logging." \
-                "Use \"seeking\" cmd to force seeking FSM. Use \"idle\" to force idle\n" \
+                pc.printf("\"test_mode\" cmd received. \n Use \"quit\" cmd to stop logging.\n" \
+                "Use \"seeking\" cmd to force seeking FSM. \n Use \"idle\" to force idle\n" \
                 "Use \"spiral\" cmd to force sprial FSM");
                 ThisThread::sleep_for(1500ms);
                 flight_mode(test,&ARES,0);
