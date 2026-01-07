@@ -90,7 +90,6 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr)
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
     }
-
 } 
 
 /** 
@@ -188,6 +187,8 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         // State machine mode selection 
         switch (mode) {
 
+            case FSM_IDLE: break; 
+
             case FSM_SEEKING: {
                 // Ctrl Setup
                 float target_heading = ARES->getTargetHeading();
@@ -215,10 +216,6 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
             }
 
             case FSM_SPIRAL: {
-                // TODO: make spiral logic 
-                // Working idea, read last deflection out of flash chip or store last deflection as a local var
-                // send this deflection saturated to -1, 1 to the MCPS to maintain turn direction. 
-
                 ARES->sendCtrl(state.fc_cmd > 0 ? 1 : -1);
                 break; 
             }
@@ -360,7 +357,8 @@ void set_origin(ctrldRogallo* ARES) {
         pc.printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
                 state.latitude_deg, state.longitude_deg);
     } else { // lat/lon are nans... GPS doesn't have a fix yet.
-        pc.printf("Origin has NOT been set because the GPS does not yet have fix.\nMake sure the antenna has a clear view of the sky and try again later.");
+        pc.printf("Origin has NOT been set because the GPS does not yet have fix.\n" \
+                  "Make sure the antenna has a clear view of the sky and try again later.");
     }
 }
 
@@ -388,7 +386,7 @@ void flight_mode(FlightMode mode, ctrldRogallo* ARES, uint32_t num_packets) {
     ThisThread::sleep_for(1s);
     switch (mode) {
         case packetlog:
-            pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n",                        num_packets, FLIGHT_PACKET_SIZE);
+            pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", num_packets, FLIGHT_PACKET_SIZE);
             flight_log(ARES, num_packets, &flash_addr);      // Packet logging
             pc.printf("==========================================================\n");
             break; 
@@ -436,7 +434,8 @@ void command_line_interface() {
 
             // flight log
             if (strcmp(cmd_buffer, "test_mode") == 0 || strcmp(cmd_buffer, "1") == 0) {
-                pc.printf("\"test_mode\" cmd received. Use \"quit\" cmd to stop logging. Use \"seeking\" cmd to force seeking FSM \n");
+                pc.printf("\"test_mode\" cmd received. \n Use \"quit\" cmd to stop logging." \
+                "Use \"seeking\" cmd to force seeking FSM. Use \"idle\" to force idle\n");
                 ThisThread::sleep_for(1500ms);
                 flight_mode(test,&ARES,0);
             }

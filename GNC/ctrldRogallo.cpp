@@ -309,13 +309,13 @@ void ctrldRogallo::updateFlightPacket(){
         state.rightDegrees  = motor.rightDegrees;
         state.leftPower     = motor.leftPower; 
         state.rightPower    = motor.rightPower; 
-        state.readSuccess  = true;
+        state.readSuccess   = true;
     } else { // FAILURE TO ACK
         state.leftDegrees   = NAN;
         state.rightDegrees  = NAN;
         state.leftPower     = NAN; 
         state.rightPower    = NAN; 
-        state.readSuccess  = false;
+        state.readSuccess   = false;
     }
 
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); // checks if descending and above threshold
@@ -366,9 +366,7 @@ bool ctrldRogallo::requestMotorPacket(){
     return true; // success
 }
 
-/**
- * @brief updates BMP280 internal data struct (~50Hz)
- */ 
+/** @brief updates BMP280 internal data struct (~50Hz) */ 
 void ctrldRogallo::bmpUpdateLoop() {
     while (true) {
         // Check if BMP_FLAG is active
@@ -380,9 +378,7 @@ void ctrldRogallo::bmpUpdateLoop() {
     }
 }
 
-/**
- * @brief updates GPS internal data struct
- */ 
+/** @brief updates GPS internal data struct */ 
 void ctrldRogallo::gpsUpdateLoop(){
     while (true) {
         // Check if GPS_FLAG is active
@@ -394,9 +390,7 @@ void ctrldRogallo::gpsUpdateLoop(){
     }
 }
 
-/**
- * @brief updates BNO055 internal data struct (~50Hz)
- */ 
+/** @brief updates BNO055 internal data struct (~50Hz) */ 
 void ctrldRogallo::imuUpdateLoop() {
     while (true) {
         // Check if BMP_FLAG is active

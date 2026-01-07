@@ -34,7 +34,6 @@ typedef struct {
 class ctrldRogallo {
 
     private:
-    // Test stuff
 
         /* Drivers */
         BMP280 bmp;
@@ -90,7 +89,6 @@ class ctrldRogallo {
         void updateDistanceToTarget(void);
         void updateHaversineCoords(void);
         bool isWithinTarget(void);
-        void setModeFSM(ModeFSM mode);
         float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
         void updateApogeeDetection();
