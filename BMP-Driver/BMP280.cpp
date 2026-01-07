@@ -175,7 +175,7 @@ int BMP280::BMP280_CalibratePress(){
 
 
 /** 
- * @brief generates altitude data using the a kalman filter of the hypersometric and advanced hypersometric formula
+ * @brief generates altitude data using the a complementary filter of the hypersometric and advanced hypersometric formula
  */
 void BMP280::updateAltitudeM(){
     double univesalGasConst = 8.31432;
