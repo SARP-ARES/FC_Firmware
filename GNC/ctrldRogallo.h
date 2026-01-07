@@ -93,6 +93,9 @@ class ctrldRogallo {
         void setAlphaAlt(float newAlphaAlt);
         void updateApogeeDetection();
 
+        // nan helper 
+        bool is_nan_safe(float f);
+
     public:
         ctrldRogallo(Mutex_I2C* i2c);
 

@@ -205,7 +205,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
 
                 // MCPS Comms
                 bool success = ARES->sendCtrl(delta_a_cmd);
-                pc.printf("CTRL SENT: %f; SUCCESS %i \n", delta_a_cmd, success);
+                // pc.printf("CTRL SENT: %f; SUCCESS %i \n", delta_a_cmd, success); // debug
                 break;
             }
             
@@ -216,7 +216,10 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
             }
 
             case FSM_SPIRAL: {
-                ARES->sendCtrl(state.fc_cmd > 0 ? 1 : -1);
+                float cmd = state.fc_cmd > 0 ? 1 : -1;
+                ARES->setLastFCcmd(cmd);
+                ARES->sendCtrl(cmd);
+
                 break; 
             }
 
@@ -232,8 +235,11 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 ARES->killAllSensorThreads();
                 break;
             } else if (strcmp(cmdBuf, "seeking") == 0) {
-                pc.printf("\"seeking\" cmd recieved...\n");
-                ARES->setFSMMode(ModeFSM::FSM_SEEKING);
+                pc.printf("\"seeking\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_SEEKING);
+            } else if (strcmp(cmdBuf, "idle") == 0) {
+                pc.printf("\"idle\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_IDLE);
+            } else if (strcmp(cmdBuf, "spiral") == 0) {
+                pc.printf("\"spiral\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_SPIRAL);
             }
         }
 
@@ -435,7 +441,8 @@ void command_line_interface() {
             // flight log
             if (strcmp(cmd_buffer, "test_mode") == 0 || strcmp(cmd_buffer, "1") == 0) {
                 pc.printf("\"test_mode\" cmd received. \n Use \"quit\" cmd to stop logging." \
-                "Use \"seeking\" cmd to force seeking FSM. Use \"idle\" to force idle\n");
+                "Use \"seeking\" cmd to force seeking FSM. Use \"idle\" to force idle\n" \
+                "Use \"spiral\" cmd to force sprial FSM");
                 ThisThread::sleep_for(1500ms);
                 flight_mode(test,&ARES,0);
             }

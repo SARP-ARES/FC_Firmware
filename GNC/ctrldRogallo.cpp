@@ -46,17 +46,13 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
  * @brief getter for the current state of the system
  * @returns system state as a FlightPacket struct
  */ 
-const FlightPacket ctrldRogallo::getState() {
-    return this->state;
-}
+const FlightPacket ctrldRogallo::getState() { return this->state; }
 
 /**
  * @brief getter for the current FSM mode of the system
  * @returns FSM mode of the ctrldRogallo
  */ 
-const ModeFSM ctrldRogallo::getMode() {
-    return this->mode;
-}
+const ModeFSM ctrldRogallo::getMode() { return this->mode; }
 
 
 /**
@@ -228,9 +224,16 @@ void ctrldRogallo::resetFlightPacket() {
 }
 
 // Setters
-void ctrldRogallo::setLastFCcmd(float cmd)  { state.fc_cmd = cmd; }
-void ctrldRogallo::setFSMMode(ModeFSM mode) { this->mode = mode; }
-void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) { this->pid.updateGains(Kp, Ki, Kd); }
+void ctrldRogallo::setLastFCcmd(float cmd)                      { state.fc_cmd = cmd; }
+void ctrldRogallo::setFSMMode(ModeFSM mode)                     { this->mode = mode; }
+void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd)    { this->pid.updateGains(Kp, Ki, Kd); }
+void ctrldRogallo::setAlphaAlt(float newAlphaAlt)               { alphaAlt = newAlphaAlt; }
+void ctrldRogallo::setThreshold(){
+    ScopedLock<Mutex> lock(this->state_mutex);
+    groundedThreshold = state.altitude_m + GROUNDED_THRESHOLD_BUFFER;
+    apogeeThreshold = state.altitude_m + APOGEE_THRESHOLD_BUFFER; 
+}
+
 
 /**
  * @brief updates the state of the system for control purposes and logging
@@ -263,7 +266,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.longitude_deg = gps_buf.lon;
     state.altitude_gps_m = gps_buf.alt;
 
-    // state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt); // shit don't work
+    state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt); // shit don't work
     // state.altitude_m = bmp_buf.altitude_m; // TODO: replace with fuzedAlt
 
     updateHaversineCoords(); // TODO: restructure for lightweight mutex
@@ -499,21 +502,10 @@ void ctrldRogallo::startLogging(flash* flash_mem, EUSBSerial* pc) {
  */ 
 float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
     float fuzedAlt = NAN; 
-    // check for NANs (they will not equal themselves)
-    if (alt1 == alt1 && alt2 == alt2) {
-        fuzedAlt = alt1*alphaAlt + alt2*(1-alphaAlt);
-    } else if (alt1 == alt1) {
-        fuzedAlt = alt1;
-    }else if (alt2 == alt2){
-        fuzedAlt = alt2; 
-    } else {
-        fuzedAlt = NAN; // both bmp and gps are giving nans
-    }
-    return fuzedAlt;
-}
-
-void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
-    alphaAlt = newAlphaAlt;
+    if (!is_nan_safe(alt1) && !is_nan_safe(alt2)) fuzedAlt = alt1*alphaAlt + alt2*(1-alphaAlt);
+    else if (!is_nan_safe(alt1))                  fuzedAlt = alt1;
+    else if (!is_nan_safe(alt2))                  fuzedAlt = alt2; 
+    return                                        fuzedAlt;
 }
 
 /** 
@@ -524,28 +516,17 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt){
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     double interval = 1; // seconds
-    // double apogeeVelo = -1.5; // m/s
     double apogeeVelo = -1.2; // m/s
     double velo = (currAlt - prevAlt)/interval;
-    if(velo <= apogeeVelo && currAlt > apogeeThreshold) { // REMINDER TO ADD --> 600m threshold altitude
-        return 1;
-    } 
+    if(velo <= apogeeVelo && currAlt > apogeeThreshold) return 1; 
     return 0; 
 }
 
 uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     double interval = 1; 
     double velo = (currAlt - prevAlt)/interval;
-    if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) {
-        return 1; 
-    }
+    if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) return 1; 
     return 0; 
-}
-
-void ctrldRogallo::setThreshold(){
-    ScopedLock<Mutex> lock(this->state_mutex);
-    groundedThreshold = state.altitude_m + GROUNDED_THRESHOLD_BUFFER;
-    apogeeThreshold = state.altitude_m + APOGEE_THRESHOLD_BUFFER; 
 }
 
 void ctrldRogallo::printCompactState(EUSBSerial* pc) {
@@ -559,25 +540,20 @@ void ctrldRogallo::printCompactState(EUSBSerial* pc) {
                 state.heading_deg, state.target_heading_deg, state.heading_error_deg);
     pc->printf("FC CMD:\t\t\t\t\t%.1f\n", state.fc_cmd); // TODO: implement PID 
     pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
-    pc->printf("FSM mode:\t\t\t\t%d\n", state.fsm_mode);
+
+    const char* MODE_NAMES[] = {"IDLE", "SEEKING", "SPIRAL", "GROUNDED"};
+    if (state.fsm_mode >= 0 && state.fsm_mode < 4) pc->printf("FSM mode:\t\t\t\t%s\n", MODE_NAMES[state.fsm_mode]);
+
+    pc->printf("Temperature C: \t\t\t\t%f\n", state.temp_c);
+    pc->printf("Altitude M: \t\t\t\t%f\n", state.altitude_m);
     pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
     pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
     pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
     pc->printf("==========================================================\n");
 }
 
-// /**
-//  * @brief logs current state as a flight packet to the flash chip
-//  */
-// void ctrldRogallo::logData() {
-//     currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-// }
-
-// /**
-//  * @brief logs current state as a flight packet to address 0 only
-//  */
-// void ctrldRogallo::logDataTEST() {
-//     currentFlashAddress = 0;
-//     currentFlashAddress = fc.writePacket(currentFlashAddress, state);
-// }
-
+bool ctrldRogallo::is_nan_safe(float f) {
+    uint32_t i;
+    memcpy(&i, &f, sizeof(i));
+    return (i & 0x7F800000) == 0x7F800000 && (i & 0x007FFFFF) != 0;
+}
