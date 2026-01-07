@@ -15,7 +15,6 @@
 EUSBSerial pc;
 Mutex_I2C i2c(PB_7, PB_8);
 ctrldRogallo ARES(&i2c);
-DigitalOut led(PA_8);
 
 // = # of pages, 4.55 hours at 1Hz
 // 16 pages per sector
@@ -142,8 +141,6 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
     }
 }
 
-
-
 /** 
  *  @brief Testing mode system prints & logs state until "quit" is entered into the CLI 
  *  @param ARES pointer to the ctrldRogallo flight object
@@ -170,6 +167,10 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     pc.printf("started logging...\n\n");
     ThisThread::sleep_for(100ms);
 
+    // TESTING APPLICATIONS
+    float deflection = 0;
+    bool up = true;
+
     while(true) {
         execution_timer.reset();
         // Get current sensor data and put it in the state struct
@@ -184,32 +185,62 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         packet_count = flash_chip.getNumPacketsWritten();
         pc.printf("Packets Logged: %d\n", packet_count);
 
-        // TODO: make seeking logic 
-        if (mode == FSM_SEEKING) { // mode is set after apogee detection
-            // SEEKING CODE HERE
-            // Use computeCtrl() and sendCtrl()
-            // the speed of this (outer) loop should define the speed of the control system.
-            // TODO: put GPS in its own thread so it doesnt hold up this loop.
+        // State machine mode selection 
+        switch (mode) {
 
-            float target_heading = ARES->getTargetHeading();
-            float heading_error = ARES->getHeadingError();
-            float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
-            uint8_t ack = ARES->sendCtrl(delta_a_cmd);
-        } else if (mode == FSM_GROUNDED) {
-            ARES->stopLogging();
-            ARES->killAllSensorThreads();
+            case FSM_SEEKING: {
+                // Ctrl Setup
+                float target_heading = ARES->getTargetHeading();
+                float heading_error = ARES->getHeadingError();
+                // float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+
+                // TESTING
+                float delta_a_cmd = deflection;
+                if(up)  deflection += 0.1;
+                else    deflection -= 0.1;
+                if (deflection < -1 || deflection > 1) up = !up; 
+
+                ARES->setLastFCcmd(delta_a_cmd);
+
+                // MCPS Comms
+                bool success = ARES->sendCtrl(delta_a_cmd);
+                pc.printf("CTRL SENT: %f; SUCCESS %i \n", delta_a_cmd, success);
+                break;
+            }
+            
+            case FSM_GROUNDED: {
+                ARES->stopLogging();
+                ARES->killAllSensorThreads();
+                break;
+            }
+
+            case FSM_SPIRAL: {
+                // TODO: make spiral logic 
+                // Working idea, read last deflection out of flash chip or store last deflection as a local var
+                // send this deflection saturated to -1, 1 to the MCPS to maintain turn direction. 
+
+                ARES->sendCtrl(state.fc_cmd > 0 ? 1 : -1);
+                break; 
+            }
+
+            // Unidentified Case
+            default: break; 
         }
 
-        // break on "quit" command
+        // --- User Input Handling --- 
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
                 pc.printf("\"quit\" cmd recieved...\n");
                 ARES->stopLogging();
                 ARES->killAllSensorThreads();
                 break;
+            } else if (strcmp(cmdBuf, "seeking") == 0) {
+                pc.printf("\"seeking\" cmd recieved...\n");
+                ARES->setFSMMode(ModeFSM::FSM_SEEKING);
             }
         }
 
+        // Event Scheduling, slow to 50hz if running faster than schedule 
         auto elapsed_time = execution_timer.elapsed_time();
         if (elapsed_time < EXECUTION_PERIOD) {
             ThisThread::sleep_for(
@@ -218,6 +249,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 )
             );
         } // else run again asap
+
     }
 }
 
@@ -404,7 +436,7 @@ void command_line_interface() {
 
             // flight log
             if (strcmp(cmd_buffer, "test_mode") == 0 || strcmp(cmd_buffer, "1") == 0) {
-                pc.printf("\"test_mode\" cmd received. Use \"quit\" cmd to stop logging.\n");
+                pc.printf("\"test_mode\" cmd received. Use \"quit\" cmd to stop logging. Use \"seeking\" cmd to force seeking FSM \n");
                 ThisThread::sleep_for(1500ms);
                 flight_mode(test,&ARES,0);
             }

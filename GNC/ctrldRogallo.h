@@ -10,10 +10,16 @@
 #include "Mutex_I2C.h"
 #include <cstdint>
 
+// Event flags uses bit masks, not indexes
+#define BMP_FLAG        (1UL << 0) // 1
+#define BNO_FLAG        (1UL << 1) // 2
+#define GPS_FLAG        (1UL << 2) // 4
+#define LOGGING_FLAG    (1UL << 3) // 8
+
 // Finite State Machine Modes
 typedef enum {
     FSM_IDLE,       // 0
-    FSM_SEEKING,    // 1s
+    FSM_SEEKING,    // 1
     FSM_SPIRAL,     // 2
     FSM_GROUNDED,   // 3
 } ModeFSM;
@@ -57,6 +63,9 @@ class ctrldRogallo {
         Thread thread_bmp;
         Thread thread_gps;
 
+        /* Threading Flag Handler */
+        EventFlags event_flags; 
+
         /* State local vars */ 
         uint32_t apogeeDetected;
         uint32_t apogeeCounter;
@@ -88,9 +97,13 @@ class ctrldRogallo {
 
     public:
         ctrldRogallo(Mutex_I2C* i2c);
-        
+
+        // -- Setters --
+        void setLastFCcmd(float cmd);
+        void setFSMMode(ModeFSM mode);
+
         // ---- thread handlers ----
-        void startThreadGPS(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
+        void startThreadGPS(); 
         void startThreadIMU();
         void startThreadBMP();
         void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
@@ -120,8 +133,8 @@ class ctrldRogallo {
         float computeCtrl(float heading_error, float dt); // output in [-1, 1]
 
         // ---- MC/PS comms ----
-        uint8_t sendCtrl(float ctrl);
-        bool requestMotorPacket(motorPacket* motor);
+        bool sendCtrl(float ctrl);
+        bool requestMotorPacket();
 
         // ---- FSM mode ----
         uint32_t apogeeDetection(double prevAlt, double currAlt);

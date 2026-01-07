@@ -187,7 +187,6 @@ int flash::eraseAll() {
     return waitForWriteToFinish();
 }
 
-
 /**
  * Sends Write Enable command to allow write/erase operations.
  */
@@ -318,14 +317,6 @@ void flash::printCSVHeader() {
         "distance_to_target_m,"
         "temp_c,"
         "pressure_pa,"
-        "delta1_deg,"
-        "delta1_m,"
-        "delta2_deg,"
-        "delta2_m,"
-        "delta_a,"
-        "delta_s,"
-        "pwm_motor1,"
-        "pwm_motor2,"
         "fc_cmd,"
         "apogee_counter,"
         "apogee_detected,"
@@ -352,7 +343,12 @@ void flash::printCSVHeader() {
         "bno_quat_y,"
         "bno_quat_z,"
         "compass_heading,"
-        "flight_id\n"
+        "leftDegrees,"
+        "rightDegrees,"
+        "leftPower,"
+        "rightPower,"
+        "readSuccess,"
+        "flight_id,\n"
     );
 }
 
@@ -382,14 +378,6 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // distance_to_target_m
         "%.4f,"      // temp_c
         "%.4f,"      // pressure_pa
-        "%.4f,"      // delta1_deg
-        "%.4f,"      // delta1_m
-        "%.4f,"      // delta2_deg
-        "%.4f,"      // delta2_m
-        "%.4f,"      // delta_a
-        "%.4f,"      // delta_s
-        "%.4f,"      // pwm_motor1
-        "%.4f,"      // pwm_motor2
         "%.4f,"      // fc_cmd
         "%u,"        // apogee_counter
         "%u,"        // apogee_detected
@@ -416,6 +404,11 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // bno_quat_y
         "%.4f,"      // bno_quat_z
         "%s,"        // compass_heading
+        "%.4f,"      // leftDegrees
+        "%.4f,"      // rightDegrees
+        "%.4f,"      // leftPower
+        "%.4f,"      // rightPower
+        "%i,"        // readSuccess
         "%s\n",      // pkt.flight_id (uncomment if you add it back)
         pkt.timestamp_timer,
         pkt.timestamp_gps,
@@ -437,14 +430,6 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.distance_to_target_m,
         pkt.temp_c,
         pkt.pressure_pa,
-        pkt.delta_1_deg,
-        pkt.delta_1_m,
-        pkt.delta_2_deg,
-        pkt.delta_2_m,
-        pkt.delta_a,
-        pkt.delta_s,
-        pkt.pwm_motor1,
-        pkt.pwm_motor2,
         pkt.fc_cmd,
         pkt.apogee_counter,
         static_cast<unsigned>(pkt.apogee_detected),
@@ -471,6 +456,11 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.bno_quat_y,
         pkt.bno_quat_z,
         pkt.compass_heading,
+        pkt.leftDegrees,
+        pkt.rightDegrees,
+        pkt.leftPower, 
+        pkt.rightPower,
+        pkt.readSuccess,
         pkt.flight_id
     );
 }

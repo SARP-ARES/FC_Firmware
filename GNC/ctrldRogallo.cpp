@@ -140,11 +140,6 @@ def getThetaErr(actualHeading_deg, targetHeading_deg):
     return error_deg
 */
 
-
-void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) {
-    this->pid.updateGains(Kp, Ki, Kd);
-}
-
 /**
  * @brief calculates target heading to point towards the origin in local tangent plane coords
  * @return target heading 
@@ -196,14 +191,6 @@ void ctrldRogallo::resetFlightPacket() {
     state.pos_north_m        = NAN;
     state.temp_c             = NAN;
     state.pressure_pa        = NAN;
-    state.delta_1_deg        = NAN;
-    state.delta_1_m          = NAN;
-    state.delta_2_deg        = NAN;
-    state.delta_2_m          = NAN;
-    state.delta_a            = NAN;
-    state.delta_s            = NAN;
-    state.pwm_motor1         = NAN;
-    state.pwm_motor2         = NAN;
     state.fc_cmd             = NAN;
     state.yaw_rate           = NAN;
     state.pitch_rate         = NAN;
@@ -240,9 +227,10 @@ void ctrldRogallo::resetFlightPacket() {
     // std::memset(state.flight_id, 0, sizeof(state.flight_id));
 }
 
-
-
-
+// Setters
+void ctrldRogallo::setLastFCcmd(float cmd)  { state.fc_cmd = cmd; }
+void ctrldRogallo::setFSMMode(ModeFSM mode) { this->mode = mode; }
+void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) { this->pid.updateGains(Kp, Ki, Kd); }
 
 /**
  * @brief updates the state of the system for control purposes and logging
@@ -283,7 +271,6 @@ void ctrldRogallo::updateFlightPacket(){
     state.pos_north_m = haversineCoordNorth;
     state.distance_to_target_m = distanceToTarget;
     
-
     // BNO 
     state.bno_acc_x = bno_buf.acc_x;
     state.bno_acc_y = bno_buf.acc_y;
@@ -314,12 +301,26 @@ void ctrldRogallo::updateFlightPacket(){
     state.bno_quat_y = bno_buf.quat_y;
     state.bno_quat_z = bno_buf.quat_z;
 
+    // Refresh Motor data from MCPS
+    bool success = requestMotorPacket();
+
+    if (success) {
+        state.leftDegrees   = motor.leftDegrees;
+        state.rightDegrees  = motor.rightDegrees;
+        state.leftPower     = motor.leftPower; 
+        state.rightPower    = motor.rightPower; 
+        state.readSuccess  = true;
+    } else { // FAILURE TO ACK
+        state.leftDegrees   = NAN;
+        state.rightDegrees  = NAN;
+        state.leftPower     = NAN; 
+        state.rightPower    = NAN; 
+        state.readSuccess  = false;
+    }
 
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); // checks if descending and above threshold
 
-    if(apogeeCounter >= 200) {
-        apogeeDetected = 1;
-    }
+    if(apogeeCounter >= 200) apogeeDetected = 1;
 
     if(apogeeDetected == 1) {
         if(isWithinTarget())    mode = FSM_SPIRAL; // checks if ARES is within spiral target range mode = FSM_SPIRAL; 
@@ -328,7 +329,6 @@ void ctrldRogallo::updateFlightPacket(){
         groundedCounter += groundedDetection(state.prevAlt, state.altitude_m); // checks if not moving and below threshold
         if(groundedCounter >= 15)    mode = FSM_GROUNDED;
     }
-
 
     state.apogee_counter = apogeeCounter;
     state.apogee_detected = apogeeDetected;
@@ -343,11 +343,10 @@ void ctrldRogallo::updateFlightPacket(){
  *  @param ctrl - asymetric deflection 
  *  @return 0 if success 1 if failure
  */
-uint8_t ctrldRogallo::sendCtrl(float ctrl){
-
+bool ctrldRogallo::sendCtrl(float ctrl){
     uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
     wait_us(10);
-    return ack; 
+    return ack == 0; 
 }
 
 /**
@@ -361,8 +360,9 @@ bool ctrldRogallo::requestMotorPacket(){
 
     if(ack != 0) return false; // failed
     
-    // motor is a motorpacket object owned by ctrldRogallo
+    // motor is a motorpacket Struct owned by ctrldRogallo
     memcpy(&motor, rx_buf, sizeof(motorPacket));
+
     return true; // success
 }
 
@@ -371,6 +371,10 @@ bool ctrldRogallo::requestMotorPacket(){
  */ 
 void ctrldRogallo::bmpUpdateLoop() {
     while (true) {
+        // Check if BMP_FLAG is active
+        // Wait until active if not active
+        event_flags.wait_any(BMP_FLAG, osWaitForever, false);
+
         bmp.update();
         ThisThread::sleep_for(20ms); // TODO: replace with timer
     }
@@ -381,6 +385,10 @@ void ctrldRogallo::bmpUpdateLoop() {
  */ 
 void ctrldRogallo::gpsUpdateLoop(){
     while (true) {
+        // Check if GPS_FLAG is active
+        // Wait until active if not active
+        event_flags.wait_any(GPS_FLAG, osWaitForever, false);
+
         gps.bigUpdate(); // this takes 100-1000ms
         ThisThread::sleep_for(1ms); // avoid hammering just in case
     }
@@ -391,63 +399,61 @@ void ctrldRogallo::gpsUpdateLoop(){
  */ 
 void ctrldRogallo::imuUpdateLoop() {
     while (true) {
+        // Check if BMP_FLAG is active
+        // Wait until active if not active
+        event_flags.wait_any(BNO_FLAG, osWaitForever, false);
+
         bno.update();
         ThisThread::sleep_for(20ms); // TODO: replace with timer
     }
 }
 
 void ctrldRogallo::startThreadIMU() {
-    // send event flag to start the thread
+    event_flags.set(BNO_FLAG);
     this->thread_imu.start(callback(this, &ctrldRogallo::imuUpdateLoop));
 }
 
 void ctrldRogallo::startThreadBMP() {
+    event_flags.set(BMP_FLAG);
     this->thread_bmp.start(callback(this, &ctrldRogallo::bmpUpdateLoop));
 }
 
-void ctrldRogallo::startThreadGPS(EUSBSerial* pc) {
-    Thread thread_gps; // make new thread
-    pc->printf("in startThreadGPS\n");
+void ctrldRogallo::startThreadGPS() {
+    event_flags.set(GPS_FLAG);
     this->thread_gps.start(callback(this, &ctrldRogallo::gpsUpdateLoop));
-    pc->printf("started GPS thread!\n");
 }
-
 
 void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
-    pc->printf("now in 'startAllSensorThreads' func\n");
-    startThreadGPS(pc);
-    pc->printf("Starting IMU thread...\n");
-    startThreadIMU();
-    pc->printf("IMU thread started!\n");
-    pc->printf("Starting BMP thread...\n");
-    startThreadBMP();
-    pc->printf("BMP thread started!\n");
+    pc->printf("Starting GPS thread...\n"); startThreadGPS(); pc->printf("GPS thread started!\n");
+    pc->printf("Starting IMU thread...\n"); startThreadIMU(); pc->printf("IMU thread started!\n");
+    pc->printf("Starting BMP thread...\n"); startThreadBMP(); pc->printf("BMP thread started!\n");
 }
 
+void ctrldRogallo::killThreadIMU() { event_flags.clear(BNO_FLAG); }
+void ctrldRogallo::killThreadBMP() { event_flags.clear(BMP_FLAG); }
+void ctrldRogallo::killThreadGPS() { event_flags.clear(GPS_FLAG); }
+void ctrldRogallo::stopLogging()   { event_flags.clear(LOGGING_FLAG); }
 
-void ctrldRogallo::killThreadIMU() {
-    this->thread_imu.terminate();
-}
-
-void ctrldRogallo::killThreadBMP() {
-    this->thread_bmp.terminate();
-}
-
-void ctrldRogallo::killThreadGPS() {
-    this->thread_gps.terminate();
-}
-
-void ctrldRogallo::killAllSensorThreads(){
+void ctrldRogallo::killAllSensorThreads() {
     killThreadGPS();
     killThreadIMU();
     killThreadBMP();
 }
 
+void ctrldRogallo::stopAllThreads(){
+    this->stopLogging();
+    this->killAllSensorThreads();
+}
+
 void ctrldRogallo::logDataLoop(){
     FlightPacket state_snapshot;
     Kernel::Clock::duration LOG_PERIOD = 1s; // default 1Hz
+
     while (true){
+
+        event_flags.wait_any(LOGGING_FLAG, osWaitForever, false);
         auto start_time = flight_timer.elapsed_time();
+
         {   // take snapshot of current state w/ mutex
             ScopedLock<Mutex> lock(this->state_mutex);
             state_snapshot = this->state;
@@ -465,6 +471,8 @@ void ctrldRogallo::logDataLoop(){
         }   
         auto end_time = flight_timer.elapsed_time();
         auto compute_time = end_time - start_time;
+
+        /* Event Scheduling */
         // wait until next period to log next packet
         if (compute_time < LOG_PERIOD) {
             ThisThread::sleep_for(
@@ -477,7 +485,6 @@ void ctrldRogallo::logDataLoop(){
 }
 
 void ctrldRogallo::startLogging(flash* flash_mem, EUSBSerial* pc) {
-    Thread thread_logging; // make new thread
     pc->printf("made it into startLogging\n");
     // flash_mem and flash_addr are initalized in the main program and passed in here
     this->flash_mem = flash_mem;
@@ -488,19 +495,9 @@ void ctrldRogallo::startLogging(flash* flash_mem, EUSBSerial* pc) {
     pc->printf("made it past flash mem and addr assignments\n");
     pc->printf("flash_mem=%p, flash_addr=%d\n", flash_mem, flash_addr);
     flight_timer.start(); // start timer once logging begins
+    event_flags.set(LOGGING_FLAG);
     thread_logging.start(callback(this, &ctrldRogallo::logDataLoop));
 }
-
-void ctrldRogallo::stopLogging(){
-    this->thread_logging.terminate();
-}
-
-void ctrldRogallo::stopAllThreads(){
-    this->stopLogging();
-    this->killAllSensorThreads();
-}
-
-
 
 /**
  * @brief fuzes the altitude of the GPS and BMP reading using a complimentary filter
@@ -574,34 +571,6 @@ void ctrldRogallo::printCompactState(EUSBSerial* pc) {
     pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
     pc->printf("==========================================================\n");
 }
-
-// string ctrldRogallo::getCompassDirection(float rollMag, float pitchMag){
-//     float heading = atan2(rollMag, pitchMag) * 180/pi;
-//     if(heading < 0) heading += 360; 
-//     if(heading > 360) heading -= 360;
-//     if(heading > 360-22.5 || heading <= 22.5 ) {
-//         return "N";
-//     } 
-//     if(heading < 67.5){
-//         return "NE";
-//     }
-//     if(heading < 117.5){
-//         return "E";
-//     }
-//     if(heading < 167.5 ){
-//         return "SE";
-//     }
-//     if(heading < 217.5){
-//         return "S";
-//     }
-//     if(heading < 267.5){
-//         return "SW";
-//     }
-//     if(heading < 317.5){
-//         return "W";
-//     }
-//     return "NW";
-// }   
 
 // /**
 //  * @brief logs current state as a flight packet to the flash chip

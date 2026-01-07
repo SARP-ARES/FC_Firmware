@@ -24,14 +24,6 @@ struct FlightPacket {
     float distance_to_target_m;  // 4
     float temp_c;                // 4
     float pressure_pa;           // 4
-    float delta_1_deg;           // 4
-    float delta_1_m;             // 4
-    float delta_2_deg;           // 4
-    float delta_2_m;             // 4
-    float delta_a;               // 4
-    float delta_s;               // 4
-    float pwm_motor1;            // 4
-    float pwm_motor2;            // 4
     float fc_cmd;                // 4
     uint32_t apogee_counter;     // 4
     uint8_t apogee_detected;     // 1
@@ -82,6 +74,13 @@ struct FlightPacket {
     // --- END BNO055 Sensor Fields ---
 
     char flight_id[8];          // 8 (null-terminated string
+
+    /* -- MCPS STATUS 16 BYTES -- */ 
+    float leftDegrees;
+    float rightDegrees;
+    float leftPower;
+    float rightPower;
+    bool readSuccess;
 };
 #pragma pack(pop)
 
