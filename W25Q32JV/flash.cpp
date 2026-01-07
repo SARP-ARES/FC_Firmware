@@ -68,6 +68,7 @@ uint32_t flash::write(uint32_t address, const uint8_t *buffer, size_t length) {
     cmd[2] = (address >> 8) & 0xFF;
     cmd[3] = address & 0xFF;
 
+    ScopedLock<Mutex> lock(this->flash_lock);
     csLow();
     _spi.write((const char *)cmd, 4, NULL, 0);
     _spi.write((const char *)buffer, length, NULL, 0);
@@ -89,7 +90,8 @@ void flash::read(uint32_t address, uint8_t *buffer, size_t length) {
     cmd[1] = (address >> 16) & 0xFF;
     cmd[2] = (address >> 8) & 0xFF;
     cmd[3] = address & 0xFF;
-
+    
+    ScopedLock<Mutex> lock(this->flash_lock);
     csLow();
     _spi.write((const char *)cmd, 4, NULL, 0);
     _spi.write(NULL, 0, (char *)buffer, length); // Only receive data
@@ -116,11 +118,42 @@ void flash::writeByte(uint32_t address, uint8_t data) {
     write(address, &data, 1);
 }
 
+
+/**
+ * Wait for the flash chip to finish writing
+ * @returns integer indicating timeout (1) or proper funciton (0)
+ */
+int flash::waitForWriteToFinish() {
+    Timer t;
+    uint8_t status; 
+    t.start();
+    uint8_t read_status_cmd = 0x05;
+    t.start();
+    while(true){
+        wait_us(1000);
+        
+        csLow();
+        _spi.write((const char *)&read_status_cmd, 1, (char *)&status, 1);
+        csHigh();
+
+        // ensure "write-in-progress" flag (at bit zero) is zero (not writing)
+        if((status & 0b1) == 0){ 
+            return 0; // no error
+        }
+
+        // timeout
+        if (t.elapsed_time() > 30s) {
+            return 1; // error
+        }
+    }
+}
+
 /**
  * Erases a 4KB sector at the given address.
  * @param address - Address within the sector to erase
+ * @returns integer indicating timeout (1) or proper funciton (0)
  */
-void flash::eraseSector(uint32_t address) {
+int flash::eraseSector(uint32_t address) {
     enableWrite();
 
     uint8_t cmd[4];
@@ -130,40 +163,29 @@ void flash::eraseSector(uint32_t address) {
     cmd[3] = address & 0xFF;
 
     csLow();
-    _spi.write((const char *)cmd, 4, NULL, 0);
+    _spi.write((const char *)&cmd, 4, NULL, 0);
     csHigh();
 
+    // // wait for erase to finish and return status
+    // return waitForWriteToFinish();
     wait_us(500000);
+    return 0;
 }
 
 /**
- * Erases a all sectors.
+ * Erases all sectors.
  */
-void flash::eraseAll() {
+int flash::eraseAll() {
+    Timer t;
     enableWrite();
-
-    uint8_t cmd = 0xC7; 
+    uint8_t erase_all_cmd = 0xC7; 
 
     csLow();
-    _spi.write((const char *)&cmd, 1, NULL, 0);
+    _spi.write((const char *)&erase_all_cmd, 1, NULL, 0);
     csHigh();
 
-    cmd = 0x05;
-    uint8_t s1; 
-    while(true){
-        wait_us(10000);
-
-        csLow();
-        _spi.write((const char *)cmd, 1, NULL, 0);
-        _spi.write(NULL, 0, (char *) &s1, 1); // Only receive data
-        csHigh();
-
-        if((s1 & 0b1) == 0){
-            break;
-        }
-    }
+    return waitForWriteToFinish();
 }
-
 
 /**
  * Sends Write Enable command to allow write/erase operations.
@@ -232,28 +254,40 @@ float flash::readNum(uint32_t address) {
     return bytes2float(rData);
 }
 
-// Write entire data packet (struct)
-uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
-    write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
-
+uint16_t flash::getNumPacketsWritten() {
     uint16_t count;
-    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);  // Read current count
-
+    // Read current count (stored in the last two bytes of flash memory)
+    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+    wait_us(100);
     if (count == 0xFFFF) {
-        // If it's the default erased value, initialize to 1
-        eraseSector(0x3FFFFE);  // Align to the base of the sector containing 0xFFFFFF
-        count = 1; 
-        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
-
+        // unitialized, no packets logged
+        return 0;
     } else {
-        // Increment count and write back
+        // there are packets written
+        return count;
+    }
+}
+
+void flash::incrementNumPacketsWritten() {
+    // get the current number of packets logged
+    uint16_t count = getNumPacketsWritten();
+    { 
+        // lock to make sure erased count isn't read elsewhere before new count is written
+        ScopedLock<Mutex> lock(this->flash_lock);
+        // erase sector before writing
         eraseSector(0x3FFFFE);
-        count += 1;  // Again, erase the entire sector before writing
+        count += 1;
         write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
     }
+}
 
-    return address + 256;
-} 
+// Write entire data packet (struct)
+uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
+    // write the packet
+    write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
+    incrementNumPacketsWritten();
+    return address + 256; // increment write address to the next page
+}
 
 // Read packet
 uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
@@ -263,11 +297,13 @@ uint32_t flash::readPacket(uint32_t address, FlightPacket& pkt) {
 
 void flash::printCSVHeader() {
     pc->printf(
-        "timestamp_utc,"
+        "timestamp_timer,"
+        "timestamp_gps,"
         "fsm_mode,"
         "gps_fix,"
         "gps_antenna_status,"
         "heading_deg,"
+        "target_heading_deg,"
         "target_heading_deg,"
         "h_speed_m_s,"
         "v_speed_m_s,"
@@ -281,14 +317,6 @@ void flash::printCSVHeader() {
         "distance_to_target_m,"
         "temp_c,"
         "pressure_pa,"
-        "delta1_deg,"
-        "delta1_m,"
-        "delta2_deg,"
-        "delta2_m,"
-        "delta_a,"
-        "delta_s,"
-        "pwm_motor1,"
-        "pwm_motor2,"
         "fc_cmd,"
         "apogee_counter,"
         "apogee_detected,"
@@ -315,7 +343,12 @@ void flash::printCSVHeader() {
         "bno_quat_y,"
         "bno_quat_z,"
         "compass_heading,"
-        "flight_id\n"
+        "leftDegrees,"
+        "rightDegrees,"
+        "leftPower,"
+        "rightPower,"
+        "readSuccess,"
+        "flight_id,\n"
     );
 }
 
@@ -325,6 +358,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
     //     return; // garbage packet, skip.
     // }
     pc->printf(
+        "%.3f,"      // timestamp_timer
         "%.3f,"      // timestamp_utc
         "%u,"        // fsm_mode
         "%u,"        // gps_fix
@@ -344,14 +378,6 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // distance_to_target_m
         "%.4f,"      // temp_c
         "%.4f,"      // pressure_pa
-        "%.4f,"      // delta1_deg
-        "%.4f,"      // delta1_m
-        "%.4f,"      // delta2_deg
-        "%.4f,"      // delta2_m
-        "%.4f,"      // delta_a
-        "%.4f,"      // delta_s
-        "%.4f,"      // pwm_motor1
-        "%.4f,"      // pwm_motor2
         "%.4f,"      // fc_cmd
         "%u,"        // apogee_counter
         "%u,"        // apogee_detected
@@ -378,8 +404,14 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // bno_quat_y
         "%.4f,"      // bno_quat_z
         "%s,"        // compass_heading
+        "%.4f,"      // leftDegrees
+        "%.4f,"      // rightDegrees
+        "%.4f,"      // leftPower
+        "%.4f,"      // rightPower
+        "%i,"        // readSuccess
         "%s\n",      // pkt.flight_id (uncomment if you add it back)
-        pkt.timestamp_utc,
+        pkt.timestamp_timer,
+        pkt.timestamp_gps,
         pkt.fsm_mode,
         pkt.gps_fix,
         pkt.gps_antenna_status,
@@ -398,14 +430,6 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.distance_to_target_m,
         pkt.temp_c,
         pkt.pressure_pa,
-        pkt.delta_1_deg,
-        pkt.delta_1_m,
-        pkt.delta_2_deg,
-        pkt.delta_2_m,
-        pkt.delta_a,
-        pkt.delta_s,
-        pkt.pwm_motor1,
-        pkt.pwm_motor2,
         pkt.fc_cmd,
         pkt.apogee_counter,
         static_cast<unsigned>(pkt.apogee_detected),
@@ -432,6 +456,11 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.bno_quat_y,
         pkt.bno_quat_z,
         pkt.compass_heading,
+        pkt.leftDegrees,
+        pkt.rightDegrees,
+        pkt.leftPower, 
+        pkt.rightPower,
+        pkt.readSuccess,
         pkt.flight_id
     );
 }

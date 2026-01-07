@@ -4,6 +4,7 @@
 #include <cstdint> // For std::uint16_t
 #include "mbed.h"
 #include "USBSerial.h"
+#include "Mutex_I2C.h"
 
 enum class BNO055Result {
     Ok,
@@ -42,6 +43,37 @@ struct bno055_vector_t {
     double z;
 };
 
+struct IMUData {
+    float acc_x;
+    float acc_y;
+    float acc_z;
+
+    float gyro_x;
+    float gyro_y;
+    float gyro_z;
+
+    float mag_x;
+    float mag_y;
+    float mag_z;
+
+    float eul_x;
+    float eul_y;
+    float eul_z;
+
+    float lin_x;
+    float lin_y;
+    float lin_z;
+
+    float grav_x;
+    float grav_y;
+    float grav_z;
+
+    float quat_w;
+    float quat_x;
+    float quat_y;
+    float quat_z;
+};
+
 struct offset {
     uint16_t offsetX;
     uint16_t offsetY;
@@ -51,19 +83,12 @@ struct offset {
 
 class BNO055 {
 public:
-    /**
-     * Constructor using pins for I2C and a device address.
-     * @param SDA I2C data pin
-     * @param SCL I2C clock pin
-     * @param addr 8-bit device address (convert from 7 to 8 bit)
-     */
-    BNO055(PinName SDA, PinName SCL, char addr);
 
     /**
      * Constructor using an existing I2C object.
      * @param i2c Pointer to an existing I2C interface
      */
-    BNO055(I2C* i2c, char addr);
+    BNO055(Mutex_I2C* i2c, char addr);
 
     /**
      * Destructor.
@@ -108,6 +133,8 @@ public:
     bno055_vector_t getLinearAccel();
     bno055_vector_t getGravity();
     bno055_vector_t getQuaternion();
+    void update();
+    IMUData getData() const; // doesn't include temperature
     float getTemperature();
 
     // Calibration 
@@ -118,9 +145,12 @@ public:
     uint16_t getAccRadius();
 
 private:
-    I2C* i2c;
+    Mutex_I2C* i2c;
     bool owned;
     char addr;
+    IMUData data;
+    mutable Mutex mutex;
+    Mutex* bus_lock;
 
     // Configuration
     void setACC(char GRange, char Bandwidth, char OPMode);

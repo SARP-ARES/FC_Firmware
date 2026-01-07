@@ -2,7 +2,6 @@
 
 //MBED_CONF_EUSBSERIAL_MAX_PACKET_SIZE
 
-
 EUSBSerial::EUSBSerial(uint16_t vid, uint16_t pid) : pc(false, vid, pid) {
 
 }

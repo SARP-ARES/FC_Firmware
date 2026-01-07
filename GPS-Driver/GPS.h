@@ -3,30 +3,10 @@
 #include "mbed.h"
 
 
-
-#define KNOT_TO_M_S 0.5144444444
-
-struct posECEFg {   // Earth-Centered Earth-Fixed Geodic Coordinates
-    float lat; // lattitude    (radians)
-    float lon; // longitude    (radians)
-    float alt; // altitude     (meters)
-};
+#define KNOT_TO_M_S 0.5144444444 
 
 
-struct posECEFr {  // Earth-Centered Earth-Fixed Rectangular Coordinates
-    float x;       // get origin of linear tangent plan in ECEF-r coordinates
-    float y;       // (will likely be the launch pad)
-    float z;
-};
-
-struct posLTP { // Local Tangent Plane Coordinates
-    float e;   // east     (m)
-    float n;   // north    (m)
-    float u;   // up       (m)
-};
- 
-
-struct gpsState{
+struct GPSData{
     float lat;
     float lon;
     float alt;
@@ -70,9 +50,7 @@ const float pi = 3.1415926535898;
 
 class GPS {
     private:
-        gpsState state;
-        posECEFr origin;
-        posLTP pos;
+        GPSData state;
         int getLatSign();
         int getLonSign();
         float utc2sec(float utc);
@@ -92,9 +70,7 @@ class GPS {
     
     public:
         GPS(PinName rx_gps, PinName tx_gps);
-        gpsState getState() const;
-        posLTP getPosLTP() const;
-        posECEFr getOriginECEFr() const;
+        GPSData getData() const;
         float deg2rad(float deg);
         float lat2deg(float lat_ddmm);
         float lon2deg(float lon_dddmm);
@@ -102,6 +78,7 @@ class GPS {
         int update(NMEA_Type msgType, const char* msg); // TODO: make private and make wrapper
         int bigUpdate();
         BufferedSerial serial;
+        mutable Mutex mutex;
         void setOriginECEFr(); // uses current position to set origin if nothing is passed
         void setOriginECEFr(float lat_deg, float lon_deg, float h); // can specify origin
         

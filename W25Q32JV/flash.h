@@ -21,6 +21,8 @@ public:
     uint8_t readByte(uint32_t address);
     float readNum(uint32_t address);
     uint32_t readPacket(uint32_t address, FlightPacket& pkt);
+    uint16_t getNumPacketsWritten();
+    void incrementNumPacketsWritten();
 
     // Read data to CSV
     void printCSVHeader();
@@ -32,11 +34,12 @@ public:
     void writeByte(uint32_t address, uint8_t data);
     uint32_t writeNum(uint32_t address, float data);
     uint32_t writePacket(uint32_t address, const FlightPacket& pkt);
+    void updateNumPacketsWritten();
     
-
     // Erase operations
-    void eraseSector(uint32_t address);
-    void eraseAll();
+    int eraseSector(uint32_t address);
+    int eraseAll();
+    int waitForWriteToFinish();
 
     // Control operations
     void enableWrite();
@@ -47,11 +50,12 @@ private:
     SPI _spi;       // SPI communication interface
     DigitalOut _cs; // Chip Select (CS) pin
     EUSBSerial* pc;
-
+    Mutex flash_lock;
 
     // Helper functions for SPI communication
     void csLow();
     void csHigh();
+
 };
 
 // Float conversion functions

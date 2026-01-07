@@ -5,20 +5,27 @@
 #include "BMP280.h"
 #include "BNO055.h"
 #include "flash.h"
+#include "Mutex_I2C.h"
 #include "flight_packet.h"
 #include <iostream>
+#include <cstdio>
 #include <cstring>
+#include "rtos.h"
 
-
-ctrldRogallo ARES;
 EUSBSerial pc;
+Mutex_I2C i2c(PB_7, PB_8);
+ctrldRogallo ARES(&i2c);
+
+// = # of pages, 4.55 hours at 1Hz
+// 16 pages per sector
 flash flash_chip(PA_7, PA_6, PA_5, PA_4, &pc);
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
 Thread thread;
 
-FlightPacket state; // global state makes more sense than individual logging states (could be moved to 
-                    // logging multi-function as a pointer)
+FlightPacket state; // global state makes more sense than individual logging states (could be moved to logging multi-function as a pointer)
+
+uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256; 
 
 enum FlightMode {
     test,
@@ -40,16 +47,18 @@ enum FlightMode {
 
 /** @brief clears all data off of the flash chip */
 void clear_data() {
-    led_B.write(0);
+    led_B.write(1);
     Timer t;
     t.start();
-
     pc.printf("\nErasing flash chip memory...\n\n");
-    flash_chip.eraseAll(); 
-    int ms = t.read_ms();   
-    pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
-    
-    led_B.write(1);
+    int erase_err = flash_chip.eraseAll(); 
+    int ms = t.read_ms(); 
+    if (erase_err == 0) {
+        pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
+    } else if(erase_err == 1) {
+        pc.printf("...Erasing timed out... something went wrong");
+    }
+    led_B.write(0);
 }
 
 /** 
@@ -81,12 +90,11 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr)
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
     }
-
 } 
 
-
 /** 
- *  @brief Autonomous flight mode. A PID is used to compute an assymetric deflection command.
+ *  @brief Autonomous flight mode. A PID controller is used to compute 
+ *         an assymetric deflection command.
  *  @param ARES pointer to the ctrldRogallo flight object
  *  @param flash_addr pointer to the current system flash address 
  */
@@ -95,15 +103,15 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
     char cmdBuf[32];
     float theta_error;
 
+    ARES->startAllSensorThreads(&pc);
+    // ARES->startLogging(&flash_chip, flash_addr);
+
     while(true) {
-        // Get current data and put it in the state struct
+        // Get current sensor data and put it in the state struct
         ARES->updateFlightPacket();
-
-        // Write data to flash chip & increment counter
-        *flash_addr = flash_chip.writePacket(*flash_addr, state);
-
+        ModeFSM mode = ARES->getMode();
         // TODO: make seeking logic 
-        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
+        if (mode == FSM_SEEKING) { // mode is set after apogee detection
             // SEEKING CODE HERE
             // Use computeCtrl() and sendCtrl()
             // the speed of this (outer) loop should define the speed of the control system.
@@ -113,56 +121,138 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
             float heading_error = ARES->getHeadingError();
             float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
             uint8_t ack = ARES->sendCtrl(delta_a_cmd);
+        } else if (mode == FSM_GROUNDED){
+            ARES->stopLogging();
+            ARES->killAllSensorThreads();
         }
 
         // break on "quit" command
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
                 pc.printf("\"quit\" cmd recieved...\n");
+                ARES->killAllSensorThreads();
+                ARES->stopLogging();
                 break;
             }
         }
+
+        ThisThread::sleep_for(50ms); // ~20Hz
     }
 }
 
-
-
 /** 
- *  @brief Testing mode system runs & logs until "quit" is entered into the CLI 
+ *  @brief Testing mode system prints & logs state until "quit" is entered into the CLI 
  *  @param ARES pointer to the ctrldRogallo flight object
  *  @param flash_addr pointer to the current system flash address 
  */
 void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
+    Timer execution_timer;
+    execution_timer.start();
+    auto EXECUTION_PERIOD = 500ms; // 500ms = 2Hz
+    // constexpr chrono::milliseconds EXECUTION_PERIOD{500}; // ms
+    // constexpr Kernel::Clock::duration_u32 EXECUTION_PERIOD = 500ms;
 
     char cmdBuf[32];
+    float theta_error;
+    uint16_t packet_count;
+    
+    pc.printf("entered test_mode...\n");
+    ThisThread::sleep_for(100ms);
+    ARES->startAllSensorThreads(&pc);
+    pc.printf("started sensor threads...\n");
+    ThisThread::sleep_for(100ms);
+    pc.printf("entering startLogging...\n");
+    ARES->startLogging(&flash_chip, &pc);
+    pc.printf("started logging...\n\n");
+    ThisThread::sleep_for(100ms);
+
+    // TESTING APPLICATIONS
+    float deflection = 0;
+    bool up = true;
 
     while(true) {
-        // Get current data and put it in the state struct
+        execution_timer.reset();
+        // Get current sensor data and put it in the state struct
         ARES->updateFlightPacket();
-        state = ARES->getState();
-        
-        // Print data to serial port
+        ModeFSM mode = ARES->getMode();
+
+        // print state for testing
         ARES->printCompactState(&pc);
+        state = ARES->getState();
 
-        // Write data to flash chip & increment counter
-        *flash_addr = flash_chip.writePacket(*flash_addr, state);
+        // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
+        packet_count = flash_chip.getNumPacketsWritten();
+        pc.printf("Packets Logged: %d\n", packet_count);
 
-        // TODO: make control sequence / seeking logic 
-        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
-            // SEEKING CODE HERE
-            // Use computeCtrl() and sendCtrl()
-            // the speed of this (outer) loop should define the speed of the control system.
-            // TODO: put GPS in its own thread so it doesnt hold up this loop.
-            int x = 0;
+        // State machine mode selection 
+        switch (mode) {
+
+            case FSM_IDLE: break; 
+
+            case FSM_SEEKING: {
+                // Ctrl Setup
+                float target_heading = ARES->getTargetHeading();
+                float heading_error = ARES->getHeadingError();
+                // float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+
+                // TESTING
+                float delta_a_cmd = deflection;
+                if(up)  deflection += 0.1;
+                else    deflection -= 0.1;
+                if (deflection < -1 || deflection > 1) up = !up; 
+
+                ARES->setLastFCcmd(delta_a_cmd);
+
+                // MCPS Comms
+                bool success = ARES->sendCtrl(delta_a_cmd);
+                // pc.printf("CTRL SENT: %f; SUCCESS %i \n", delta_a_cmd, success); // debug
+                break;
+            }
+            
+            case FSM_GROUNDED: {
+                ARES->stopLogging();
+                ARES->killAllSensorThreads();
+                break;
+            }
+
+            case FSM_SPIRAL: {
+                float cmd = state.fc_cmd > 0 ? 1 : -1;
+                ARES->setLastFCcmd(cmd);
+                ARES->sendCtrl(cmd);
+
+                break; 
+            }
+
+            // Unidentified Case
+            default: break; 
         }
 
-        // break on "quit" command
+        // --- User Input Handling --- 
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
                 pc.printf("\"quit\" cmd recieved...\n");
+                ARES->stopLogging();
+                ARES->killAllSensorThreads();
                 break;
+            } else if (strcmp(cmdBuf, "seeking") == 0) {
+                pc.printf("\"seeking\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_SEEKING);
+            } else if (strcmp(cmdBuf, "idle") == 0) {
+                pc.printf("\"idle\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_IDLE);
+            } else if (strcmp(cmdBuf, "spiral") == 0) {
+                pc.printf("\"spiral\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_SPIRAL);
             }
         }
+
+        // Event Scheduling, slow to 50hz if running faster than schedule 
+        auto elapsed_time = execution_timer.elapsed_time();
+        if (elapsed_time < EXECUTION_PERIOD) {
+            ThisThread::sleep_for(
+                chrono::duration_cast<Kernel::Clock::duration>(
+                    EXECUTION_PERIOD - elapsed_time
+                )
+            );
+        } // else run again asap
+
     }
 }
 
@@ -273,7 +363,8 @@ void set_origin(ctrldRogallo* ARES) {
         pc.printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
                 state.latitude_deg, state.longitude_deg);
     } else { // lat/lon are nans... GPS doesn't have a fix yet.
-        pc.printf("Origin has NOT been set because the GPS does not yet have fix.\nMake sure the antenna has a clear view of the sky and try again later.");
+        pc.printf("Origin has NOT been set because the GPS does not yet have fix.\n" \
+                  "Make sure the antenna has a clear view of the sky and try again later.");
     }
 }
 
@@ -299,23 +390,22 @@ void flight_mode(FlightMode mode, ctrldRogallo* ARES, uint32_t num_packets) {
     ARES->setThreshold();
     ARES->updateFlightPacket();
     ThisThread::sleep_for(1s);
-    uint32_t flash_addr = 0; 
     switch (mode) {
         case packetlog:
-            flight_log(ARES, num_packets, &flash_addr);      // Packet logging
             pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", num_packets, FLIGHT_PACKET_SIZE);
+            flight_log(ARES, num_packets, &flash_addr);      // Packet logging
             pc.printf("==========================================================\n");
             break; 
         
         case test:  
-            test_mode(ARES, &flash_addr);                    // Testing mode
             pc.printf("\nEntering Testing mode... %s\n", ' ');
+            test_mode(ARES, &flash_addr);                    // Testing mode
             pc.printf("==========================================================\n");
             break; 
-
+        
         case ctrl_sequence:
-            ctrl_sequence_after_apogee(ARES, &flash_addr);   // Controlled mode
             pc.printf("\nBeginning control sequence... %s\n", ' ');
+            ctrl_sequence_after_apogee(ARES, &flash_addr);   // Controlled mode
             pc.printf("==========================================================\n");
             break; 
     }
@@ -350,7 +440,9 @@ void command_line_interface() {
 
             // flight log
             if (strcmp(cmd_buffer, "test_mode") == 0 || strcmp(cmd_buffer, "1") == 0) {
-                pc.printf("\"test_mode\" cmd received. Use \"quit\" cmd to stop logging.\n");
+                pc.printf("\"test_mode\" cmd received.\nUse \"quit\" cmd to stop logging.\n" \
+                "Use \"seeking\" cmd to force seeking FSM.\nUse \"idle\" to force idle\n" \
+                "Use \"spiral\" cmd to force sprial FSM");
                 ThisThread::sleep_for(1500ms);
                 flight_mode(test,&ARES,0);
             }
@@ -412,7 +504,6 @@ void command_line_interface() {
             cli_reset = true; // reset CLI after user input is recieved 
         }
 
-        // Avoid hammering CPU
         ThisThread::sleep_for(100ms);
     }
 }
@@ -420,3 +511,4 @@ void command_line_interface() {
 int main() {
     command_line_interface();
 }
+
