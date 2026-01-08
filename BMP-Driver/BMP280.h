@@ -1,6 +1,3 @@
-/* 
-* Contains methods of the BMP280 Class and related enums and structs 
-*/
 #ifndef BMP280_H
 #define BMP280_H
 
@@ -42,27 +39,27 @@ class BMP280 {
         int writeData(char regaddr, char data);
         int readData(char regaddr, char* data, uint8_t len);
 
-        int update(); // updates the current pressure and temperature values 
+        int update();                           // updates the current pressure and temperature values 
 
-        int start(); // Awakens the BMP from slumber 
-        int sleep(); // Sleeps the BMP 
+        int start();                            // Awakens the BMP from slumber 
+        int sleep();                            // Sleeps the BMP 
 
         mutable Mutex mutex;
 
     public: 
 
-        BMPData getData() const;      // returns the state struct of BMP 
+        BMPData getData() const;                // returns the state struct of BMP 
 
-        int updatePressureData();       // updates the pressure value 
-        int updateTemperatureData();    // updates the temperature value 
-        void updateAltitudeM();         // updates the current altitude based on temp and pressure
+        int updatePressureData();               // updates the pressure value 
+        int updateTemperatureData();            // updates the temperature value 
+        void updateAltitudeM();                 // updates the current altitude based on temp and pressure
 
-        BMPData values;           // Stores the nessecary values to be returned 
-        BMP280_Calibration c;           // Stores the calibration data nessecary for the sensor 
+        BMPData values;                         // Stores the nessecary values to be returned 
+        BMP280_Calibration c;                   // Stores the calibration data nessecary for the sensor 
 
-        char addr;                      // Address of BMP280 
-        Mutex_I2C* i2c;                 // Reference to the safe I2C
-        int32_t t_fine;                 // Nesscary temperature for calibration
+        char addr;                              // Address of BMP280 
+        Mutex_I2C* i2c;                         // Reference to the safe I2C
+        int32_t t_fine;                         // Nesscary temperature for calibration
 
         float readTemperatureData();            // Reads the temperature data from the register 
         float readPressureData();               // Reads the pressure data from the register

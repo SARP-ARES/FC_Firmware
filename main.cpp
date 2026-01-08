@@ -219,7 +219,6 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 float cmd = state.fc_cmd > 0 ? 1 : -1;
                 ARES->setLastFCcmd(cmd);
                 ARES->sendCtrl(cmd);
-
                 break; 
             }
 

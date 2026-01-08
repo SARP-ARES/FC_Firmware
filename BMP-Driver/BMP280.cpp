@@ -16,8 +16,6 @@ BMP280::BMP280(Mutex_I2C* i2c, char addr){
     BMP280::addr = addr;
 }
 
-// Temperature 2x, Pressure 16x -> 0b11101011
-// Temperature 1x, Pressure 1x -> 0b00100111
 /** 
  * @brief Starts the BMP280 in standard operating mode using given sampling rate
  * @return - state of write 0 if written 1 if error 
@@ -67,8 +65,8 @@ int BMP280::updatePressureData(){
     char xlsb, lsb, msb;
     int msbErr, lsbErr, xlsbErr; 
     xlsbErr = i2c->readData(addr, BMP280_PRESS_XLSB, &xlsb, 1); // Extra least significant byte 
-    lsbErr = i2c->readData(addr, BMP280_PRESS_LSB, &lsb, 1);// Least significant byte 
-    msbErr = i2c->readData(addr, BMP280_PRESS_MSB, &msb, 1); // Most significant byte 
+    lsbErr = i2c->readData(addr, BMP280_PRESS_LSB, &lsb, 1);    // Least significant byte 
+    msbErr = i2c->readData(addr, BMP280_PRESS_MSB, &msb, 1);    // Most significant byte 
     int totalErr = xlsbErr + lsbErr + msbErr;
 
     // Shifts each byte into useful position 
@@ -80,7 +78,6 @@ int BMP280::updatePressureData(){
 
 /** 
  * @brief converts the raw sampling values to usable data using BMP280 calibration values
- * @param adc_t raw binary representing the temperature value 
  * @return a double of the temperature in celcius
  */
 double BMP280::convert_temp(int32_t adc_T){
@@ -97,7 +94,6 @@ double BMP280::convert_temp(int32_t adc_T){
 
 /** 
  * @brief calibrates the pressure based upon formulas from datasheet
- * @param adc_p raw binary representing the pressure value 
  * @return a double of the pressure in pascals
  */
 double BMP280::convert_press(int32_t adc_P){
@@ -141,8 +137,8 @@ int BMP280::BMP280_CalibrateTemp(){
     char calib[6];
     i2c->readData(addr, 0x88, calib, 6);
     c.dig_T1 = calib[1] << 8 | calib[0];
-    c.dig_T2 = (calib[3] << 8 | calib[2]);
-    c.dig_T3 = (calib[5] << 8 | calib[4]);
+    c.dig_T2 = calib[3] << 8 | calib[2];
+    c.dig_T3 = calib[5] << 8 | calib[4];
     
     return 0;
 }
@@ -160,11 +156,11 @@ int BMP280::BMP280_CalibratePress(){
     i2c->readData(addr, 0x8E, calib, 18);
 
     //Store Calibration data
-    c.dig_P1 = calib[0] | calib[1] << 8;
-    c.dig_P2 = calib[2] | calib[3] << 8;
-    c.dig_P3 = calib[4] | calib[5] << 8;
-    c.dig_P4 = calib[6] | calib[7] << 8;
-    c.dig_P5 = calib[8] | calib[9] << 8;
+    c.dig_P1 = calib[0]  | calib[1] << 8;
+    c.dig_P2 = calib[2]  | calib[3] << 8;
+    c.dig_P3 = calib[4]  | calib[5] << 8;
+    c.dig_P4 = calib[6]  | calib[7] << 8;
+    c.dig_P5 = calib[8]  | calib[9] << 8;
     c.dig_P6 = calib[10] | calib[11] << 8;
     c.dig_P7 = calib[12] | calib[13] << 8;
     c.dig_P8 = calib[14] | calib[15] << 8;
