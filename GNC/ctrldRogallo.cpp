@@ -539,6 +539,8 @@ void ctrldRogallo::printCompactState(EUSBSerial* pc) {
     pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
                 state.heading_deg, state.target_heading_deg, state.heading_error_deg);
     pc->printf("FC CMD:\t\t\t\t\t%.1f\n", state.fc_cmd); // TODO: implement PID 
+    pc->printf("Motor 1 Position (deg), PWM:\t\t%.4f, %0.3f\n", state.leftDegrees, state.leftPower);
+    pc->printf("Motor 2 Position (deg), PWM:\t\t%.4f, %0.3f\n", state.rightDegrees, state.rightPower);
     pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
 
     const char* MODE_NAMES[] = {"IDLE", "SEEKING", "SPIRAL", "GROUNDED"};
