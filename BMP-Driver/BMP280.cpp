@@ -71,7 +71,7 @@ int BMP280::updatePressureData(){
 
     // Shifts each byte into useful position 
     uint32_t rawPressure = ((uint32_t)msb << 12) | ((uint32_t)lsb << 4 ) | ((uint32_t)xlsb >> 4);
-    values.press_pa = convert_press(rawPressure) - 944.6; // offset from experimental data
+    values.press_pa = convert_press(rawPressure) - 2000; // offset from experimental data
     values.press_psi = values.press_pa * 0.000145038;
     return totalErr; 
 }
@@ -173,21 +173,21 @@ int BMP280::BMP280_CalibratePress(){
 /** 
  * @brief generates altitude data using the a complementary filter of the hypersometric and advanced hypersometric formula
  */
-void BMP280::updateAltitudeM(){
-    double univesalGasConst = 8.31432;
-    double staticPress = 101325;
-    double sealvlTemp_K = 15 + 273.15; 
-    double tempLapseRate = -.0065;
-    double gravity = 9.80665;
-    double molarMassAir = .0289655;
-    double h2 = (sealvlTemp_K/tempLapseRate) \
-                        *(pow((values.press_pa/staticPress), \
-                            -((univesalGasConst*tempLapseRate)/(gravity*molarMassAir)))-1.0); 
+void BMP280::updateAltitudeM() {
+    constexpr double R = 8.31432;        // J/(mol·K)
+    constexpr double g = 9.80665;        // m/s^2
+    constexpr double M = 0.0289655;      // kg/mol
+    constexpr double L = 0.0065;         // K/m (POSITIVE)
+    constexpr double P0 = 101325.0;      // Pa
+    constexpr double T0 = 288.15;        // K
 
-    double pressRatioTerm = pow((101325/values.press_pa),(1/5.257)) - 1.0;
-    double temp_k = values.temp_c +273.15;
-    double h1 = (pressRatioTerm*temp_k)/.0065; 
-    values.altitude_m = .5*h1 +.5*h2;
+    double P = values.press_pa;
+
+    double exponent = (R * L) / (g * M);
+
+    values.altitude_m =
+        (T0 / L) *
+        (pow(P / P0, -exponent) - 1.0);
 }
 
 /** 

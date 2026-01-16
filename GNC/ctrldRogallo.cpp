@@ -348,7 +348,7 @@ void ctrldRogallo::updateFlightPacket(){
  */
 bool ctrldRogallo::sendCtrl(float ctrl){
     uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
-    wait_us(10);
+    wait_us(10);    
     return ack == 0; 
 }
 
