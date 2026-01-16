@@ -197,8 +197,8 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
 
                 // TESTING
                 float delta_a_cmd = deflection;
-                if(up)  deflection += 0.001;
-                else    deflection -= 0.001;
+                if(up)  deflection += 0.1;
+                else    deflection -= 0.1;
                 if (deflection < -1 || deflection > 1) up = !up; 
 
                 ARES->setLastFCcmd(delta_a_cmd);
