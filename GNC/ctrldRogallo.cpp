@@ -100,7 +100,6 @@ float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg, double la
           meters east and north of the target and updates distance to target
  */ 
 void ctrldRogallo::updateHaversineCoords(void){
-    ScopedLock<Mutex> lock(this->state_mutex);
     // only compute distance between latitudes to get NORTH coord
     haversineCoordNorth = computeHaversine(state.latitude_deg, target_lon, target_lat, target_lon);
     // make negative if south of target
@@ -246,6 +245,9 @@ void ctrldRogallo::updateFlightPacket(){
     BMPData bmp_buf = bmp.getData();
     IMUData bno_buf = bno.getData();
 
+    // Refresh Motor data from MCPS
+    bool success = requestMotorPacket();
+
     // lock mutex for state field writes
     ScopedLock<Mutex> lock(this->state_mutex);
 
@@ -303,9 +305,6 @@ void ctrldRogallo::updateFlightPacket(){
     state.bno_quat_x = bno_buf.quat_x;
     state.bno_quat_y = bno_buf.quat_y;
     state.bno_quat_z = bno_buf.quat_z;
-
-    // Refresh Motor data from MCPS
-    bool success = requestMotorPacket();
 
     if (success) {
         state.leftDegrees   = motor.leftDegrees;
