@@ -148,7 +148,7 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
 void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     Timer execution_timer;
     execution_timer.start();
-    auto EXECUTION_PERIOD = 20ms; // 500ms = 2Hz
+    auto EXECUTION_PERIOD = 500ms; // 500ms = 2Hz
     // constexpr chrono::milliseconds EXECUTION_PERIOD{500}; // ms
     // constexpr Kernel::Clock::duration_u32 EXECUTION_PERIOD = 500ms;
 
@@ -158,11 +158,11 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     
     pc.printf("entered test_mode...\n");
     ThisThread::sleep_for(100ms);
-    ARES->startAllSensorThreads(&pc);
+    // ARES->startAllSensorThreads(&pc);
     pc.printf("started sensor threads...\n");
     ThisThread::sleep_for(100ms);
     pc.printf("entering startLogging...\n");
-    ARES->startLogging(&flash_chip, &pc);
+    // ARES->startLogging(&flash_chip, &pc);
     pc.printf("started logging...\n\n");
     ThisThread::sleep_for(100ms);
 
@@ -177,7 +177,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         ModeFSM mode = ARES->getMode();
 
         // print state for testing
-        // ARES->printCompactState(&pc);
+        ARES->printCompactState(&pc);
         state = ARES->getState();
 
         // print number of packets logged (stored at the last two bytes of the flash chip) for debugging

@@ -547,7 +547,7 @@ void ctrldRogallo::printCompactState(EUSBSerial* pc) {
     if (state.fsm_mode >= 0 && state.fsm_mode < 4) pc->printf("FSM mode:\t\t\t\t%s\n", MODE_NAMES[state.fsm_mode]);
 
     pc->printf("Temperature C: \t\t\t\t%f\n", state.temp_c);
-    pc->printf("Altitude M: \t\t\t\t%f\n", state.altitude_m);
+    pc->printf("Altitude M: \t\t\t\t%f\n", state.altitude_bmp_m);
     pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
     pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
     pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
