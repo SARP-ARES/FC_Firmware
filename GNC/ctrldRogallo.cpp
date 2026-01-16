@@ -46,13 +46,13 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
  * @brief getter for the current state of the system
  * @returns system state as a FlightPacket struct
  */ 
-const FlightPacket ctrldRogallo::getState() { return this->state; }
+const FlightPacket ctrldRogallo::getState() { ScopedLock<Mutex> lock(this->state_mutex); return this->state; }
 
 /**
  * @brief getter for the current FSM mode of the system
  * @returns FSM mode of the ctrldRogallo
  */ 
-const ModeFSM ctrldRogallo::getMode() { return this->mode; }
+const ModeFSM ctrldRogallo::getMode() { ScopedLock<Mutex> lock(this->state_mutex); return this->mode; }
 
 
 /**

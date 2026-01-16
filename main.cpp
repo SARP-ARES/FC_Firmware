@@ -158,11 +158,11 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     
     pc.printf("entered test_mode...\n");
     ThisThread::sleep_for(100ms);
-    // ARES->startAllSensorThreads(&pc);
+    ARES->startAllSensorThreads(&pc);
     pc.printf("started sensor threads...\n");
     ThisThread::sleep_for(100ms);
     pc.printf("entering startLogging...\n");
-    // ARES->startLogging(&flash_chip, &pc);
+    ARES->startLogging(&flash_chip, &pc);
     pc.printf("started logging...\n\n");
     ThisThread::sleep_for(100ms);
 
