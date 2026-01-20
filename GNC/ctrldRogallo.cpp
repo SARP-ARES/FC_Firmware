@@ -307,16 +307,16 @@ void ctrldRogallo::updateFlightPacket(){
     state.bno_quat_z = bno_buf.quat_z;
 
     if (success) {
-        state.leftDegrees   = motor.leftDegrees;
-        state.rightDegrees  = motor.rightDegrees;
-        state.leftPower     = motor.leftPower; 
-        state.rightPower    = motor.rightPower; 
+        state.leftPosition   = motor.leftPosition;
+        state.rightPosition  = motor.rightPosition;
+        state.leftPull     = motor.leftPull; 
+        state.rightPull    = motor.rightPull; 
         state.readSuccess   = true;
     } else { // FAILURE TO ACK
-        state.leftDegrees   = NAN;
-        state.rightDegrees  = NAN;
-        state.leftPower     = NAN; 
-        state.rightPower    = NAN; 
+        state.leftPosition   = NAN;
+        state.rightPosition  = NAN;
+        state.leftPull     = NAN; 
+        state.rightPull    = NAN; 
         state.readSuccess   = false;
     }
 
@@ -337,8 +337,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.groundedCounter = groundedCounter;
 
     state.prevAlt = state.altitude_m; 
-    // mutex unlocks outside this scope
-}
+} // mutex unlocks outside this scope
 
 /** 
  *  @brief Sends control command over i2c to the MCPS 
@@ -481,14 +480,12 @@ void ctrldRogallo::logDataLoop(){
 }
 
 void ctrldRogallo::startLogging(flash* flash_mem, EUSBSerial* pc) {
-    pc->printf("made it into startLogging\n");
     // flash_mem and flash_addr are initalized in the main program and passed in here
     this->flash_mem = flash_mem;
     pc->printf("about to getNumPacketsWritten\n");
     uint32_t previous_num_packets = flash_mem->getNumPacketsWritten();
     pc->printf("made it past getNumPacketsWritten... previous packets: %d\n", previous_num_packets);
     flash_addr = previous_num_packets * 256; // start logging at next empty page
-    pc->printf("made it past flash mem and addr assignments\n");
     pc->printf("flash_mem=%p, flash_addr=%d\n", flash_mem, flash_addr);
     flight_timer.start(); // start timer once logging begins
     event_flags.set(LOGGING_FLAG);
@@ -538,8 +535,8 @@ void ctrldRogallo::printCompactState(EUSBSerial* pc) {
     pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
                 state.heading_deg, state.target_heading_deg, state.heading_error_deg);
     pc->printf("FC CMD:\t\t\t\t\t%.1f\n", state.fc_cmd); // TODO: implement PID 
-    pc->printf("Motor 1 Position (in), EXT:\t\t%.4f, %0.3f\n", state.leftDegrees, state.leftPower);
-    pc->printf("Motor 2 Position (in), EXT:\t\t%.4f, %0.3f\n", state.rightDegrees, state.rightPower);
+    pc->printf("Motor 1 Position (in), EXT:\t\t%.4f, %0.3f\n", state.leftPosition, state.leftPull);
+    pc->printf("Motor 2 Position (in), EXT:\t\t%.4f, %0.3f\n", state.rightPosition, state.rightPull);
     pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
 
     const char* MODE_NAMES[] = {"IDLE", "SEEKING", "SPIRAL", "GROUNDED"};

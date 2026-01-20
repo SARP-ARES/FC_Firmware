@@ -76,10 +76,10 @@ struct FlightPacket {
     char flight_id[8];          // 8 (null-terminated string
 
     /* -- MCPS STATUS 16 BYTES -- */ 
-    float leftDegrees;
-    float rightDegrees;
-    float leftPower;
-    float rightPower;
+    float leftPosition;
+    float rightPosition;
+    float leftPull;
+    float rightPull;
     bool readSuccess;
 };
 #pragma pack(pop)

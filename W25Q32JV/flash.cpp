@@ -343,10 +343,10 @@ void flash::printCSVHeader() {
         "bno_quat_y,"
         "bno_quat_z,"
         "compass_heading,"
-        "leftDegrees,"
-        "rightDegrees,"
-        "leftPower,"
-        "rightPower,"
+        "leftPosition,"
+        "rightPosition,"
+        "leftPull,"
+        "rightPull,"
         "readSuccess,"
         "flight_id,\n"
     );
@@ -456,10 +456,10 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.bno_quat_y,
         pkt.bno_quat_z,
         pkt.compass_heading,
-        pkt.leftDegrees,
-        pkt.rightDegrees,
-        pkt.leftPower, 
-        pkt.rightPower,
+        pkt.leftPosition,
+        pkt.rightPosition,
+        pkt.leftPull, 
+        pkt.rightPull,
         pkt.readSuccess,
         pkt.flight_id
     );

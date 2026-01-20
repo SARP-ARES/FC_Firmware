@@ -25,10 +25,10 @@ typedef enum {
 } ModeFSM;
 
 typedef struct {
-    float leftDegrees; 
-    float rightDegrees;
-    float leftPower;
-    float rightPower;
+    float leftPosition; 
+    float rightPosition;
+    float leftPull;
+    float rightPull;
 } motorPacket;
 
 class ctrldRogallo {
