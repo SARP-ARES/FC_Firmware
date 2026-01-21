@@ -548,7 +548,13 @@ void command_line_interface() {
     }
 }
 
+void dump_mode() {
+    ThisThread::sleep_for(20s);
+    dump_data();
+}
+
 int main() {
-    command_line_interface();
+    command_line_interface(); // Flight
+    // dump_mode(); // For CSV parsing
 }
 
