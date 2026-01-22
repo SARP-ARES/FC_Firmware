@@ -11,7 +11,7 @@
 #define MCPS_I2C_ADDR                   0x02 << 1 
 #define DEG_LLA_TO_M_CONVERSION         111111
 #define APOGEE_THRESHOLD_BUFFER         600
-#define GROUNDED_THRESHOLD_BUFFER       100
+#define GROUNDED_THRESHOLD_BUFFER       10
 #define ALPHA_ALT_START_PERCENT         0.05
 #define SPIRAL_RADIUS                   10
 #define PI                              3.1415926535
