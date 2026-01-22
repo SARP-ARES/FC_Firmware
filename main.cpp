@@ -207,6 +207,8 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     pc.printf("started logging...\n\n");
     ThisThread::sleep_for(100ms);
 
+    ARES->setThreshold();
+
     // TESTING APPLICATIONS
     float deflection = 0;
     bool up = true;
@@ -234,13 +236,13 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 // Ctrl Setup
                 float target_heading = ARES->getTargetHeading();
                 float heading_error = ARES->getHeadingError();
-                // float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+                float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
 
-                // TESTING
-                float delta_a_cmd = deflection;
-                if(up)  deflection += 0.1;
-                else    deflection -= 0.1;
-                if (deflection < -1 || deflection > 1) up = !up; 
+                // // TESTING
+                // float delta_a_cmd = deflection;
+                // if(up)  deflection += 0.1;
+                // else    deflection -= 0.1;
+                // if (deflection < -1 || deflection > 1) up = !up; 
 
                 ARES->setLastFCcmd(delta_a_cmd);
 
@@ -498,7 +500,7 @@ void command_line_interface() {
              // dump data
             else if (strcmp(cmd_buffer, "dump_to_ser") == 0 || strcmp(cmd_buffer, "5") == 0) {
                 pc.printf("\"dump_to_ser\" cmd received\n");
-                pc.printf("Waiting 30s, disconnect from serial port and start serial parser\n")
+                pc.printf("Waiting 30s, disconnect from serial port and start serial parser\n");
                 ThisThread::sleep_for(30s);
                 dump_data();
             }
