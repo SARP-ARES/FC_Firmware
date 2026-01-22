@@ -23,7 +23,7 @@
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
  */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c) 
-    : gps(PA_2, PA_3), bmp(i2c, 0xEE), bno(i2c, 0x51), pid(1.0, 0.001, 0.1), i2c(i2c) {
+    : gps(PA_2, PA_3), bmp(i2c, 0xEE), bno(i2c, 0x51), pid(1.0, 0.001, 0.0), i2c(i2c) {
     bmp.start();
     bno.setup();
 
@@ -338,6 +338,19 @@ void ctrldRogallo::updateFlightPacket(){
 
     state.prevAlt = state.altitude_m; 
 } // mutex unlocks outside this scope
+
+
+void ctrldRogallo::updateStateWithTargetHeading(float target_heading){
+    state.target_heading_deg = target_heading;
+}
+
+void ctrldRogallo::updateStateWithHeadingError(float heading_error){
+    state.heading_error_deg = heading_error;
+}
+
+
+
+
 
 /** 
  *  @brief Sends control command over i2c to the MCPS 
