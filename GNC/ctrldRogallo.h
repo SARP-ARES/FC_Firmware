@@ -122,6 +122,8 @@ class ctrldRogallo {
         const ModeFSM getMode();
         void updateFlightPacket();
         void resetFlightPacket();
+        void updateStateWithTargetHeading(float target_heading);
+        void updateStateWithHeadingError(float heading_error);
 
         // ---- other stuff ----
         float getElapsedSeconds();

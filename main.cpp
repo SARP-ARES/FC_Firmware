@@ -42,7 +42,7 @@ enum FlightMode {
 /* SET NUMBER OF PACKETS TO LOG || for for 1.5 hours of logging, log 5400 packets */
 #define NUM_PACKETS_TO_LOG  16000
 
-#define DT_CTRL             0.01 // time step for PID controller to calculate derivative & integral
+#define DT_CTRL             0.5 // time step for PID controller to calculate derivative & integral
 
 
 /** @brief clears all data off of the flash chip */
@@ -90,7 +90,7 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr)
             ctrl_trigger.write(0); // signal to control sequence on MCPS 
         }
     }
-} 
+}
 
 /** 
  *  @brief Autonomous flight mode. A PID controller is used to compute 
@@ -235,8 +235,14 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
             case FSM_SEEKING: {
                 // Ctrl Setup
                 float target_heading = ARES->getTargetHeading();
-                float heading_error = ARES->getHeadingError();
-                float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+                float heading_error_deg = ARES->getHeadingError();
+                float heading_error_rad = heading_error_deg * 3.1415986 / 180.0;
+                float delta_a_cmd = ARES->computeCtrl(heading_error_rad, DT_CTRL);
+
+                // maybe make these ARES fields?
+                ARES->updateStateWithTargetHeading(target_heading);
+                ARES->updateStateWithHeadingError(heading_error_deg);
+
 
                 // // TESTING
                 // float delta_a_cmd = deflection;
@@ -244,7 +250,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 // else    deflection -= 0.1;
                 // if (deflection < -1 || deflection > 1) up = !up; 
 
-                ARES->setLastFCcmd(delta_a_cmd);
+                ARES->setLastFCcmd(delta_a_cmd); // same thing as updateStateWith[blank]()
 
                 // MCPS Comms
                 bool success = ARES->sendCtrl(delta_a_cmd);
