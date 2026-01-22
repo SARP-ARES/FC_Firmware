@@ -2,9 +2,46 @@
 #define GPS_H
 #include "mbed.h"
 
+#define KNOT_TO_M_S 0.5144444444
 
-#define KNOT_TO_M_S 0.5144444444 
+// // GPS serial command declarations
+// extern const char* cmd_set_baud_rate_9600;
+// extern const char* cmd_set_baud_rate_38400;
+// extern const char* cmd_set_baud_rate_57600;
+// extern const char* cmd_set_baud_rate_115200;
+// extern const char* cmd_set_update_rate_10hz;
+// extern const char* cmd_set_update_rate_5hz;
+// extern const char* cmd_set_update_rate_1hz;
+// extern const char* cmd_antenna_status;
 
+// extern const int len_cmd_set_baud_rate_9600;
+// extern const int len_cmd_set_baud_rate_38400;
+// extern const int len_cmd_set_baud_rate_57600;
+// extern const int len_cmd_set_baud_rate_115200;
+// extern const int len_cmd_set_update_rate_10hz;
+// extern const int len_cmd_set_update_rate_5hz;
+// extern const int len_cmd_set_update_rate_1hz;
+// extern const int len_cmd_antenna_status;
+
+struct posECEFg {   // Earth-Centered Earth-Fixed Geodic Coordinates
+    float lat; // lattitude    (radians)
+    float lon; // longitude    (radians)
+    float alt; // altitude     (meters)
+};
+
+
+struct posECEFr {  // Earth-Centered Earth-Fixed Rectangular Coordinates
+    float x;       // get origin of linear tangent plan in ECEF-r coordinates
+    float y;       // (will likely be the launch pad)
+    float z;
+};
+
+struct posLTP { // Local Tangent Plane Coordinates
+    float e;   // east     (m)
+    float n;   // north    (m)
+    float u;   // up       (m)
+};
+ 
 
 struct GPSData{
     float lat;
@@ -13,7 +50,7 @@ struct GPSData{
     float pdop;
     float vdop;
     float hdop;
-    float heading;
+    float heading; 
     float gspeed;
     float utc;
     char latNS;
@@ -51,6 +88,8 @@ const float pi = 3.1415926535898;
 class GPS {
     private:
         GPSData state;
+        posLTP pos;
+        posECEFr origin;
         int getLatSign();
         int getLonSign();
         float utc2sec(float utc);
@@ -71,6 +110,8 @@ class GPS {
     public:
         GPS(PinName rx_gps, PinName tx_gps);
         GPSData getData() const;
+        posLTP getPosLTP() const;
+        posECEFr getOriginECEFr() const;
         float deg2rad(float deg);
         float lat2deg(float lat_ddmm);
         float lon2deg(float lon_dddmm);
@@ -78,9 +119,9 @@ class GPS {
         int update(NMEA_Type msgType, const char* msg); // TODO: make private and make wrapper
         int bigUpdate();
         BufferedSerial serial;
-        mutable Mutex mutex;
         void setOriginECEFr(); // uses current position to set origin if nothing is passed
         void setOriginECEFr(float lat_deg, float lon_deg, float h); // can specify origin
+        void set_logging_rate(uint32_t hz);
         
 
         // functino: start (GPS LOOOP)
