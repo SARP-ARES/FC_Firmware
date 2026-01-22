@@ -469,6 +469,7 @@ void command_line_interface() {
             pc.printf("2. \"dump\"\n");
             pc.printf("3. \"set_origin\"\n");
             pc.printf("4. \"clear\"\n");
+            pc.printf("5. \"dump_to_ser\"");
             pc.printf("\n> ");  // command prompt
             cli_reset = false;
         }
@@ -491,6 +492,14 @@ void command_line_interface() {
             else if (strcmp(cmd_buffer, "dump") == 0 || strcmp(cmd_buffer, "2") == 0) {
                 pc.printf("\"dump\" cmd received\n");
                 ThisThread::sleep_for(1500ms);
+                dump_data();
+            }
+
+             // dump data
+            else if (strcmp(cmd_buffer, "dump_to_ser") == 0 || strcmp(cmd_buffer, "5") == 0) {
+                pc.printf("\"dump_to_ser\" cmd received\n");
+                pc.printf("Waiting 30s, disconnect from serial port and start serial parser\n")
+                ThisThread::sleep_for(30s);
                 dump_data();
             }
 
@@ -548,13 +557,7 @@ void command_line_interface() {
     }
 }
 
-void dump_mode() {
-    ThisThread::sleep_for(20s);
-    dump_data();
-}
-
 int main() {
-    command_line_interface(); // Flight
-    // dump_mode(); // For CSV parsing
+    command_line_interface();
 }
 
