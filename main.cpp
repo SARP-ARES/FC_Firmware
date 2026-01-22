@@ -247,8 +247,9 @@ int main(){
     
 
 
-        // Try process line & polling functions
-        poll_gps(&gps);   // keep draining GPS data
+        // THIS MAKES 10HZ WORK 
+        // // Try process line & polling functions
+        // poll_gps(&gps);   // keep draining GPS data
         
 
 
@@ -258,35 +259,35 @@ int main(){
         // BELOW GETS AND PRINTS REAL GPS DATA USING bigUpdate();
 
 
-        // // pc.printf("\n\nentering main loop...\n");
-        // success = gps.bigUpdate();
+        // pc.printf("\n\nentering main loop...\n");
+        success = gps.bigUpdate();
 
-        // // pc.printf("did bigUpdate...\n");
+        // pc.printf("did bigUpdate...\n");
 
-        // gpsState state = gps.getState();
-        // // pc.printf("retrieved GPS state...\n");
+        gpsState state = gps.getState();
+        // pc.printf("retrieved GPS state...\n");
 
         // posLTP pos = gps.getPosLTP();
-        // // pc.printf("retrieved LTP position...\n");
+        // pc.printf("retrieved LTP position...\n");
 
         // posECEFr origin = gps.getOriginECEFr();
-        // // pc.printf("retrieved ECEFr origin...\n");
+        // pc.printf("retrieved ECEFr origin...\n");
         
-        // float lat_deg = state.lat;
-        // float lon_deg = state.lon;
-        // float lat_rad = state.lat * pi / 180;
-        // float lon_rad = state.lon * pi / 180;
+        float lat_deg = state.lat;
+        float lon_deg = state.lon;
+        float lat_rad = state.lat * pi / 180;
+        float lon_rad = state.lon * pi / 180;
 
-        // // pc.printf("\n-----------------------------------------------");
-        // // pc.printf("\nLat (deg)\t: %.4f \nLon (deg)\t: %.4f \nLat (rad)\t: %.4f \nLon (rad)\t: %.4f", lat_deg, lon_deg, lat_rad, lon_rad);
-        // // pc.printf("\n-----------------------------------------------");
-
-        // pc.printf("\n===============================================");
-        // pc.printf("\nNumber of messages parsed with information: %d", success);
         // pc.printf("\n-----------------------------------------------");
-        // pc.printf("\nUTC\t\t: %.3f \nFix\t\t: %d \nHeading\t\t: %.3f \nLat, Lon\t: %f, %f deg \nAltitude\t: %.3f m \npos (e, n, u)\t: %.3f, %.3f, %.3f m \nOrigin x, y, z\t: %.3f, %.3f, %.3f m \nmode1\t\t: %c \nmode2\t\t: %d \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f \nAntenna Status\t: %d", \
-        //         state.utc, state.fix, state.heading, state.lat, state.lon, state.alt, pos.e, pos.n, pos.u, origin.x, origin.y, origin.z, state.mode1, state.mode2, state.pdop, state.hdop, state.vdop, state.antenna_status);
-        // // pc.printf("\n===============================================\n\n");
+        // pc.printf("\nLat (deg)\t: %.4f \nLon (deg)\t: %.4f \nLat (rad)\t: %.4f \nLon (rad)\t: %.4f", lat_deg, lon_deg, lat_rad, lon_rad);
+        // pc.printf("\n-----------------------------------------------");
+
+        pc.printf("\n===============================================");
+        pc.printf("\nNumber of messages parsed with information: %d", success);
+        pc.printf("\n-----------------------------------------------");
+        pc.printf("\nUTC\t\t: %.3f \nFix\t\t: %d \nHeading\t\t: %.3f \nLat, Lon\t: %f, %f deg \nAltitude\t: %.3f m \nmode1\t\t: %c \nmode2\t\t: %d \nPDOP\t\t: %f \nHDOP\t\t: %f \nVDOP\t\t: %f \nAntenna Status\t: %d", \
+                state.utc, state.fix, state.heading, state.lat, state.lon, state.alt, state.mode1, state.mode2, state.pdop, state.hdop, state.vdop, state.antenna_status);
+        pc.printf("\n===============================================\n\n");
 
 
         /* NOTES:
