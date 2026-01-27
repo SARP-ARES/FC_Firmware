@@ -345,8 +345,7 @@ void ctrldRogallo::updateFlightPacket(){
  *  @return 0 if success 1 if failure
  */
 bool ctrldRogallo::sendCtrl(float ctrl){
-    uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
-    wait_us(10);    
+    uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));  
     return ack == 0; 
 }
 
@@ -357,7 +356,6 @@ bool ctrldRogallo::sendCtrl(float ctrl){
 bool ctrldRogallo::requestMotorPacket(){
     // grab motor packet over i2c
     uint8_t ack = i2c->read(MCPS_I2C_ADDR, rx_buf, sizeof(motorPacket)); 
-    wait_us(10);
 
     if(ack != 0) return false; // failed
     
@@ -464,15 +462,17 @@ void ctrldRogallo::logDataLoop(){
             case FSM_SPIRAL:    LOG_PERIOD = 100ms; break; // 10Hz
             case FSM_GROUNDED:  stopLogging(); return;
         }   
+
+
         auto end_time = flight_timer.elapsed_time();
-        auto compute_time = end_time - start_time;
+        auto compute_time_ms = std::chrono::duration<float, std::milli>(end_time - start_time);
 
         /* Event Scheduling */
         // wait until next period to log next packet
-        if (compute_time < LOG_PERIOD) {
+        if (compute_time_ms < LOG_PERIOD) {
             ThisThread::sleep_for(
                 chrono::duration_cast<Kernel::Clock::duration>(
-                    LOG_PERIOD - compute_time
+                    LOG_PERIOD - compute_time_ms
                 )
             );
         } // else log the next packet ASAP

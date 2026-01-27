@@ -92,45 +92,45 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr)
     }
 } 
 
+
 /** 
  *  @brief Autonomous flight mode. A PID controller is used to compute 
  *         an assymetric deflection command.
  *  @param ARES pointer to the ctrldRogallo flight object
  *  @param flash_addr pointer to the current system flash address 
  */
-void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
+void timing_testing(ctrldRogallo* ARES, uint32_t* flash_addr){
     Timer execution_timer;
     execution_timer.start();
-    auto EXECUTION_PERIOD = 20ms ; 
+    auto EXECUTION_PERIOD = 20ms; 
 
     float theta_error;
     uint16_t packet_count;
     
-    pc.printf("entered test_mode...\n");
     ThisThread::sleep_for(100ms);
     ARES->startAllSensorThreads(&pc);
-    pc.printf("started sensor threads...\n");
     ThisThread::sleep_for(100ms);
-    pc.printf("entering startLogging...\n");
     ARES->startLogging(&flash_chip, &pc);
-    pc.printf("started logging...\n\n");
     ThisThread::sleep_for(100ms);
 
-    // TESTING APPLICATIONS
-    float deflection = 0;
-    bool up = true;
+    pc.printf("entered timing_test\n");
 
-    while(true) {
+    float times = 0; 
+    int counter = 0;
+
+    Timer t;
+
+    t.start();
+
+    while(t.read_ms() < 20000) {
         execution_timer.reset();
         // Get current sensor data and put it in the state struct
+        
         ARES->updateFlightPacket();
-        ModeFSM mode = ARES->getMode();
+        ModeFSM mode = ModeFSM::FSM_SEEKING;
 
         // print state for testing
         state = ARES->getState();
-
-        // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
-        packet_count = flash_chip.getNumPacketsWritten();
 
         // State machine mode selection 
         switch (mode) {
@@ -168,17 +168,23 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
             default: break; 
         }
 
-        // Event Scheduling, slow to 50hz if running faster than schedule 
-        auto elapsed_time = execution_timer.elapsed_time();
-        if (elapsed_time < EXECUTION_PERIOD) {
+        auto time_ms = std::chrono::duration<float, std::milli>(execution_timer.elapsed_time());
+
+        if (time_ms < EXECUTION_PERIOD) {
             ThisThread::sleep_for(
                 chrono::duration_cast<Kernel::Clock::duration>(
-                    EXECUTION_PERIOD - elapsed_time
+                    EXECUTION_PERIOD - time_ms
                 )
             );
         } // else run again asap
 
+        // 2. Now .count() returns a float with decimals
+        times +=  std::chrono::duration<float, std::milli>(execution_timer.elapsed_time()).count();
+        counter++;
     }
+    
+    ARES->killAllSensorThreads();
+    pc.printf("Average execution time %f in ms\n", times/counter);
 }
 
 /** 
@@ -189,7 +195,7 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
 void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     Timer execution_timer;
     execution_timer.start();
-    auto EXECUTION_PERIOD = 500ms; // 500ms = 2Hz
+    auto EXECUTION_PERIOD = 20ms; // 500ms = 2Hz
     // constexpr chrono::milliseconds EXECUTION_PERIOD{500}; // ms
     // constexpr Kernel::Clock::duration_u32 EXECUTION_PERIOD = 500ms;
 
@@ -222,7 +228,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         state = ARES->getState();
 
         // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
-        packet_count = flash_chip.getNumPacketsWritten();
+        // packet_count = flash_chip.getNumPacketsWritten();
         // pc.printf("Packets Logged: %d\n", packet_count);
 
         // State machine mode selection 
@@ -284,11 +290,11 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         }
 
         // Event Scheduling, slow to 50hz if running faster than schedule 
-        auto elapsed_time = execution_timer.elapsed_time();
-        if (elapsed_time < EXECUTION_PERIOD) {
+        auto time_ms = std::chrono::duration<float, std::milli>(execution_timer.elapsed_time());
+        if (time_ms < EXECUTION_PERIOD) {
             ThisThread::sleep_for(
                 chrono::duration_cast<Kernel::Clock::duration>(
-                    EXECUTION_PERIOD - elapsed_time
+                    EXECUTION_PERIOD - time_ms
                 )
             );
         } // else run again asap
@@ -469,7 +475,8 @@ void command_line_interface() {
             pc.printf("2. \"dump\"\n");
             pc.printf("3. \"set_origin\"\n");
             pc.printf("4. \"clear\"\n");
-            pc.printf("5. \"dump_to_ser\"");
+            pc.printf("5. \"dump_to_ser\"\n");
+            pc.printf("6. \"timing_testing\"");
             pc.printf("\n> ");  // command prompt
             cli_reset = false;
         }
@@ -488,6 +495,14 @@ void command_line_interface() {
                 flight_mode(test,&ARES,0);
             }
 
+            // flight log
+            if (strcmp(cmd_buffer, "timing_testing") == 0 || strcmp(cmd_buffer, "6") == 0) {
+                pc.printf("\"timing_testing\" cmd received. Testing for 20s\n");
+                ThisThread::sleep_for(1500ms);
+                timing_testing(&ARES, &flash_addr);
+            }
+
+
             // dump data
             else if (strcmp(cmd_buffer, "dump") == 0 || strcmp(cmd_buffer, "2") == 0) {
                 pc.printf("\"dump\" cmd received\n");
@@ -495,10 +510,10 @@ void command_line_interface() {
                 dump_data();
             }
 
-             // dump data
+            // dump data
             else if (strcmp(cmd_buffer, "dump_to_ser") == 0 || strcmp(cmd_buffer, "5") == 0) {
                 pc.printf("\"dump_to_ser\" cmd received\n");
-                pc.printf("Waiting 30s, disconnect from serial port and start serial parser\n")
+                pc.printf("Waiting 30s, disconnect from serial port and start serial parser\n");
                 ThisThread::sleep_for(30s);
                 dump_data();
             }
@@ -527,7 +542,6 @@ void command_line_interface() {
                 } else {
                     pc.printf("\nInvalid format. Use: \"<lat>, <lon>\" or type \"here\".\n");
                 }
-                
             }
 
             // clear data
