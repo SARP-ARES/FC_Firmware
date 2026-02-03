@@ -176,6 +176,8 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     pc.printf("started logging...\n\n");
     ThisThread::sleep_for(100ms);
 
+    ARES->setThreshold();
+
     // TESTING APPLICATIONS
     float deflection = 0;
     bool up = true;
@@ -203,13 +205,13 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 // Ctrl Setup
                 float target_heading = ARES->getTargetHeading();
                 float heading_error = ARES->getHeadingError();
-                // float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+                float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
 
-                // TESTING
-                float delta_a_cmd = deflection;
-                if(up)  deflection += 0.1;
-                else    deflection -= 0.1;
-                if (deflection < -1 || deflection > 1) up = !up; 
+                // // TESTING
+                // float delta_a_cmd = deflection;
+                // if(up)  deflection += 0.1;
+                // else    deflection -= 0.1;
+                // if (deflection < -1 || deflection > 1) up = !up; 
 
                 ARES->setLastFCcmd(delta_a_cmd);
 

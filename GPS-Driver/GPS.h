@@ -13,7 +13,7 @@ struct GPSData{
     float pdop;
     float vdop;
     float hdop;
-    float heading; 
+    float heading;
     float gspeed;
     float utc;
     char latNS;
