@@ -348,10 +348,6 @@ void ctrldRogallo::updateStateWithHeadingError(float heading_error){
     state.heading_error_deg = heading_error;
 }
 
-
-
-
-
 /** 
  *  @brief Sends control command over i2c to the MCPS 
  *  @param ctrl - asymetric deflection 
