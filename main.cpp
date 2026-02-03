@@ -23,14 +23,14 @@ DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
 Thread thread;
 
-FlightPacket state; // global state makes more sense than individual logging states (could be moved to logging multi-function as a pointer)
+FlightPacket state; // global state makes more sense than individual logging states 
+                    // (could be moved to logging multi-function as a pointer)
 
 uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256; 
 
 enum FlightMode {
     test,
-    packetlog, 
-    ctrl_sequence
+    flight
 };
 
 // = # of pages, 4.55 hours at 1Hz
@@ -60,37 +60,6 @@ void clear_data() {
     }
     led_B.write(0);
 }
-
-/** 
- * @brief logs a given amount of packets to the flash chip and stops running ARES when logging is exhausted
- * @param ARES pointer to the ARES flight object
- * @param numPacketLog total number of packets to log before system ends
- * @param flash_addr pointer to the current system flash address 
- */
-void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr) {
-
-    /* 
-     * start ctrl_trigger high, write low once apogee is detected and fsm_mode =
-     * to trigger control sequence
-     */
-    
-    DigitalOut ctrl_trigger(PB_3); 
-    ctrl_trigger.write(1); 
-    led_G.write(1);
-
-    // big write
-    for (int i = 0; i < numPacketLog; i++) {
-
-        ARES->updateFlightPacket(); 
-
-        state = ARES->getState(); // extract state variables
-        *flash_addr = flash_chip.writePacket(*flash_addr, state); // write state variables to flash chip
-
-        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
-            ctrl_trigger.write(0); // signal to control sequence on MCPS 
-        }
-    }
-} 
 
 /** 
  *  @brief Autonomous flight mode. A PID controller is used to compute 
@@ -296,41 +265,6 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     }
 }
 
-/** 
- * @brief starts running the control sequence after main has been deployed
- * @param ARES pointer to the ctrldRogallo flight object
- * @param flash_addr pointer to the current address the flash chip is ready to write 
- */
-void ctrl_sequence_after_apogee(ctrldRogallo* ARES, uint32_t* flash_addr){
-
-    char cmdBuf[32]; //CLI buffer
-
-    while(true) {
-        // Get current data and put it in the state struct
-        ARES->updateFlightPacket();
-        state = ARES->getState();
-        
-        // Print data to serial port
-        ARES->printCompactState(&pc);
-
-        // Write data to flash chip increment the flash addr counter
-        *flash_addr = flash_chip.writePacket(*flash_addr, state);
-
-        if (state.fsm_mode == FSM_SEEKING) { // mode is set after apogee detection
-            // TODO: CONTROL SEQUENCE HERE
-            // use sendCtrl() method
-        }
-
-        // break on "quit" command
-        if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
-            if(strcmp(cmdBuf, "quit") == 0) {
-                pc.printf("\"quit\" cmd recieved...\n");
-                break;
-            }
-        }
-    }
-}
-
 /** @brief dumps all logged data in the serial port */
 void dump_data(){
     uint16_t numPacketDump;
@@ -424,18 +358,12 @@ void set_origin(ctrldRogallo* ARES, double lat, double lon) {
  * @brief Determines what flight (logging) mode to enter used for readability 
  * @param mode the FlightMode enum to enter
  * @param ARES reference to the ctrldRogallo flight object
- * @param num_packets -- for limited packet logging number of packets to log
  */
-void flight_mode(FlightMode mode, ctrldRogallo* ARES, uint32_t num_packets) {
+void flight_mode(FlightMode mode, ctrldRogallo* ARES) {
     ARES->setThreshold();
     ARES->updateFlightPacket();
     ThisThread::sleep_for(1s);
     switch (mode) {
-        case packetlog:
-            pc.printf("\nCollecting %d %d-byte packets at 1Hz...\n", num_packets, FLIGHT_PACKET_SIZE);
-            flight_log(ARES, num_packets, &flash_addr);      // Packet logging
-            pc.printf("==========================================================\n");
-            break; 
         
         case test:  
             pc.printf("\nEntering Testing mode... %s\n", ' ');
@@ -443,9 +371,9 @@ void flight_mode(FlightMode mode, ctrldRogallo* ARES, uint32_t num_packets) {
             pc.printf("==========================================================\n");
             break; 
         
-        case ctrl_sequence:
+        case flight:
             pc.printf("\nBeginning control sequence... %s\n", ' ');
-            ctrl_sequence_after_apogee(ARES, &flash_addr);   // Controlled mode
+            auto_flight(ARES, &flash_addr);                  // Flight Mode
             pc.printf("==========================================================\n");
             break; 
     }
@@ -485,7 +413,14 @@ void command_line_interface() {
                 "Use \"seeking\" cmd to force seeking FSM.\nUse \"idle\" to force idle\n" \
                 "Use \"spiral\" cmd to force sprial FSM");
                 ThisThread::sleep_for(1500ms);
-                flight_mode(test,&ARES,0);
+                flight_mode(test, &ARES);
+            }
+
+            // flight log
+            if (strcmp(cmd_buffer, "flight_mode") == 0 || strcmp(cmd_buffer, "6") == 0) {
+                pc.printf("\"flight_mode\" cmd received. \n\n\t ARES ONLINE \n\n");
+                ThisThread::sleep_for(1500ms);
+                flight_mode(flight, &ARES);
             }
 
             // dump data
@@ -498,7 +433,7 @@ void command_line_interface() {
              // dump data
             else if (strcmp(cmd_buffer, "dump_to_ser") == 0 || strcmp(cmd_buffer, "5") == 0) {
                 pc.printf("\"dump_to_ser\" cmd received\n");
-                pc.printf("Waiting 30s, disconnect from serial port and start serial parser\n")
+                pc.printf("Waiting 30s, disconnect from serial port and start serial parser\n");
                 ThisThread::sleep_for(30s);
                 dump_data();
             }
@@ -560,4 +495,3 @@ void command_line_interface() {
 int main() {
     command_line_interface();
 }
-
