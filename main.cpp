@@ -70,20 +70,18 @@ void clear_data() {
 void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
     Timer execution_timer;
     execution_timer.start();
-    auto EXECUTION_PERIOD = 20ms ; 
+    auto EXECUTION_PERIOD = 20ms; 
 
     float theta_error;
     uint16_t packet_count;
     
-    pc.printf("entered test_mode...\n");
-    ThisThread::sleep_for(100ms);
+    ThisThread::sleep_for(10ms);
     ARES->startAllSensorThreads(&pc);
-    pc.printf("started sensor threads...\n");
-    ThisThread::sleep_for(100ms);
-    pc.printf("entering startLogging...\n");
+    ThisThread::sleep_for(10ms);
     ARES->startLogging(&flash_chip, &pc);
-    pc.printf("started logging...\n\n");
-    ThisThread::sleep_for(100ms);
+    ThisThread::sleep_for(10ms);
+    
+    pc.printf("\n\n\t ARES ONLINE \n\n"); 
 
     // TESTING APPLICATIONS
     float deflection = 0;
@@ -91,22 +89,20 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
 
     while(true) {
         execution_timer.reset();
-        // Get current sensor data and put it in the state struct
+
+        // State handling
         ARES->updateFlightPacket();
         ModeFSM mode = ARES->getMode();
-
-        // print state for testing
         state = ARES->getState();
-
-        // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
-        packet_count = flash_chip.getNumPacketsWritten();
 
         // State machine mode selection 
         switch (mode) {
-
+            
+            // Mode prior to apogee, waiting phase
             case FSM_IDLE: break; 
 
-            case FSM_SEEKING: {
+            // Mode for approaching the target radius
+            case FSM_SEEKING: { 
                 // Ctrl Setup
                 float target_heading = ARES->getTargetHeading();
                 float heading_error = ARES->getHeadingError();
@@ -115,17 +111,19 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
                 // State logging
                 ARES->setLastFCcmd(delta_a_cmd);
 
-                // MCPS Comms
+                // Control Communication
                 bool success = ARES->sendCtrl(delta_a_cmd);
                 break;
             }
             
+            // Mode once on the ground, ends flight logging
             case FSM_GROUNDED: {
                 ARES->stopLogging();
                 ARES->killAllSensorThreads();
                 break;
             }
 
+            // Mode once within target radius
             case FSM_SPIRAL: {
                 float cmd = state.fc_cmd > 0 ? 1 : -1;
                 ARES->setLastFCcmd(cmd);
@@ -146,6 +144,9 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
                 )
             );
         } // else run again asap
+
+        // Exit if grounded
+        if(mode == FSM_GROUNDED) break;
 
     }
 }
@@ -420,7 +421,7 @@ void command_line_interface() {
 
             // flight log
             if (strcmp(cmd_buffer, "flight_mode") == 0 || strcmp(cmd_buffer, "6") == 0) {
-                pc.printf("\"flight_mode\" cmd received. \n\n\t ARES ONLINE \n\n");
+                pc.printf("\"flight_mode\" cmd received.");
                 ThisThread::sleep_for(1500ms);
                 flight_mode(flight, &ARES);
             }

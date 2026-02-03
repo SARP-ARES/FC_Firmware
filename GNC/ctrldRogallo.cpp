@@ -40,6 +40,8 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
 
     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
+
+    prev_time = getElapsedSeconds();
 } 
  
 /**
@@ -233,7 +235,6 @@ void ctrldRogallo::setThreshold(){
     apogeeThreshold = state.altitude_m + APOGEE_THRESHOLD_BUFFER; 
 }
 
-
 /**
  * @brief updates the state of the system for control purposes and logging
  * @todo break into two functions. One that outputs a state packet of data
@@ -254,7 +255,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.timestamp_timer = getElapsedSeconds();
     state.fsm_mode = this->mode;
 
-    // BMP 
+    // Barometric Altimiter 
     state.altitude_bmp_m = bmp_buf.altitude_m;
     state.temp_c = bmp_buf.temp_c;
     state.pressure_pa = bmp_buf.press_pa;
@@ -268,15 +269,16 @@ void ctrldRogallo::updateFlightPacket(){
     state.longitude_deg = gps_buf.lon;
     state.altitude_gps_m = gps_buf.alt;
 
-    state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt); // shit don't work
-    // state.altitude_m = bmp_buf.altitude_m; // TODO: replace with fuzedAlt
+    // Bias Filter
+    state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt);
 
-    updateHaversineCoords(); // TODO: restructure for lightweight mutex
+    // Relative State
+    updateHaversineCoords();
     state.pos_east_m = haversineCoordEast;
     state.pos_north_m = haversineCoordNorth;
     state.distance_to_target_m = distanceToTarget;
     
-    // BNO 
+    // IMU
     state.bno_acc_x = bno_buf.acc_x;
     state.bno_acc_y = bno_buf.acc_y;
     state.bno_acc_z = bno_buf.acc_z;
@@ -309,40 +311,48 @@ void ctrldRogallo::updateFlightPacket(){
     if (success) {
         state.leftPosition   = motor.leftPosition;
         state.rightPosition  = motor.rightPosition;
-        state.leftPull     = motor.leftPull; 
-        state.rightPull    = motor.rightPull; 
-        state.readSuccess   = true;
+        state.leftPull       = motor.leftPull; 
+        state.rightPull      = motor.rightPull; 
+        state.readSuccess    = true;
     } else { // FAILURE TO ACK
         state.leftPosition   = NAN;
         state.rightPosition  = NAN;
-        state.leftPull     = NAN; 
-        state.rightPull    = NAN; 
-        state.readSuccess   = false;
+        state.leftPull       = NAN; 
+        state.rightPull      = NAN; 
+        state.readSuccess    = false;
     }
 
-    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); // checks if descending and above threshold
+    // checks if descending and above threshold
+    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); 
 
+    // Robust counter for extreme noise 
     if(apogeeCounter >= 200) apogeeDetected = 1;
 
+    // Post Apogee sequence
     if(apogeeDetected == 1) {
-        if(isWithinTarget())    mode = FSM_SPIRAL; // checks if ARES is within spiral target range mode = FSM_SPIRAL; 
+        if(isWithinTarget())    mode = FSM_SPIRAL; 
         else                    mode = FSM_SEEKING;
 
         groundedCounter += groundedDetection(state.prevAlt, state.altitude_m); // checks if not moving and below threshold
-        if(groundedCounter >= 15)    mode = FSM_GROUNDED;
+
+        // Similar Idea to apogee detection, now just steady ground state
+        if(groundedCounter >= 300) mode = FSM_GROUNDED;
     }
 
-    state.apogee_counter = apogeeCounter;
+    // Control Sequence State
+    state.apogee_counter  = apogeeCounter;
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = groundedCounter;
 
+    // Used in apogee detection calculation
     state.prevAlt = state.altitude_m; 
+
 } // mutex unlocks outside this scope
 
 /** 
  *  @brief Sends control command over i2c to the MCPS 
  *  @param ctrl - asymetric deflection 
- *  @return 0 if success 1 if failure
+ *  @return True if success - False if failure
  */
 bool ctrldRogallo::sendCtrl(float ctrl){
     uint8_t ack = i2c->write(MCPS_I2C_ADDR, reinterpret_cast<const char*>(&ctrl), sizeof(ctrl));
@@ -375,7 +385,7 @@ void ctrldRogallo::bmpUpdateLoop() {
         event_flags.wait_any(BMP_FLAG, osWaitForever, false);
 
         bmp.update();
-        ThisThread::sleep_for(20ms); // TODO: replace with timer
+        ThisThread::sleep_for(20ms);
     }
 }
 
@@ -394,7 +404,7 @@ void ctrldRogallo::gpsUpdateLoop(){
 /** @brief updates BNO055 internal data struct (~50Hz) */ 
 void ctrldRogallo::imuUpdateLoop() {
     while (true) {
-        // Check if BMP_FLAG is active
+        // Check if BNO_FLAG
         // Wait until active if not active
         event_flags.wait_any(BNO_FLAG, osWaitForever, false);
 
@@ -403,27 +413,35 @@ void ctrldRogallo::imuUpdateLoop() {
     }
 }
 
+/** @brief Starts the IMU update Thread */
 void ctrldRogallo::startThreadIMU() {
     event_flags.set(BNO_FLAG);
     this->thread_imu.start(callback(this, &ctrldRogallo::imuUpdateLoop));
 }
 
+/** @brief Starts the Altimeter update Thread */
 void ctrldRogallo::startThreadBMP() {
     event_flags.set(BMP_FLAG);
     this->thread_bmp.start(callback(this, &ctrldRogallo::bmpUpdateLoop));
 }
 
+/** @brief Starts the GPS update Thread */
 void ctrldRogallo::startThreadGPS() {
     event_flags.set(GPS_FLAG);
     this->thread_gps.start(callback(this, &ctrldRogallo::gpsUpdateLoop));
 }
 
+/** 
+ *  @brief Starts all sensor threads 
+ *  @param pc -> Reference to the serial EUSB object
+ */ 
 void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
     pc->printf("Starting GPS thread...\n"); startThreadGPS(); pc->printf("GPS thread started!\n");
     pc->printf("Starting IMU thread...\n"); startThreadIMU(); pc->printf("IMU thread started!\n");
     pc->printf("Starting BMP thread...\n"); startThreadBMP(); pc->printf("BMP thread started!\n");
 }
 
+/** @brief Thread killing functions, disables the 'run' flags for each thread */ 
 void ctrldRogallo::killThreadIMU() { event_flags.clear(BNO_FLAG); }
 void ctrldRogallo::killThreadBMP() { event_flags.clear(BMP_FLAG); }
 void ctrldRogallo::killThreadGPS() { event_flags.clear(GPS_FLAG); }
@@ -440,6 +458,8 @@ void ctrldRogallo::stopAllThreads(){
     this->killAllSensorThreads();
 }
 
+
+/** @brief Data logging thread main loop, regulates logging time interally */
 void ctrldRogallo::logDataLoop(){
     FlightPacket state_snapshot;
     Kernel::Clock::duration LOG_PERIOD = 1s; // default 1Hz
@@ -459,9 +479,9 @@ void ctrldRogallo::logDataLoop(){
         
         // log at 10Hz while seeking or spiraling, 1Hz while idle, turn off once grounded
         switch (this->mode) {
-            case FSM_IDLE:      LOG_PERIOD = 1s; break; // 1Hz
-            case FSM_SEEKING:   LOG_PERIOD = 100ms; break; // 10Hz
-            case FSM_SPIRAL:    LOG_PERIOD = 100ms; break; // 10Hz
+            case FSM_IDLE:      LOG_PERIOD = 1s; break;     // 1Hz
+            case FSM_SEEKING:   LOG_PERIOD = 100ms; break;  // 10Hz
+            case FSM_SPIRAL:    LOG_PERIOD = 100ms; break;  // 10Hz
             case FSM_GROUNDED:  stopLogging(); return;
         }   
         auto end_time = flight_timer.elapsed_time();
@@ -511,16 +531,24 @@ float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
  * @return 0 if non apogee 1 if apogee
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
-    double interval = 1; // seconds
-    double apogeeVelo = -1.2; // m/s
-    double velo = (currAlt - prevAlt)/interval;
+    float apogeeVelo = -1.2; // m/s
+    float curr_time = getElapsedSeconds();
+    float velo = (currAlt - prevAlt)/(curr_time - prev_time);
+    prev_time = curr_time;
     if(velo <= apogeeVelo && currAlt > apogeeThreshold) return 1; 
     return 0; 
 }
 
+/** 
+ * @brief - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
+ * @param prevAlt - previous altitude 
+ * @param currAlt - current altitude
+ * @return 0 if non apogee 1 if apogee
+ */ 
 uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
-    double interval = 1; 
-    double velo = (currAlt - prevAlt)/interval;
+    float curr_time = getElapsedSeconds();
+    float velo = (currAlt - prevAlt)/(curr_time - prev_time);
+    prev_time = curr_time;
     if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) return 1; 
     return 0; 
 }

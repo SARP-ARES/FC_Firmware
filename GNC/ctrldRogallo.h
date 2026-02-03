@@ -78,6 +78,7 @@ class ctrldRogallo {
         uint32_t apogeeThreshold;
         uint32_t groundedThreshold; 
         uint32_t currentFlashAddress;
+        float prev_time;
 
         // ---- threads ----
         void bmpUpdateLoop();
