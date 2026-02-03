@@ -41,9 +41,7 @@ enum FlightMode {
 
 /* SET NUMBER OF PACKETS TO LOG || for for 1.5 hours of logging, log 5400 packets */
 #define NUM_PACKETS_TO_LOG  16000
-
 #define DT_CTRL             0.01 // time step for PID controller to calculate derivative & integral
-
 
 /** @brief clears all data off of the flash chip */
 void clear_data() {
@@ -160,8 +158,6 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     Timer execution_timer;
     execution_timer.start();
     auto EXECUTION_PERIOD = 500ms; // 500ms = 2Hz
-    // constexpr chrono::milliseconds EXECUTION_PERIOD{500}; // ms
-    // constexpr Kernel::Clock::duration_u32 EXECUTION_PERIOD = 500ms;
 
     char cmdBuf[32];
     float theta_error;

@@ -578,6 +578,7 @@ void ctrldRogallo::printCompactState(EUSBSerial* pc) {
     pc->printf("==========================================================\n");
 }
 
+/** @brief isnan failing for some reason, just checks IEE float encoding for NAN */ 
 bool ctrldRogallo::is_nan_safe(float f) {
     uint32_t i;
     memcpy(&i, &f, sizeof(i));
