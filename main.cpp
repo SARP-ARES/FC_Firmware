@@ -110,7 +110,16 @@ void timing_testing(ctrldRogallo* ARES, uint32_t* flash_addr){
     ThisThread::sleep_for(100ms);
     ARES->startAllSensorThreads(&pc);
     ThisThread::sleep_for(100ms);
-    ARES->startLogging(&flash_chip, &pc);
+
+    /* CLEAR BEFORE RUNNING LOGGING SPEED TEST*/
+    // Logging timing test will update the flight packet once, then try to log the same packet 
+    // numerous times to test just logging speed. 
+    // Comment/uncomment for Logging speed testing
+    int addr = 0;
+    // ARES->startLogging(&flash_chip, &pc);
+
+    ThisThread::sleep_for(100ms);
+    ARES->updateFlightPacket();
     ThisThread::sleep_for(100ms);
 
     pc.printf("entered timing_test\n");
@@ -118,67 +127,72 @@ void timing_testing(ctrldRogallo* ARES, uint32_t* flash_addr){
     float times = 0; 
     int counter = 0;
 
+
     Timer t;
 
     t.start();
 
     while(t.read_ms() < 20000) {
         execution_timer.reset();
-        // Get current sensor data and put it in the state struct
         
-        ARES->updateFlightPacket();
-        ModeFSM mode = ModeFSM::FSM_SEEKING;
 
-        // print state for testing
         state = ARES->getState();
 
-        // State machine mode selection 
-        switch (mode) {
+        /* FSM MODE TIMING TESTING */
 
-            case FSM_IDLE: break; 
+        // ARES->updateFlightPacket();
 
-            case FSM_SEEKING: {
-                // Ctrl Setup
-                float target_heading = ARES->getTargetHeading();
-                float heading_error = ARES->getHeadingError();
-                float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+        // ModeFSM mode = ModeFSM::FSM_SEEKING;
 
-                // State logging
-                ARES->setLastFCcmd(delta_a_cmd);
+        // // State machine mode selection 
+        // switch (mode) {
 
-                // MCPS Comms
-                bool success = ARES->sendCtrl(delta_a_cmd);
-                break;
-            }
+        //     case FSM_IDLE: break; 
+
+        //     case FSM_SEEKING: {
+        //         // Ctrl Setup
+        //         float target_heading = ARES->getTargetHeading();
+        //         float heading_error = ARES->getHeadingError();
+        //         float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+
+        //         // State logging
+        //         ARES->setLastFCcmd(delta_a_cmd);
+
+        //         // MCPS Comms
+        //         bool success = ARES->sendCtrl(delta_a_cmd);
+        //         break;
+        //     }
             
-            case FSM_GROUNDED: {
-                ARES->stopLogging();
-                ARES->killAllSensorThreads();
-                break;
-            }
+        //     case FSM_GROUNDED: {
+        //         ARES->stopLogging();
+        //         ARES->killAllSensorThreads();
+        //         break;
+        //     }
 
-            case FSM_SPIRAL: {
-                float cmd = state.fc_cmd > 0 ? 1 : -1;
-                ARES->setLastFCcmd(cmd);
-                ARES->sendCtrl(cmd);
-                break; 
-            }
+        //     case FSM_SPIRAL: {
+        //         float cmd = state.fc_cmd > 0 ? 1 : -1;
+        //         ARES->setLastFCcmd(cmd);
+        //         ARES->sendCtrl(cmd);
+        //         break; 
+        //     }
 
-            // Unidentified Case
-            default: break; 
-        }
+        //     // Unidentified Case
+        //     default: break; 
+        // }
 
-        auto time_ms = std::chrono::duration<float, std::milli>(execution_timer.elapsed_time());
+        // auto time_ms = std::chrono::duration<float, std::milli>(execution_timer.elapsed_time());
 
-        if (time_ms < EXECUTION_PERIOD) {
-            ThisThread::sleep_for(
-                chrono::duration_cast<Kernel::Clock::duration>(
-                    EXECUTION_PERIOD - time_ms
-                )
-            );
-        } // else run again asap
+        // if (time_ms < EXECUTION_PERIOD) {
+        //     ThisThread::sleep_for(
+        //         chrono::duration_cast<Kernel::Clock::duration>(
+        //             EXECUTION_PERIOD - time_ms
+        //         )
+        //     );
+        // } // else run again asap
 
-        // 2. Now .count() returns a float with decimals
+        /* Logging Speed Testing */
+        addr = flash_chip.writePacket(addr, state);
+
         times +=  std::chrono::duration<float, std::milli>(execution_timer.elapsed_time()).count();
         counter++;
     }
@@ -186,6 +200,8 @@ void timing_testing(ctrldRogallo* ARES, uint32_t* flash_addr){
     ARES->killAllSensorThreads();
     pc.printf("Average execution time %f in ms\n", times/counter);
 }
+
+
 
 /** 
  *  @brief Testing mode system prints & logs state until "quit" is entered into the CLI 
