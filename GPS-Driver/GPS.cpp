@@ -1,6 +1,7 @@
 #include "BufferedSerial.h"
 #include "EUSBSerial.h"
 #include "GPS.h"
+#include "GPS_CMD.h"
 #include <cmath>
 
 
@@ -12,11 +13,56 @@ ADD DESCRIPTION
 GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
 
 
+
+/*
+
+ADD DESCRIPTION
+
+*/
+void GPS::set_logging_rate(uint32_t hz) {
+    // Choose valid GPS settings based on requested Hz
+    const GPSCmd* baudCmd = nullptr;
+    const GPSCmd* updateCmd = nullptr;
+    const GPSCmd* fixCmd = nullptr;
+    uint32_t uart_baud = 0;
+
+    if (hz <= 1) {
+        baudCmd = &CMD_BAUD_9600;
+        updateCmd = &CMD_UPDATE_1HZ;
+        fixCmd = &CMD_FIXCTL_1HZ;
+        uart_baud = 9600;
+    } else if (hz <= 5) {
+        baudCmd = &CMD_BAUD_38400;
+        updateCmd = &CMD_UPDATE_5HZ;
+        fixCmd = &CMD_FIXCTL_5HZ;
+        uart_baud = 38400;
+    } else { // default: 10 Hz
+        baudCmd = &CMD_BAUD_38400;  // GPS stable at 10Hz with 38400
+        updateCmd = &CMD_UPDATE_10HZ;
+        fixCmd = &CMD_FIXCTL_10HZ;
+        uart_baud = 38400;
+    }
+
+    // Step 1: Set GPS baud rate
+    serial.write(baudCmd->cmd, baudCmd->len);
+
+    // Step 2: Update STM32 UART baud to match GPS
+    serial.set_baud(uart_baud);
+
+    // Step 3: Set GPS update rate
+    serial.write(updateCmd->cmd, updateCmd->len);
+
+    // Step 4: Set GPS fix interval
+    serial.write(fixCmd->cmd, fixCmd->len);
+
+}
+
+
+
 /*
 ADD DESCRIPTION
 */
 GPSData GPS::getData() const{
-    ScopedLock<Mutex> lock(this->mutex);
     return state; // return a copy of the state (can't be modified bc its private)
 }
 
@@ -86,19 +132,19 @@ int GPS::getLonSign() {
 
 float GPS::lat2deg(float lat_ddmm){
     int lat_sign = getLatSign(); // -1 or 1
-    float lat_deg = floor(lat_ddmm/100);       // extract degrees
-    float lat_min = fmod(lat_ddmm, 100);     // extract minutes
+    float lat_deg = floor(lat_ddmm/100.0);       // extract degrees
+    float lat_min = fmod(lat_ddmm, 100.0);     // extract minutes
     // convert degrees & minutes to radians
-    lat_deg = lat_sign*(lat_deg + lat_min/60); 
+    lat_deg = lat_sign*(lat_deg + lat_min/60.0); 
     return lat_deg;
 }
 
-
 float GPS::lon2deg(float lon_dddmm){
     int lon_sign = getLonSign(); // -1 for west, 1 for east
-    float lon_deg = floor(lon_dddmm / 100.0f);           // extract degrees
-    float lon_min = lon_dddmm - lon_deg * 100.0f;        // extract minutes
-    float decimal_lon = lon_sign * (lon_deg + lon_min/60.0f);
+    float lon_deg = floor(lon_dddmm / 100.0);           // extract degrees
+    float lon_min = lon_dddmm - lon_deg * 100.0;        // extract minutes
+    float decimal_lon = lon_sign * (lon_deg + lon_min/60.0);
+    return decimal_lon; 
     return decimal_lon;
 }
 
@@ -151,7 +197,6 @@ int GPS::update_GGA(const char* msg){
                         &lonEW, &fix, &nsats, &hdop, &alt);
               
     // assign values to the state
-    ScopedLock<Mutex> lock(this->mutex);
     this->state.utc = utc2sec(utc);
     this->state.lat = lat2deg(lat);
     this->state.latNS = latNS;
@@ -243,7 +288,6 @@ int GPS::update_GSA(const char* msg){
     result = result + result2;
 
     // Assign values to the state
-    ScopedLock<Mutex> lock(this->mutex);
     this->state.mode1 = mode1;
     this->state.mode2 = mode2;
     this->state.pdop = pdop;
@@ -274,9 +318,7 @@ int GPS::update_RMC(const char* msg){
                         &magneticVariation, &mode, &checksum);
 
     // Assign values to the state
-    
-    // this->state.utc = utc2sec(utc);
-    ScopedLock<Mutex> lock(this->mutex);
+    this->state.utc = utc2sec(utc);
     this->state.rmcStatus = status;
     this->state.lat = lat2deg(lat);
     this->state.latNS = latNS;
@@ -304,13 +346,12 @@ int GPS::update_antenna_status(const char* msg){
 }
 
 
-// legacy method
 int GPS::update(NMEA_Type msgType, const char* msg){
 
     switch(msgType) {
         
         case NMEA_NA: { // type not recognized
-            printf("Invalid NMEA message type\n");
+            // printf("Invalid NMEA message type\n");
             return 0;
         }
 
@@ -404,13 +445,13 @@ int GPS::bigUpdate(){
             index = 0; // reset buffer index
         }
 
-        if (GGA_processed && GSA_processed && RMC_processed && VTG_processed ||
-        t.read_ms() > 2000) {
-            break; // break out once all message types have been processed or 2s have passed
+        if (GGA_processed && GSA_processed && RMC_processed && VTG_processed) {
+            break; // break out once all message types have been processed
         }
 
-
-        ThisThread::sleep_for(5ms);
+        if (t.read_ms() > 2000) { // something fishy is going on
+            break;
+        }
     }
     return success; // number of messages processed with result > 0 (matched some items)
 }
