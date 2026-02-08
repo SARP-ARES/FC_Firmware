@@ -396,7 +396,7 @@ void ctrldRogallo::gpsUpdateLoop(){
         // Wait until active if not active
         event_flags.wait_any(GPS_FLAG, osWaitForever, false);
 
-        gps.bigUpdate(); // this takes 100-1000ms
+        gps.bigUpdate(); // this takes 100-1000ms TODO: implement 10Hz GPS
         ThisThread::sleep_for(1ms); // avoid hammering just in case
     }
 }
