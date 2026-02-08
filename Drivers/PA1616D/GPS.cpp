@@ -5,20 +5,18 @@
 #include <cmath>
 
 
-/*
-
-ADD DESCRIPTION
-
-*/
+/**
+ * @brief Constructor for GPS object
+ * @param rx_gps name of pin on the microcontroller connected to RX on the GPS module
+ * @param tx_gps name of pin on the microcontroller connected to TX on the GPS module
+ */
 GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
 
 
-
-/*
-
-ADD DESCRIPTION
-
-*/
+/**
+ * @brief sets the sampling rate on the GPS
+ * @param hz commanded sampling rate (1, 5, or 10)
+ */
 void GPS::set_logging_rate(uint32_t hz) {
     // Choose valid GPS settings based on requested Hz
     const GPSCmd* baudCmd = nullptr;
@@ -59,19 +57,20 @@ void GPS::set_logging_rate(uint32_t hz) {
 
 
 
-/*
-ADD DESCRIPTION
-*/
+/**
+ * @brief getter for data buffer
+ * @return state, member struct containing all current GPS data
+ */
 GPSData GPS::getData() const{
     return state; // return a copy of the state (can't be modified bc its private)
 }
 
 
-/*
-ADD DESCRIPTION
-*/
-// say "const" so that it can't be modified (only reading it)
-// msg will be the entire line 
+/**
+ * @brief gets the message type of an NMEA message (GGA, GSV, RMC, etc.)
+ * @param msg pointer to buffer containing NMEA message string
+ * @return the type (NMEA_Type) of the NMEA message
+ */
 NMEA_Type GPS::getMsgType(const char* msg) {
 
     switch (msg[4]) {
