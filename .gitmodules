@@ -1,0 +1,3 @@
+[submodule "EUSBSerial"]
+	path = EUSBSerial
+	url = https://github.com/SARP-ARES/EUSBSerial
