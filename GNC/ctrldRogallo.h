@@ -33,6 +33,53 @@ typedef struct {
 
 class ctrldRogallo {
 
+    public:
+        ctrldRogallo(Mutex_I2C* i2c);
+
+        // -- Setters --
+        void setLastFCcmd(float cmd);
+        void setFSMMode(ModeFSM mode);
+
+        // ---- thread handlers ----
+        void startThreadGPS(); 
+        void startThreadIMU();
+        void startThreadBMP();
+        void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
+        void killThreadGPS();
+        void killThreadIMU();
+        void killThreadBMP();
+        void killAllSensorThreads();
+        void logDataLoop();
+        void startLogging(flash* flash_mem, EUSBSerial* pc);
+        void stopLogging();
+        void stopAllThreads();
+
+        // ---- state handlers ---
+        const FlightPacket getState();
+        const ModeFSM getMode();
+        void updateFlightPacket();
+        void resetFlightPacket();
+
+        // ---- other stuff ----
+        float getElapsedSeconds();
+        void setThreshold(); 
+        void setTarget(double latitude, double longitude);
+        void setPIDGains(float Kp, float Ki, float Kd);
+
+        float getHeadingError();
+        float getTargetHeading();
+        float computeCtrl(float heading_error, float dt); // output in [-1, 1]
+
+        // ---- MC/PS comms ----
+        bool sendCtrl(float ctrl);
+        bool requestMotorPacket();
+
+        // ---- FSM mode ----
+        uint32_t apogeeDetection(double prevAlt, double currAlt);
+        uint32_t groundedDetection(double prevAlt, double currAlt);
+
+        void printCompactState(EUSBSerial* pc);
+
     private:
 
         /* Drivers */
@@ -96,53 +143,6 @@ class ctrldRogallo {
 
         // nan helper 
         bool is_nan_safe(float f);
-
-    public:
-        ctrldRogallo(Mutex_I2C* i2c);
-
-        // -- Setters --
-        void setLastFCcmd(float cmd);
-        void setFSMMode(ModeFSM mode);
-
-        // ---- thread handlers ----
-        void startThreadGPS(); 
-        void startThreadIMU();
-        void startThreadBMP();
-        void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
-        void killThreadGPS();
-        void killThreadIMU();
-        void killThreadBMP();
-        void killAllSensorThreads();
-        void logDataLoop();
-        void startLogging(flash* flash_mem, EUSBSerial* pc);
-        void stopLogging();
-        void stopAllThreads();
-
-        // ---- state handlers ---
-        const FlightPacket getState();
-        const ModeFSM getMode();
-        void updateFlightPacket();
-        void resetFlightPacket();
-
-        // ---- other stuff ----
-        float getElapsedSeconds();
-        void setThreshold(); 
-        void setTarget(double latitude, double longitude);
-        void setPIDGains(float Kp, float Ki, float Kd);
-
-        float getHeadingError();
-        float getTargetHeading();
-        float computeCtrl(float heading_error, float dt); // output in [-1, 1]
-
-        // ---- MC/PS comms ----
-        bool sendCtrl(float ctrl);
-        bool requestMotorPacket();
-
-        // ---- FSM mode ----
-        uint32_t apogeeDetection(double prevAlt, double currAlt);
-        uint32_t groundedDetection(double prevAlt, double currAlt);
-
-        void printCompactState(EUSBSerial* pc);
 };
 
 inline float ctrldRogallo::getElapsedSeconds() {

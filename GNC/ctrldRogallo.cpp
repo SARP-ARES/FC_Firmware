@@ -8,7 +8,8 @@
 #include "PID.h"
 #include <string>
 #include "mbed.h"
-const int MCPS_I2C_ADDR                   = 0x02 << 1; 
+
+// Constants
 const int DEG_LLA_TO_M_CONVERSION         = 111111;
 const int APOGEE_THRESHOLD_BUFFER         = 600;
 const int GROUNDED_THRESHOLD_BUFFER       = 100;
@@ -16,18 +17,29 @@ const float ALPHA_ALT_START_PERCENT       = 0.05;
 const int SPIRAL_RADIUS                   = 10;
 const float PI                            = 3.1415926535;
 const float DEG_TO_RAD                    = PI/180.0;
+
+// Driver Setup
+const int MCPS_I2C_ADDR                   = 0x02 << 1; 
 const int BMP_I2C_ADDR                    = 0xEE;
 const int BNO_I2C_ADDR                    = 0x51;
+const PinName GPS_RX_PIN                  = PA_2;
+const PinName GPS_TX_PIN                  = PA_3;
 
-/**
- * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.
- */ 
+// PID
+const float Kp                            = 1.0;
+const float Ki                            = 0.001;
+const float Kd                            = 0.1;
+
+/** @brief constructor that initializes the sensors and flash chip on the ARES flight computer. */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c) 
-    : gps(PA_2, PA_3), bmp(i2c, 0xEE), bno(i2c, 0x51), pid(1.0, 0.001, 0.1), i2c(i2c) {
+    : gps(GPS_RX_PIN, GPS_TX_PIN), bmp(i2c, BMP_I2C_ADDR), bno(i2c, BNO_I2C_ADDR), pid(Kp, Ki, Kd), i2c(i2c) {
+
+    // Driver Startup
     bmp.start();
     bno.setup();
 
-    apogeeDetected = 0; // false
+    // Counter init
+    apogeeDetected = 0; 
     apogeeCounter = 0;
     groundedCounter = 0; 
 
@@ -35,9 +47,11 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
     target_lat = NAN;
     target_lon = NAN;
 
+    // Thresholds
     groundedThreshold = NAN;
     apogeeThreshold = NAN; 
 
+    
     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
 

@@ -2,13 +2,7 @@
 #define GPS_H
 #include "mbed.h"
 
-<<<<<<< HEAD:GPS-Driver/GPS.h
-
 const float KNOT_TO_M_S = 0.5144444444;
-=======
-#define KNOT_TO_M_S 0.5144444444
->>>>>>> 7804864295426e624671f9b82e197a5fa25e3188:Drivers/PA1616D/GPS.h
-
 
 struct GPSData{
     float lat;
@@ -53,6 +47,19 @@ typedef enum {
 const float pi = 3.1415926535898;
 
 class GPS {
+
+    public:
+        GPS(PinName rx_gps, PinName tx_gps);
+        GPSData getData() const;
+        float deg2rad(float deg);
+        float lat2deg(float lat_ddmm);
+        float lon2deg(float lon_dddmm);
+        NMEA_Type getMsgType(const char* msg); // TODO: make private and make wrapper
+        int update(NMEA_Type msgType, const char* msg); // TODO: make private and make wrapper
+        int bigUpdate();
+        BufferedSerial serial;
+        void set_logging_rate(uint32_t hz);
+
     private:
         GPSData state;
         int getLatSign();
@@ -67,17 +74,7 @@ class GPS {
         int update_VTG(const char* msg);
         int update_antenna_status(const char* msg);
     
-    public:
-        GPS(PinName rx_gps, PinName tx_gps);
-        GPSData getData() const;
-        float deg2rad(float deg);
-        float lat2deg(float lat_ddmm);
-        float lon2deg(float lon_dddmm);
-        NMEA_Type getMsgType(const char* msg); // TODO: make private and make wrapper
-        int update(NMEA_Type msgType, const char* msg); // TODO: make private and make wrapper
-        int bigUpdate();
-        BufferedSerial serial;
-        void set_logging_rate(uint32_t hz);
+
 };
 
 #endif // GPS_H
