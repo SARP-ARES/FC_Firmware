@@ -2,8 +2,12 @@
 #define GPS_H
 #include "mbed.h"
 
+<<<<<<< HEAD:GPS-Driver/GPS.h
 
 const float KNOT_TO_M_S = 0.5144444444;
+=======
+#define KNOT_TO_M_S 0.5144444444
+>>>>>>> 7804864295426e624671f9b82e197a5fa25e3188:Drivers/PA1616D/GPS.h
 
 
 struct GPSData{
@@ -13,7 +17,7 @@ struct GPSData{
     float pdop;
     float vdop;
     float hdop;
-    float heading;
+    float heading; 
     float gspeed;
     float utc;
     char latNS;
@@ -62,11 +66,6 @@ class GPS {
         int update_RMC(const char* msg);
         int update_VTG(const char* msg);
         int update_antenna_status(const char* msg);
-
-        void updatePosLTP();
-        
-        // getMsgType()
-        // update()
     
     public:
         GPS(PinName rx_gps, PinName tx_gps);
@@ -78,14 +77,7 @@ class GPS {
         int update(NMEA_Type msgType, const char* msg); // TODO: make private and make wrapper
         int bigUpdate();
         BufferedSerial serial;
-        mutable Mutex mutex;
-        void setOriginECEFr(); // uses current position to set origin if nothing is passed
-        void setOriginECEFr(float lat_deg, float lon_deg, float h); // can specify origin
-        
-
-        // functino: start (GPS LOOOP)
-        // initialize buffered serial object
-        // make wrapper function for getMsgType() & update()
+        void set_logging_rate(uint32_t hz);
 };
 
 #endif // GPS_H
