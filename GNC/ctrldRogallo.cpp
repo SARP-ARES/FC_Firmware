@@ -8,16 +8,16 @@
 #include "PID.h"
 #include <string>
 #include "mbed.h"
-#define MCPS_I2C_ADDR                   0x02 << 1 
-#define DEG_LLA_TO_M_CONVERSION         111111
-#define APOGEE_THRESHOLD_BUFFER         600
-#define GROUNDED_THRESHOLD_BUFFER       100
-#define ALPHA_ALT_START_PERCENT         0.05
-#define SPIRAL_RADIUS                   10
-#define PI                              3.1415926535
-#define DEG_TO_RAD                      PI/180.0
-#define BMP_I2C_ADDR                    0xEE
-#define BNO_I2C_ADDR                    0x51
+const int MCPS_I2C_ADDR                   = 0x02 << 1; 
+const int DEG_LLA_TO_M_CONVERSION         = 111111;
+const int APOGEE_THRESHOLD_BUFFER         = 600;
+const int GROUNDED_THRESHOLD_BUFFER       = 100;
+const float ALPHA_ALT_START_PERCENT       = 0.05;
+const int SPIRAL_RADIUS                   = 10;
+const float PI                            = 3.1415926535;
+const float DEG_TO_RAD                    = PI/180.0;
+const int BMP_I2C_ADDR                    = 0xEE;
+const int BNO_I2C_ADDR                    = 0x51;
 
 /**
  * @brief constructor that initializes the sensors and flash chip on the ARES flight computer.

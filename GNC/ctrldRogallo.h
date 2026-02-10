@@ -11,10 +11,10 @@
 #include <cstdint>
 
 // Event flags uses bit masks, not indexes
-#define BMP_FLAG        (1UL << 0) // 1
-#define BNO_FLAG        (1UL << 1) // 2
-#define GPS_FLAG        (1UL << 2) // 4
-#define LOGGING_FLAG    (1UL << 3) // 8
+const int BMP_FLAG        = (1UL << 0); // 1
+const int BNO_FLAG        = (1UL << 1); // 2
+const int GPS_FLAG        = (1UL << 2); // 4
+const int LOGGING_FLAG    = (1UL << 3); // 8
 
 // Finite State Machine Modes
 typedef enum {

@@ -46,8 +46,6 @@ class BMP280 {
 
         mutable Mutex mutex;
 
-    public: 
-
         BMPData getData() const;                // returns the state struct of BMP 
 
         int updatePressureData();               // updates the pressure value 

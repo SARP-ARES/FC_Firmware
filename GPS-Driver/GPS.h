@@ -3,7 +3,7 @@
 #include "mbed.h"
 
 
-#define KNOT_TO_M_S 0.5144444444 
+const float KNOT_TO_M_S = 0.5144444444;
 
 
 struct GPSData{

@@ -36,12 +36,12 @@ enum FlightMode {
 // = # of pages, 4.55 hours at 1Hz
 // 16 pages per sector
 
-#define FLIGHT_PACKET_SIZE  sizeof(FlightPacket) // Size in bytes of one flight packet 
-#define MAX_NUM_PACKETS     16384
+const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); // Size in bytes of one flight packet 
+const int MAX_NUM_PACKETS    =  16384;
 
 /* SET NUMBER OF PACKETS TO LOG || for for 1.5 hours of logging, log 5400 packets */
-#define NUM_PACKETS_TO_LOG  16000
-#define DT_CTRL             0.01 // time step for PID controller to calculate derivative & integral
+const int NUM_PACKETS_TO_LOG =  16000;
+const float DT_CTRL          =  0.01; // time step for PID controller to calculate derivative & integral
 
 /** @brief clears all data off of the flash chip */
 void clear_data() {
@@ -85,12 +85,14 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
     float deflection = 0;
     bool up = true;
 
-    while(true) {
+    ModeFSM mode = ARES->getMode();
+
+    while(mode != FSM_GROUNDED) {
         execution_timer.reset();
 
         // State handling
         ARES->updateFlightPacket();
-        ModeFSM mode = ARES->getMode();
+        mode = ARES->getMode();
         state = ARES->getState();
 
         // State machine mode selection 
@@ -143,9 +145,6 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
             );
         } // else run again asap
 
-        // Exit if grounded
-        if(mode == FSM_GROUNDED) break;
-
     }
 }
 
@@ -179,11 +178,13 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     float deflection = 0;
     bool up = true;
 
-    while(true) {
+    ModeFSM mode = ARES->getMode();
+
+    while(mode != FSM_GROUNDED) {
         execution_timer.reset();
         // Get current sensor data and put it in the state struct
         ARES->updateFlightPacket();
-        ModeFSM mode = ARES->getMode();
+        mode = ARES->getMode();
 
         // print state for testing
         ARES->printCompactState(&pc);
@@ -241,7 +242,7 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 pc.printf("\"quit\" cmd recieved...\n");
                 ARES->stopLogging();
                 ARES->killAllSensorThreads();
-                break;
+                ARES->setFSMMode(ModeFSM::FSM_GROUNDED);
             } else if (strcmp(cmdBuf, "seeking") == 0) {
                 pc.printf("\"seeking\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_SEEKING);
             } else if (strcmp(cmdBuf, "idle") == 0) {
@@ -260,7 +261,6 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 )
             );
         } // else run again asap
-
     }
 }
 
@@ -392,6 +392,7 @@ void command_line_interface() {
         
         if (cli_reset) {
             pc.printf("\n\nARES is waiting for user input... What would you like to run?\n");
+            pc.printf("0. \"flight_mode\"\n");
             pc.printf("1. \"test_mode\"\n");
             pc.printf("2. \"dump\"\n");
             pc.printf("3. \"set_origin\"\n");
