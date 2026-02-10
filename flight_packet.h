@@ -26,7 +26,7 @@ struct FlightPacket {
     float pressure_pa;           // 4
     float fc_cmd;                // 4
     uint32_t apogee_counter;     // 4
-    uint8_t apogee_detected;     // 1
+    bool apogee_detected;     // 1
 
 
     // --- BNO055 Sensor Fields ---

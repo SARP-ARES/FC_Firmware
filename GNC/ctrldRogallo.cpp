@@ -39,7 +39,7 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
     bno.setup();
 
     // Counter init
-    apogeeDetected = 0; 
+    apogeeDetected = false; 
     apogeeCounter = 0;
     groundedCounter = 0; 
 
@@ -51,7 +51,7 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
     groundedThreshold = NAN;
     apogeeThreshold = NAN; 
 
-    
+
     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
 
@@ -62,13 +62,19 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
  * @brief getter for the current state of the system
  * @returns system state as a FlightPacket struct
  */ 
-const FlightPacket ctrldRogallo::getState() { ScopedLock<Mutex> lock(this->state_mutex); return this->state; }
+const FlightPacket ctrldRogallo::getState() { 
+    ScopedLock<Mutex> lock(this->state_mutex); 
+    return this->state; 
+}
 
 /**
  * @brief getter for the current FSM mode of the system
  * @returns FSM mode of the ctrldRogallo
  */ 
-const ModeFSM ctrldRogallo::getMode() { ScopedLock<Mutex> lock(this->state_mutex); return this->mode; }
+const ModeFSM ctrldRogallo::getMode() { 
+    ScopedLock<Mutex> lock(this->state_mutex); 
+    return this->mode; 
+}
 
 
 /**
@@ -92,7 +98,8 @@ void ctrldRogallo::setTarget(double lat, double lon) {
  * @param lat2_deg - latitude of second coordinate pair in degrees
  * @param lon2_deg - longitude of second coordinate pair in degrees
  */ 
-float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg) {
+float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg, 
+                                     double lat2_deg, double lon2_deg) {
     double dLat = (lat1_deg - lat2_deg) * DEG_TO_RAD;
     
     double dLon = (lon1_deg - lon2_deg) * DEG_TO_RAD;
@@ -134,7 +141,9 @@ void ctrldRogallo::updateHaversineCoords(void){
     distanceToTarget = computeHaversine(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
 }
 
-bool ctrldRogallo::isWithinTarget(void) { return distanceToTarget < SPIRAL_RADIUS; }
+bool ctrldRogallo::isWithinTarget(void) { 
+    return distanceToTarget < SPIRAL_RADIUS; 
+}
 
 /*  Python Code
 def getTargetHeading(e, n):
@@ -239,10 +248,22 @@ void ctrldRogallo::resetFlightPacket() {
 }
 
 // Setters
-void ctrldRogallo::setLastFCcmd(float cmd)                      { state.fc_cmd = cmd; }
-void ctrldRogallo::setFSMMode(ModeFSM mode)                     { this->mode = mode; }
-void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd)    { this->pid.updateGains(Kp, Ki, Kd); }
-void ctrldRogallo::setAlphaAlt(float newAlphaAlt)               { alphaAlt = newAlphaAlt; }
+void ctrldRogallo::setLastFCcmd(float cmd) { 
+    state.fc_cmd = cmd; 
+}
+
+void ctrldRogallo::setFSMMode(ModeFSM mode) {
+     this->mode = mode; 
+}
+
+void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) { 
+    this->pid.updateGains(Kp, Ki, Kd); 
+}
+
+void ctrldRogallo::setAlphaAlt(float newAlphaAlt) { 
+    alphaAlt = newAlphaAlt;
+}
+
 void ctrldRogallo::setThreshold(){
     ScopedLock<Mutex> lock(this->state_mutex);
     groundedThreshold = state.altitude_m + GROUNDED_THRESHOLD_BUFFER;
@@ -340,17 +361,24 @@ void ctrldRogallo::updateFlightPacket(){
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); 
 
     // Robust counter for extreme noise 
-    if(apogeeCounter >= 200) apogeeDetected = 1;
+    if(apogeeCounter >= 200) {
+        apogeeDetected = true;
+    }
 
     // Post Apogee sequence
-    if(apogeeDetected == 1) {
-        if(isWithinTarget())    mode = FSM_SPIRAL; 
-        else                    mode = FSM_SEEKING;
+    if(apogeeDetected) {
+        if(isWithinTarget()){    
+            mode = FSM_SPIRAL; 
+        } else  {
+            mode = FSM_SEEKING;
+        } 
 
         groundedCounter += groundedDetection(state.prevAlt, state.altitude_m); // checks if not moving and below threshold
 
         // Similar Idea to apogee detection, now just steady ground state
-        if(groundedCounter >= 300) mode = FSM_GROUNDED;
+        if(groundedCounter >= 300) {
+            mode = FSM_GROUNDED;
+        }
     }
 
     // Control Sequence State
@@ -450,16 +478,39 @@ void ctrldRogallo::startThreadGPS() {
  *  @param pc -> Reference to the serial EUSB object
  */ 
 void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
-    pc->printf("Starting GPS thread...\n"); startThreadGPS(); pc->printf("GPS thread started!\n");
-    pc->printf("Starting IMU thread...\n"); startThreadIMU(); pc->printf("IMU thread started!\n");
-    pc->printf("Starting BMP thread...\n"); startThreadBMP(); pc->printf("BMP thread started!\n");
+
+    // GPS
+    pc->printf("Starting GPS thread...\n"); 
+    startThreadGPS(); 
+    pc->printf("GPS thread started!\n");
+
+    // IMU
+    pc->printf("Starting IMU thread...\n"); 
+    startThreadIMU(); 
+    pc->printf("IMU thread started!\n");
+
+   // BMP 
+    pc->printf("Starting BMP thread...\n"); 
+    startThreadBMP(); 
+    pc->printf("BMP thread started!\n");
 }
 
 /** @brief Thread killing functions, disables the 'run' flags for each thread */ 
-void ctrldRogallo::killThreadIMU() { event_flags.clear(BNO_FLAG); }
-void ctrldRogallo::killThreadBMP() { event_flags.clear(BMP_FLAG); }
-void ctrldRogallo::killThreadGPS() { event_flags.clear(GPS_FLAG); }
-void ctrldRogallo::stopLogging()   { event_flags.clear(LOGGING_FLAG); }
+void ctrldRogallo::killThreadIMU() { 
+    event_flags.clear(BNO_FLAG); 
+}
+
+void ctrldRogallo::killThreadBMP() { 
+    event_flags.clear(BMP_FLAG); 
+}
+
+void ctrldRogallo::killThreadGPS() { 
+    event_flags.clear(GPS_FLAG); 
+}
+
+void ctrldRogallo::stopLogging()   { 
+    event_flags.clear(LOGGING_FLAG); 
+}
 
 void ctrldRogallo::killAllSensorThreads() {
     killThreadGPS();
@@ -532,14 +583,20 @@ void ctrldRogallo::startLogging(flash* flash_mem, EUSBSerial* pc) {
  */ 
 float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
     float fuzedAlt = NAN; 
-    if (!is_nan_safe(alt1) && !is_nan_safe(alt2)) fuzedAlt = alt1*alphaAlt + alt2*(1-alphaAlt);
-    else if (!is_nan_safe(alt1))                  fuzedAlt = alt1;
-    else if (!is_nan_safe(alt2))                  fuzedAlt = alt2; 
-    return                                        fuzedAlt;
+
+    if (!is_nan_safe(alt1) && !is_nan_safe(alt2)) { 
+        fuzedAlt = alt1*alphaAlt + alt2*(1-alphaAlt); 
+    } else if (!is_nan_safe(alt1)) {
+        fuzedAlt = alt1;
+    } else if (!is_nan_safe(alt2)) {
+         fuzedAlt = alt2; 
+    }           
+
+    return fuzedAlt;
 }
 
 /** 
- * @brief - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
+ * @brief - detects if rocket has reached apogee based upon current velocity
  * @param prevAlt - previous altitude 
  * @param currAlt - current altitude
  * @return 0 if non apogee 1 if apogee
@@ -549,21 +606,29 @@ uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
     float curr_time = getElapsedSeconds();
     float velo = (currAlt - prevAlt)/(curr_time - prev_time);
     prev_time = curr_time;
-    if(velo <= apogeeVelo && currAlt > apogeeThreshold) return 1; 
+
+    if(velo <= apogeeVelo && currAlt > apogeeThreshold) {
+        return 1; 
+    }
+
     return 0; 
 }
 
 /** 
- * @brief - detects if rocket has reached apogee based upon current velocity (-1.5 m/s constitutes as apogee)
+ * @brief - detects if rocket has settled on the ground 
  * @param prevAlt - previous altitude 
  * @param currAlt - current altitude
- * @return 0 if non apogee 1 if apogee
+ * @return 0 if non apogee 1 if grounded
  */ 
 uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     float curr_time = getElapsedSeconds();
     float velo = (currAlt - prevAlt)/(curr_time - prev_time);
     prev_time = curr_time;
-    if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) return 1; 
+    
+    if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) {
+        return 1;
+    }
+
     return 0; 
 }
 

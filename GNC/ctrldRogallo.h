@@ -113,7 +113,7 @@ class ctrldRogallo {
         EventFlags event_flags; 
 
         /* State local vars */ 
-        uint32_t apogeeDetected;
+        bool apogeeDetected;
         uint32_t apogeeCounter;
         float alphaAlt;
         uint32_t groundedCounter; 
