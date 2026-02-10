@@ -98,8 +98,9 @@ void ctrldRogallo::setTarget(double lat, double lon) {
  * @param lat2_deg - latitude of second coordinate pair in degrees
  * @param lon2_deg - longitude of second coordinate pair in degrees
  */ 
-float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg, 
-                                     double lat2_deg, double lon2_deg) {
+float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg, 
+                                               double lat2_deg, double lon2_deg) {
+
     double dLat = (lat1_deg - lat2_deg) * DEG_TO_RAD;
     
     double dLon = (lon1_deg - lon2_deg) * DEG_TO_RAD;
@@ -122,23 +123,23 @@ float ctrldRogallo::computeHaversine(double lat1_deg, double lon1_deg,
  * @brief Uses computeHaversine to convert the current lat/lon position into 
           meters east and north of the target and updates distance to target
  */ 
-void ctrldRogallo::updateHaversineCoords(void){
+void ctrldRogallo::updateGreatCircleDistance(void){
     // only compute distance between latitudes to get NORTH coord
-    haversineCoordNorth = computeHaversine(state.latitude_deg, target_lon, target_lat, target_lon);
+    haversineCoordNorth = computeGreatCircleDistance(state.latitude_deg, target_lon, target_lat, target_lon);
     // make negative if south of target
     if (state.latitude_deg < target_lat)  { 
         haversineCoordNorth = -1 * haversineCoordNorth; 
     }
 
     // only compute distance between longitudes to get EAST coord
-    haversineCoordEast = computeHaversine(target_lat, state.longitude_deg, target_lat, target_lon);
+    haversineCoordEast = computeGreatCircleDistance(target_lat, state.longitude_deg, target_lat, target_lon);
     // make negative if west of target
     if (state.longitude_deg < target_lon)  { 
         haversineCoordEast = -1 * haversineCoordEast; 
     }
 
     // update distance to target field
-    distanceToTarget = computeHaversine(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
+    distanceToTarget = computeGreatCircleDistance(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
 }
 
 bool ctrldRogallo::isWithinTarget(void) { 
@@ -308,7 +309,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt);
 
     // Relative State
-    updateHaversineCoords();
+    updateGreatCircleDistance();
     state.pos_east_m = haversineCoordEast;
     state.pos_north_m = haversineCoordNorth;
     state.distance_to_target_m = distanceToTarget;
@@ -624,7 +625,7 @@ uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     float curr_time = getElapsedSeconds();
     float velo = (currAlt - prevAlt)/(curr_time - prev_time);
     prev_time = curr_time;
-    
+
     if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) {
         return 1;
     }

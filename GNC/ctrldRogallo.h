@@ -133,9 +133,9 @@ class ctrldRogallo {
         void gpsUpdateLoop();
 
         // ---- navigation utilities ----
-        float computeHaversine(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
+        float computeGreatCircleDistance(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
         void updateDistanceToTarget(void);
-        void updateHaversineCoords(void);
+        void updateGreatCircleDistance(void);
         bool isWithinTarget(void);
         float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
