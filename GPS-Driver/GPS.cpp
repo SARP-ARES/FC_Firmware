@@ -21,13 +21,14 @@ ADD DESCRIPTION
 */
 void GPS::set_logging_rate(uint32_t hz) {
     // Choose valid GPS settings based on requested Hz
-    const GPSCmd* baudCmd = nullptr;
+    const GPSCmd* baudCmd = nullptr; // GPSCmd* baudCmd means the var "baudCmd" just stores the memory address for the acutal GPSCmd object
     const GPSCmd* updateCmd = nullptr;
-    const GPSCmd* fixCmd = nullptr;
+    const GPSCmd* fixCmd = nullptr; //check if * placement does anything
+    const GPSCmd* nemaCmd = &CMD_NMEA_NECESSARY;
     uint32_t uart_baud = 0;
 
     if (hz <= 1) {
-        baudCmd = &CMD_BAUD_9600;
+        baudCmd = &CMD_BAUD_9600; // & menas to grab the memory adress of the given variable/object. 
         updateCmd = &CMD_UPDATE_1HZ;
         fixCmd = &CMD_FIXCTL_1HZ;
         uart_baud = 9600;
@@ -37,23 +38,33 @@ void GPS::set_logging_rate(uint32_t hz) {
         fixCmd = &CMD_FIXCTL_5HZ;
         uart_baud = 38400;
     } else { // default: 10 Hz
-        baudCmd = &CMD_BAUD_38400;  // GPS stable at 10Hz with 38400
+        baudCmd = &CMD_BAUD_38400;  // GPS stable at 10Hz with 38400 (CHECK WHETER TO USE THIS OR 115200)
         updateCmd = &CMD_UPDATE_10HZ;
         fixCmd = &CMD_FIXCTL_10HZ;
         uart_baud = 38400;
     }
 
+    
+
     // Step 1: Set GPS baud rate
     serial.write(baudCmd->cmd, baudCmd->len);
+    ThisThread::sleep_for(100ms); //are these okay or can we not set the thread to sleep (other threads need it)
 
     // Step 2: Update STM32 UART baud to match GPS
     serial.set_baud(uart_baud);
+    ThisThread::sleep_for(100ms);
 
     // Step 3: Set GPS update rate
     serial.write(updateCmd->cmd, updateCmd->len);
+    ThisThread::sleep_for(100ms);
 
     // Step 4: Set GPS fix interval
     serial.write(fixCmd->cmd, fixCmd->len);
+    ThisThread::sleep_for(100ms);
+
+    // Step 5: Set NEMA sentence types
+    serial.write(nemaCmd->cmd, nemaCmd->len);
+    ThisThread::sleep_for(100ms);
 
 }
 
