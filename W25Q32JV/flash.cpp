@@ -69,12 +69,13 @@ uint32_t flash::write(uint32_t address, const uint8_t *buffer, size_t length) {
     cmd[3] = address & 0xFF;
 
     ScopedLock<Mutex> lock(this->flash_lock);
+
     csLow();
     _spi.write((const char *)cmd, 4, NULL, 0);
     _spi.write((const char *)buffer, length, NULL, 0);
     csHigh();
 
-    wait_us(5000); // Allow time for write cycle
+    wait_us(5000);
     return address + length;
 }
 
@@ -92,10 +93,13 @@ void flash::read(uint32_t address, uint8_t *buffer, size_t length) {
     cmd[3] = address & 0xFF;
     
     ScopedLock<Mutex> lock(this->flash_lock);
+
     csLow();
     _spi.write((const char *)cmd, 4, NULL, 0);
     _spi.write(NULL, 0, (char *)buffer, length); // Only receive data
     csHigh();
+
+    wait_us(5000);
 }
 
 /**
@@ -126,15 +130,15 @@ void flash::writeByte(uint32_t address, uint8_t data) {
 int flash::waitForWriteToFinish() {
     Timer t;
     uint8_t status; 
-    t.start();
     uint8_t read_status_cmd = 0x05;
     t.start();
     while(true){
-        wait_us(1000);
         
         csLow();
         _spi.write((const char *)&read_status_cmd, 1, (char *)&status, 1);
         csHigh();
+
+        wait_us(10);
 
         // ensure "write-in-progress" flag (at bit zero) is zero (not writing)
         if((status & 0b1) == 0){ 
@@ -166,17 +170,14 @@ int flash::eraseSector(uint32_t address) {
     _spi.write((const char *)&cmd, 4, NULL, 0);
     csHigh();
 
-    // // wait for erase to finish and return status
-    // return waitForWriteToFinish();
-    wait_us(500000);
-    return 0;
+    // wait for erase to finish and return status
+    return waitForWriteToFinish();
 }
 
 /**
  * Erases all sectors.
  */
 int flash::eraseAll() {
-    Timer t;
     enableWrite();
     uint8_t erase_all_cmd = 0xC7; 
 
@@ -195,7 +196,8 @@ void flash::enableWrite() {
     csLow();
     _spi.write((const char *)&cmd, 1, NULL, 0);
     csHigh();
-    wait_us(5000);
+
+    wait_us(5000); 
 }
 
 /**
@@ -206,6 +208,7 @@ void flash::disableWrite() {
     csLow();
     _spi.write((const char *)&cmd, 1, NULL, 0);
     csHigh();
+
     wait_us(5000);
 }
 
@@ -258,7 +261,7 @@ uint16_t flash::getNumPacketsWritten() {
     uint16_t count;
     // Read current count (stored in the last two bytes of flash memory)
     read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
-    wait_us(100);
+    pc->printf("Count ong %i", count);
     if (count == 0xFFFF) {
         // unitialized, no packets logged
         return 0;
@@ -271,14 +274,15 @@ uint16_t flash::getNumPacketsWritten() {
 void flash::incrementNumPacketsWritten() {
     // get the current number of packets logged
     uint16_t count = getNumPacketsWritten();
-    { 
-        // lock to make sure erased count isn't read elsewhere before new count is written
-        ScopedLock<Mutex> lock(this->flash_lock);
-        // erase sector before writing
-        eraseSector(0x3FFFFE);
-        count += 1;
-        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
-    }
+
+    // lock to make sure erased count isn't read elsewhere before new count is written
+    ScopedLock<Mutex> lock(this->flash_lock);
+    // erase sector before writing
+    eraseSector(0x3FFFFE);
+
+    count += 1;
+
+    write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
 }
 
 // Write entire data packet (struct)

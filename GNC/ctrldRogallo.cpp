@@ -246,7 +246,7 @@ void ctrldRogallo::updateFlightPacket(){
     IMUData bno_buf = bno.getData();
 
     // Refresh Motor data from MCPS
-    bool success = requestMotorPacket();
+    // bool success = requestMotorPacket();
 
     // lock mutex for state field writes
     ScopedLock<Mutex> lock(this->state_mutex);
@@ -306,19 +306,19 @@ void ctrldRogallo::updateFlightPacket(){
     state.bno_quat_y = bno_buf.quat_y;
     state.bno_quat_z = bno_buf.quat_z;
 
-    if (success) {
-        state.leftPosition   = motor.leftPosition;
-        state.rightPosition  = motor.rightPosition;
-        state.leftPull     = motor.leftPull; 
-        state.rightPull    = motor.rightPull; 
-        state.readSuccess   = true;
-    } else { // FAILURE TO ACK
-        state.leftPosition   = NAN;
-        state.rightPosition  = NAN;
-        state.leftPull     = NAN; 
-        state.rightPull    = NAN; 
-        state.readSuccess   = false;
-    }
+    // if (success) {
+    //     state.leftPosition   = motor.leftPosition;
+    //     state.rightPosition  = motor.rightPosition;
+    //     state.leftPull     = motor.leftPull; 
+    //     state.rightPull    = motor.rightPull; 
+    //     state.readSuccess   = true;
+    // } else { // FAILURE TO ACK
+    //     state.leftPosition   = NAN;
+    //     state.rightPosition  = NAN;
+    //     state.leftPull     = NAN; 
+    //     state.rightPull    = NAN; 
+    //     state.readSuccess   = false;
+    // }
 
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); // checks if descending and above threshold
 

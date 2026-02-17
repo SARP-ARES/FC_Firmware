@@ -99,17 +99,10 @@ void flight_log(ctrldRogallo* ARES, uint32_t numPacketLog, uint32_t* flash_addr)
  *  @param ARES pointer to the ctrldRogallo flight object
  *  @param flash_addr pointer to the current system flash address 
  */
-void timing_testing(ctrldRogallo* ARES, uint32_t* flash_addr){
+void timing_testing(ctrldRogallo* ARES, uint32_t* flash_addr) {
     Timer execution_timer;
     execution_timer.start();
-    auto EXECUTION_PERIOD = 20ms; 
-
-    float theta_error;
-    uint16_t packet_count;
-    
-    ThisThread::sleep_for(100ms);
     ARES->startAllSensorThreads(&pc);
-    ThisThread::sleep_for(100ms);
 
     /* CLEAR BEFORE RUNNING LOGGING SPEED TEST*/
     // Logging timing test will update the flight packet once, then try to log the same packet 
@@ -118,90 +111,37 @@ void timing_testing(ctrldRogallo* ARES, uint32_t* flash_addr){
     int addr = 0;
     // ARES->startLogging(&flash_chip, &pc);
 
-    ThisThread::sleep_for(100ms);
     ARES->updateFlightPacket();
-    ThisThread::sleep_for(100ms);
+    state = ARES->getState();
 
-    pc.printf("entered timing_test\n");
+    pc.printf("Starting Test\n");
 
-    float times = 0; 
     int counter = 0;
-
+    float execution_time = 0;
 
     Timer t;
 
     t.start();
 
     while(t.read_ms() < 20000) {
-        execution_timer.reset();
         
+        float start_time = execution_timer.read_ms();
 
-        state = ARES->getState();
-
-        /* FSM MODE TIMING TESTING */
-
-        // ARES->updateFlightPacket();
-
-        // ModeFSM mode = ModeFSM::FSM_SEEKING;
-
-        // // State machine mode selection 
-        // switch (mode) {
-
-        //     case FSM_IDLE: break; 
-
-        //     case FSM_SEEKING: {
-        //         // Ctrl Setup
-        //         float target_heading = ARES->getTargetHeading();
-        //         float heading_error = ARES->getHeadingError();
-        //         float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
-
-        //         // State logging
-        //         ARES->setLastFCcmd(delta_a_cmd);
-
-        //         // MCPS Comms
-        //         bool success = ARES->sendCtrl(delta_a_cmd);
-        //         break;
-        //     }
-            
-        //     case FSM_GROUNDED: {
-        //         ARES->stopLogging();
-        //         ARES->killAllSensorThreads();
-        //         break;
-        //     }
-
-        //     case FSM_SPIRAL: {
-        //         float cmd = state.fc_cmd > 0 ? 1 : -1;
-        //         ARES->setLastFCcmd(cmd);
-        //         ARES->sendCtrl(cmd);
-        //         break; 
-        //     }
-
-        //     // Unidentified Case
-        //     default: break; 
-        // }
-
-        // auto time_ms = std::chrono::duration<float, std::milli>(execution_timer.elapsed_time());
-
-        // if (time_ms < EXECUTION_PERIOD) {
-        //     ThisThread::sleep_for(
-        //         chrono::duration_cast<Kernel::Clock::duration>(
-        //             EXECUTION_PERIOD - time_ms
-        //         )
-        //     );
-        // } // else run again asap
-
-        /* Logging Speed Testing */
+        /* Function Testing Block */
         addr = flash_chip.writePacket(addr, state);
+        pc.printf(" addr %i \n", addr);
+        // ARES->updateFlightPacket();
+        /* ====================== */ 
 
-        times +=  std::chrono::duration<float, std::milli>(execution_timer.elapsed_time()).count();
+        float stop_time = execution_timer.read_ms();
+        execution_time += stop_time - start_time;
         counter++;
     }
     
+    execution_timer.stop();
     ARES->killAllSensorThreads();
-    pc.printf("Average execution time %f in ms\n", times/counter);
+    pc.printf("Average execution time %f in ms\n", execution_time/counter);
 }
-
-
 
 /** 
  *  @brief Testing mode system prints & logs state until "quit" is entered into the CLI 
@@ -358,9 +298,10 @@ void dump_data(){
     uint16_t numPacketDump;
     flash_chip.read(0x3FFFFE, reinterpret_cast<uint8_t*> (&numPacketDump), 2);
 
+    pc.printf("Number of Packets Found %i\n", numPacketDump);
+
     if (numPacketDump == 0xFFFF || numPacketDump == 0) {
         // If it's the default erased value, there are no packets to dump
-        pc.printf("There are no packets to dump!");
         ThisThread::sleep_for(1500ms);
 
     } else {
