@@ -90,6 +90,8 @@ class GPS {
         gpsState state;
         posLTP pos;
         posECEFr origin;
+        EUSBSerial& eSerialDebug; // EUSB serial output
+
         int getLatSign();
         int getLonSign();
         float utc2sec(float utc);
@@ -108,7 +110,7 @@ class GPS {
         // update()
     
     public:
-        GPS(PinName rx_gps, PinName tx_gps);
+        GPS(PinName rx_gps, PinName tx_gps, EUSBSerial& externalUSBSerial);
         gpsState getState() const;
         posLTP getPosLTP() const;
         posECEFr getOriginECEFr() const;

@@ -10,13 +10,13 @@
 ADD DESCRIPTION
 
 */
-GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
+GPS::GPS(PinName rx_gps, PinName tx_gps, EUSBSerial& externalUSBSerial) : serial(rx_gps, tx_gps), eSerialDebug(externalUSBSerial) {}
 
 
 
 /*
 
-ADD DESCRIPTION
+Peter's set Loggin rate method
 
 */
 void GPS::set_logging_rate(uint32_t hz) {
@@ -26,6 +26,7 @@ void GPS::set_logging_rate(uint32_t hz) {
     const GPSCmd* fixCmd = nullptr; //check if * placement does anything
     const GPSCmd* nemaCmd = &CMD_NMEA_NECESSARY;
     uint32_t uart_baud = 0;
+
 
     if (hz <= 1) {
         baudCmd = &CMD_BAUD_9600; // & menas to grab the memory adress of the given variable/object. 
@@ -47,23 +48,28 @@ void GPS::set_logging_rate(uint32_t hz) {
     
 
     // Step 1: Set GPS baud rate
-    serial.write(baudCmd->cmd, baudCmd->len);
+    this->serial.write(baudCmd->cmd, baudCmd->len);
+    eSerialDebug.printf("\nBuad CMD should have sent\n");
     ThisThread::sleep_for(100ms); //are these okay or can we not set the thread to sleep (other threads need it)
 
     // Step 2: Update STM32 UART baud to match GPS
-    serial.set_baud(uart_baud);
+    this->serial.set_baud(uart_baud);
+    eSerialDebug.printf("\nUART baud CMD should have sent\n");
     ThisThread::sleep_for(100ms);
 
     // Step 3: Set GPS update rate
-    serial.write(updateCmd->cmd, updateCmd->len);
+    this->serial.write(updateCmd->cmd, updateCmd->len);
+    eSerialDebug.printf("\nUpdate CMD should have sent\n");
     ThisThread::sleep_for(100ms);
 
     // Step 4: Set GPS fix interval
-    serial.write(fixCmd->cmd, fixCmd->len);
+    this->serial.write(fixCmd->cmd, fixCmd->len);
+    eSerialDebug.printf("\nFix CMD should have sent\n");
     ThisThread::sleep_for(100ms);
 
     // Step 5: Set NEMA sentence types
-    serial.write(nemaCmd->cmd, nemaCmd->len);
+    this->serial.write(nemaCmd->cmd, nemaCmd->len);
+    eSerialDebug.printf("\nNEMA CMD should have sent\n");
     ThisThread::sleep_for(100ms);
 
 }
