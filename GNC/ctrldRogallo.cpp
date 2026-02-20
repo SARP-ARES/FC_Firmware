@@ -9,6 +9,7 @@
 #include <string>
 #include "mbed.h"
 
+
 // Constants
 const int DEG_LLA_TO_M_CONVERSION         = 111111;
 const int APOGEE_THRESHOLD_BUFFER         = 600;
@@ -84,8 +85,8 @@ const ModeFSM ctrldRogallo::getMode() {
  * @todo WRITE TARGET TO FLASH CHIP
  */ 
 void ctrldRogallo::setTarget(double lat, double lon) { 
-    target_lat = lat; 
-    target_lon = lon; 
+    this->target_lat = lat; 
+    this->target_lon = lon; 
     // TODO WRITE TARGET TO FLASH CHIP
 }
 
@@ -98,7 +99,7 @@ void ctrldRogallo::setTarget(double lat, double lon) {
  * @param lat2_deg - latitude of second coordinate pair in degrees
  * @param lon2_deg - longitude of second coordinate pair in degrees
  */ 
-float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg, 
+float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg,
                                                double lat2_deg, double lon2_deg) {
 
     double dLat = (lat1_deg - lat2_deg) * DEG_TO_RAD;
@@ -420,6 +421,7 @@ bool ctrldRogallo::requestMotorPacket(){
     return true; // success
 }
 
+
 /** @brief updates BMP280 internal data struct (~50Hz) */ 
 void ctrldRogallo::bmpUpdateLoop() {
     while (true) {
@@ -455,6 +457,12 @@ void ctrldRogallo::imuUpdateLoop() {
         ThisThread::sleep_for(20ms); // TODO: replace with timer
     }
 }
+
+// /** @brief Starts the CLI Thread */
+// void ctrldRogallo::startThreadCLI() {
+//     event_flags.set(CLI_FLAG);
+//     this->thread_cli.start(callback(this, &ctrldRogallo::commandLineLoop));
+// }
 
 /** @brief Starts the IMU update Thread */
 void ctrldRogallo::startThreadIMU() {
@@ -497,6 +505,10 @@ void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
 }
 
 /** @brief Thread killing functions, disables the 'run' flags for each thread */ 
+// void ctrldRogallo::killThreadCLI() { 
+//     event_flags.clear(CLI_FLAG); 
+// }
+
 void ctrldRogallo::killThreadIMU() { 
     event_flags.clear(BNO_FLAG); 
 }

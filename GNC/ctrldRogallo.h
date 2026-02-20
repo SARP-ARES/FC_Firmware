@@ -41,16 +41,18 @@ class ctrldRogallo {
         void setFSMMode(ModeFSM mode);
 
         // ---- thread handlers ----
+        void startThreadCLI();
         void startThreadGPS(); 
         void startThreadIMU();
         void startThreadBMP();
         void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
+        void startLogging(flash* flash_mem, EUSBSerial* pc);
+        void killThreadCLI();
         void killThreadGPS();
         void killThreadIMU();
         void killThreadBMP();
         void killAllSensorThreads();
-        void logDataLoop();
-        void startLogging(flash* flash_mem, EUSBSerial* pc);
+        
         void stopLogging();
         void stopAllThreads();
 
@@ -104,6 +106,7 @@ class ctrldRogallo {
         Mutex state_mutex;
 
         /* Threads */ 
+        Thread thread_cli;
         Thread thread_logging;
         Thread thread_imu;
         Thread thread_bmp;
@@ -128,9 +131,11 @@ class ctrldRogallo {
         float prev_time;
 
         // ---- threads ----
+        void commandLineLoop(EUSBSerial* pc);
         void bmpUpdateLoop();
         void imuUpdateLoop();
         void gpsUpdateLoop();
+        void logDataLoop();
 
         // ---- navigation utilities ----
         float computeGreatCircleDistance(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);
