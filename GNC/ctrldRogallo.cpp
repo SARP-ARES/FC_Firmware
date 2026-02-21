@@ -574,6 +574,7 @@ void ctrldRogallo::logDataLoop(){
         // write current state to flash chip & increment address
         flash_addr = flash_mem->writePacket(flash_addr, state_snapshot);
 
+        // Save every state incrementally
         if(packets_logged % packet_save_incr == 0) {
             flash_mem->saveState(packets_logged);
         }
@@ -601,7 +602,8 @@ void ctrldRogallo::logDataLoop(){
 }
 
 void ctrldRogallo::startLogging(EUSBSerial* pc) {
-    pc->printf(" Previous Packets Logged: %d\n", previous_num_packets - packet_save_incr);
+    pc->printf("Starting logger\n");
+    pc->printf(" Previous Packets Logged: %d\n", packets_logged);
     flight_timer.start(); // start timer once logging begins
     event_flags.set(LOGGING_FLAG);
     thread_logging.start(callback(this, &ctrldRogallo::logDataLoop));

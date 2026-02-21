@@ -28,8 +28,6 @@ Thread thread;
 FlightPacket state; // global state makes more sense than individual logging states 
                     // (could be moved to logging multi-function as a pointer)
 
-uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256; 
-
 enum FlightMode {
     test,
     flight
@@ -67,10 +65,9 @@ void clear_data() {
 /** 
  *  @brief Autonomous flight mode. A PID controller is used to compute 
  *         an assymetric deflection command.
- *  @param ARES pointer to the ctrldRogallo flight object
- *  @param flash_addr pointer to the current system flash address 
+ *  @param ARES pointer to the ctrldRogallo flight object 
  */
-void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
+void auto_flight(ctrldRogallo* ARES){
     Timer execution_timer;
     execution_timer.start();
     auto EXECUTION_PERIOD = 20ms; 
@@ -156,9 +153,8 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
 /** 
  *  @brief Testing mode system prints & logs state until "quit" is entered into the CLI 
  *  @param ARES pointer to the ctrldRogallo flight object
- *  @param flash_addr pointer to the current system flash address 
  */
-void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
+void test_mode(ctrldRogallo* ARES){
     Timer execution_timer;
     execution_timer.start();
     auto EXECUTION_PERIOD = 20ms; // 500ms = 2Hz
@@ -361,13 +357,13 @@ void flight_mode(FlightMode mode, ctrldRogallo* ARES) {
         
         case test:  
             pc.printf("\nEntering Testing mode... %s\n", ' ');
-            test_mode(ARES, &flash_addr);                    // Testing mode
+            test_mode(ARES);                    // Testing mode
             pc.printf("==========================================================\n");
             break; 
         
         case flight:
             pc.printf("\nBeginning control sequence... %s\n", ' ');
-            auto_flight(ARES, &flash_addr);                  // Flight Mode
+            auto_flight(ARES);                  // Flight Mode
             pc.printf("==========================================================\n");
             break; 
     }
