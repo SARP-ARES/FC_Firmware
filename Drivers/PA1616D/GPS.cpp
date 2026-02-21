@@ -1,5 +1,4 @@
 #include "BufferedSerial.h"
-#include "EUSBSerial.h"
 #include "GPS.h"
 #include "GPS_CMD.h"
 #include <cmath>

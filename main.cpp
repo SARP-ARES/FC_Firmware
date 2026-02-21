@@ -162,15 +162,9 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     float theta_error;
     uint16_t packet_count;
     
-    pc.printf("entered test_mode...\n");
     ThisThread::sleep_for(100ms);
     ARES->startAllSensorThreads(&pc);
-    pc.printf("started sensor threads...\n");
-    ThisThread::sleep_for(100ms);
-    pc.printf("entering startLogging...\n");
     ARES->startLogging(&flash_chip, &pc);
-    pc.printf("started logging...\n\n");
-    ThisThread::sleep_for(100ms);
 
     ARES->setThreshold();
 
@@ -187,17 +181,16 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         mode = ARES->getMode();
 
         // print state for testing
-        ARES->printCompactState(&pc);
+        // ARES->printCompactState(&pc);
         state = ARES->getState();
-
-        // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
-        packet_count = flash_chip.getNumPacketsWritten();
-        // pc.printf("Packets Logged: %d\n", packet_count);
 
         // State machine mode selection 
         switch (mode) {
 
-            case FSM_IDLE: break; 
+            case FSM_IDLE: {
+                pc.printf("PACKETS LOGGED %i\n", ARES->getPacketsLogged());
+                break; 
+            }
 
             case FSM_SEEKING: {
                 // Ctrl Setup

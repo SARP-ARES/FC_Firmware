@@ -268,25 +268,21 @@ uint16_t flash::getNumPacketsWritten() {
     }
 }
 
-void flash::incrementNumPacketsWritten() {
-    // get the current number of packets logged
-    uint16_t count = getNumPacketsWritten();
+// Write entire data packet (struct)
+uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
+    // write the packet
+    write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
+    return address + 256; // increment write address to the next page
+}
+
+void flash::saveState(uint16_t packets_logged) {
     { 
         // lock to make sure erased count isn't read elsewhere before new count is written
         ScopedLock<Mutex> lock(this->flash_lock);
         // erase sector before writing
         eraseSector(0x3FFFFE);
-        count += 1;
-        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&packets_logged), 2);
     }
-}
-
-// Write entire data packet (struct)
-uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
-    // write the packet
-    write(address, reinterpret_cast<const uint8_t*>(&pkt), sizeof(FlightPacket));
-    incrementNumPacketsWritten();
-    return address + 256; // increment write address to the next page
 }
 
 // Read packet
@@ -471,10 +467,7 @@ void flash::dumpAllPackets(uint32_t numPackets) {
     printCSVHeader();
     for (uint32_t i = 0; i < numPackets; ++i) {
         readPacket(i * 256, pkt);
-        // don't print if timestamp is nan
-        // if (pkt.timestamp_utc == pkt.timestamp_utc) {
         printPacketAsCSV(pkt);
-        // }
     }
 }
 

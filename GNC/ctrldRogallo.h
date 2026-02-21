@@ -59,6 +59,7 @@ class ctrldRogallo {
         const ModeFSM getMode();
         void updateFlightPacket();
         void resetFlightPacket();
+        const uint16_t getPacketsLogged();
 
         // ---- other stuff ----
         float getElapsedSeconds();
@@ -125,6 +126,7 @@ class ctrldRogallo {
         uint32_t apogeeThreshold;
         uint32_t groundedThreshold; 
         uint32_t currentFlashAddress;
+        uint16_t packets_logged;
         float prev_time;
 
         // ---- threads ----

@@ -51,6 +51,9 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
     groundedThreshold = NAN;
     apogeeThreshold = NAN; 
 
+    // Logging setup
+    packets_logged =  flash_mem->getNumPacketsWritten();
+
 
     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
@@ -74,6 +77,11 @@ const FlightPacket ctrldRogallo::getState() {
 const ModeFSM ctrldRogallo::getMode() { 
     ScopedLock<Mutex> lock(this->state_mutex); 
     return this->mode; 
+}
+
+const uint16_t ctrldRogallo::getPacketsLogged(){
+    ScopedLock<Mutex> lock(this->state_mutex);
+    return this->packets_logged;
 }
 
 
@@ -542,6 +550,12 @@ void ctrldRogallo::logDataLoop(){
 
         // write current state to flash chip & increment address
         flash_addr = flash_mem->writePacket(flash_addr, state_snapshot);
+
+        packets_logged++;
+
+        if(packets_logged % 100 == 0) {
+            flash_mem->saveState(packets_logged);
+        }
         
         // log at 10Hz while seeking or spiraling, 1Hz while idle, turn off once grounded
         switch (this->mode) {
