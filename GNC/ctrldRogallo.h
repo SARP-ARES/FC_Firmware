@@ -34,11 +34,12 @@ typedef struct {
 class ctrldRogallo {
 
     public:
-        ctrldRogallo(Mutex_I2C* i2c);
+        ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem);
 
         // -- Setters --
         void setLastFCcmd(float cmd);
         void setFSMMode(ModeFSM mode);
+        void resetPacketsLogged();
 
         // ---- thread handlers ----
         void startThreadGPS(); 
@@ -50,9 +51,11 @@ class ctrldRogallo {
         void killThreadBMP();
         void killAllSensorThreads();
         void logDataLoop();
-        void startLogging(flash* flash_mem, EUSBSerial* pc);
+        void startLogging(EUSBSerial* pc);
         void stopLogging();
         void stopAllThreads();
+        void startAllThreads(EUSBSerial* pc);
+
 
         // ---- state handlers ---
         const FlightPacket getState();
@@ -89,7 +92,7 @@ class ctrldRogallo {
         GPS gps;
         PID pid;
         Mutex_I2C* i2c; 
-        flash* flash_mem = nullptr;
+        flash* flash_mem;
         
         uint32_t flash_addr;
         Timer flight_timer;

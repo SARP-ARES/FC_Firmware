@@ -30,8 +30,11 @@ const float Kp                            = 1.0;
 const float Ki                            = 0.001;
 const float Kd                            = 0.1;
 
+// Logger 
+const int packet_save_incr                = 100;
+
 /** @brief constructor that initializes the sensors and flash chip on the ARES flight computer. */ 
-ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c) 
+ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem) 
     : gps(GPS_RX_PIN, GPS_TX_PIN), bmp(i2c, BMP_I2C_ADDR), bno(i2c, BNO_I2C_ADDR), pid(Kp, Ki, Kd), i2c(i2c) {
 
     // Driver Startup
@@ -51,9 +54,10 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c)
     groundedThreshold = NAN;
     apogeeThreshold = NAN; 
 
+    this->flash_mem = flash_mem;
+
     // Logging setup
     packets_logged =  flash_mem->getNumPacketsWritten();
-
 
     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
@@ -257,6 +261,11 @@ void ctrldRogallo::resetFlightPacket() {
 }
 
 // Setters
+
+void ctrldRogallo::resetPacketsLogged() {
+    ScopedLock<Mutex> lock(this->state_mutex);
+    this->packets_logged = 0;
+}
 void ctrldRogallo::setLastFCcmd(float cmd) { 
     state.fc_cmd = cmd; 
 }
@@ -532,6 +541,11 @@ void ctrldRogallo::stopAllThreads(){
     this->killAllSensorThreads();
 }
 
+void ctrldRogallo::startAllThreads(EUSBSerial* pc) { 
+    this->startAllSensorThreads(pc);
+    this->startLogging(pc);
+}
+
 
 /** @brief Data logging thread main loop, regulates logging time interally */
 void ctrldRogallo::logDataLoop(){
@@ -546,14 +560,13 @@ void ctrldRogallo::logDataLoop(){
         {   // take snapshot of current state w/ mutex
             ScopedLock<Mutex> lock(this->state_mutex);
             state_snapshot = this->state;
+            packets_logged++;
         }
 
         // write current state to flash chip & increment address
         flash_addr = flash_mem->writePacket(flash_addr, state_snapshot);
 
-        packets_logged++;
-
-        if(packets_logged % 100 == 0) {
+        if(packets_logged % packet_save_incr == 0) {
             flash_mem->saveState(packets_logged);
         }
         
@@ -579,9 +592,7 @@ void ctrldRogallo::logDataLoop(){
     }
 }
 
-void ctrldRogallo::startLogging(flash* flash_mem, EUSBSerial* pc) {
-    // flash_mem and flash_addr are initalized in the main program and passed in here
-    this->flash_mem = flash_mem;
+void ctrldRogallo::startLogging(EUSBSerial* pc) {
     pc->printf("about to getNumPacketsWritten\n");
     uint32_t previous_num_packets = flash_mem->getNumPacketsWritten();
     pc->printf("made it past getNumPacketsWritten... previous packets: %d\n", previous_num_packets);

@@ -12,13 +12,15 @@
 #include <cstring>
 #include "rtos.h"
 
+// Serial
 EUSBSerial pc;
-Mutex_I2C i2c(PB_7, PB_8);
-ctrldRogallo ARES(&i2c);
 
-// = # of pages, 4.55 hours at 1Hz
-// 16 pages per sector
+// ARES startup
+Mutex_I2C i2c(PB_7, PB_8);
 flash flash_chip(PA_7, PA_6, PA_5, PA_4, &pc);
+ctrldRogallo ARES(&i2c, &flash_chip);
+
+// LED
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
 Thread thread;
@@ -43,6 +45,8 @@ const int MAX_NUM_PACKETS    =  16384;
 const int NUM_PACKETS_TO_LOG =  16000;
 const float DT_CTRL          =  0.01; // time step for PID controller to calculate derivative & integral
 
+const int packet_save_incr   = 100;
+
 /** @brief clears all data off of the flash chip */
 void clear_data() {
     led_B.write(1);
@@ -50,6 +54,7 @@ void clear_data() {
     t.start();
     pc.printf("\nErasing flash chip memory...\n\n");
     int erase_err = flash_chip.eraseAll(); 
+    ARES.resetPacketsLogged();
     int ms = t.read_ms(); 
     if (erase_err == 0) {
         pc.printf("...Erasing Complete... (%d ms)\n\n", ms);
@@ -76,7 +81,7 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
     ThisThread::sleep_for(10ms);
     ARES->startAllSensorThreads(&pc);
     ThisThread::sleep_for(10ms);
-    ARES->startLogging(&flash_chip, &pc);
+    ARES->startLogging(&pc);
     ThisThread::sleep_for(10ms);
     
     pc.printf("\n\n\t ARES ONLINE \n\n"); 
@@ -156,16 +161,13 @@ void auto_flight(ctrldRogallo* ARES, uint32_t* flash_addr){
 void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
     Timer execution_timer;
     execution_timer.start();
-    auto EXECUTION_PERIOD = 500ms; // 500ms = 2Hz
+    auto EXECUTION_PERIOD = 20ms; // 500ms = 2Hz
 
     char cmdBuf[32];
     float theta_error;
     uint16_t packet_count;
-    
-    ThisThread::sleep_for(100ms);
-    ARES->startAllSensorThreads(&pc);
-    ARES->startLogging(&flash_chip, &pc);
 
+    ARES->startAllThreads(&pc);
     ARES->setThreshold();
 
     // TESTING APPLICATIONS
@@ -187,16 +189,13 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
         // State machine mode selection 
         switch (mode) {
 
-            case FSM_IDLE: {
-                pc.printf("PACKETS LOGGED %i\n", ARES->getPacketsLogged());
-                break; 
-            }
+            case FSM_IDLE: { break; }
 
             case FSM_SEEKING: {
                 // Ctrl Setup
-                float target_heading = ARES->getTargetHeading();
-                float heading_error = ARES->getHeadingError();
-                float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
+                // float target_heading = ARES->getTargetHeading();
+                // float heading_error = ARES->getHeadingError();
+                // float delta_a_cmd = ARES->computeCtrl(heading_error, DT_CTRL);
 
                 // // TESTING
                 // float delta_a_cmd = deflection;
@@ -204,24 +203,23 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
                 // else    deflection -= 0.1;
                 // if (deflection < -1 || deflection > 1) up = !up; 
 
-                ARES->setLastFCcmd(delta_a_cmd);
+                // ARES->setLastFCcmd(delta_a_cmd);
 
                 // MCPS Comms
-                bool success = ARES->sendCtrl(delta_a_cmd);
+                // bool success = ARES->sendCtrl(delta_a_cmd);
                 // pc.printf("CTRL SENT: %f; SUCCESS %i \n", delta_a_cmd, success); // debug
                 break;
             }
             
             case FSM_GROUNDED: {
-                ARES->stopLogging();
-                ARES->killAllSensorThreads();
+                ARES->stopAllThreads();
                 break;
             }
 
             case FSM_SPIRAL: {
-                float cmd = state.fc_cmd > 0 ? 1 : -1;
-                ARES->setLastFCcmd(cmd);
-                ARES->sendCtrl(cmd);
+                // float cmd = state.fc_cmd > 0 ? 1 : -1;
+                // ARES->setLastFCcmd(cmd);
+                // ARES->sendCtrl(cmd);
                 break; 
             }
 
@@ -229,19 +227,23 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
             default: break; 
         }
 
+        // pc.printf("PACKETS LOGGED %i\n", ARES->getPacketsLogged());
+
         // --- User Input Handling --- 
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
                 pc.printf("\"quit\" cmd recieved...\n");
-                ARES->stopLogging();
-                ARES->killAllSensorThreads();
+                ARES->stopAllThreads();
                 ARES->setFSMMode(ModeFSM::FSM_GROUNDED);
             } else if (strcmp(cmdBuf, "seeking") == 0) {
-                pc.printf("\"seeking\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_SEEKING);
+                pc.printf("\"seeking\" cmd recieved...\n"); 
+                ARES->setFSMMode(ModeFSM::FSM_SEEKING);
             } else if (strcmp(cmdBuf, "idle") == 0) {
-                pc.printf("\"idle\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_IDLE);
+                pc.printf("\"idle\" cmd recieved...\n"); 
+                ARES->setFSMMode(ModeFSM::FSM_IDLE);
             } else if (strcmp(cmdBuf, "spiral") == 0) {
-                pc.printf("\"spiral\" cmd recieved...\n"); ARES->setFSMMode(ModeFSM::FSM_SPIRAL);
+                pc.printf("\"spiral\" cmd recieved...\n"); 
+                ARES->setFSMMode(ModeFSM::FSM_SPIRAL);
             }
         }
 
@@ -262,18 +264,18 @@ void dump_data(){
     uint16_t numPacketDump;
     flash_chip.read(0x3FFFFE, reinterpret_cast<uint8_t*> (&numPacketDump), 2);
 
-    if (numPacketDump == 0xFFFF || numPacketDump == 0) {
-        // If it's the default erased value, there are no packets to dump
-        pc.printf("There are no packets to dump!");
-        ThisThread::sleep_for(1500ms);
-
-    } else {
-        // big dumpy
-        pc.printf("\nDumping %d packets...", numPacketDump);
-        pc.printf("\n==================================\n");
-        flash_chip.dumpAllPackets(numPacketDump);
-        pc.printf("==================================\n");
+    if (numPacketDump == 65535 || numPacketDump == 0) {
+        numPacketDump = 0;
     }
+
+    numPacketDump += packet_save_incr;
+    
+    // big dumpy
+    pc.printf("\nDumping %d packets...", numPacketDump);
+    pc.printf("\n==================================\n");
+    flash_chip.dumpAllPackets(numPacketDump);
+    pc.printf("==================================\n");
+
 }
 
 /** @brief verification step for the CLI */
