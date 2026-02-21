@@ -32,6 +32,7 @@ const float Kd                            = 0.1;
 
 // Logger 
 const int packet_save_incr                = 100;
+const int flight_packet_size              = 256; 
 
 /** @brief constructor that initializes the sensors and flash chip on the ARES flight computer. */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem) 
@@ -58,6 +59,13 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
 
     // Logging setup
     packets_logged =  flash_mem->getNumPacketsWritten();
+
+    if (packets_logged != 0) {
+        packets_logged += packet_save_incr;
+    }
+
+    flash_addr = packets_logged * flight_packet_size;
+
 
     alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
@@ -593,11 +601,7 @@ void ctrldRogallo::logDataLoop(){
 }
 
 void ctrldRogallo::startLogging(EUSBSerial* pc) {
-    pc->printf("about to getNumPacketsWritten\n");
-    uint32_t previous_num_packets = flash_mem->getNumPacketsWritten();
-    pc->printf("made it past getNumPacketsWritten... previous packets: %d\n", previous_num_packets);
-    flash_addr = previous_num_packets * 256; // start logging at next empty page
-    pc->printf("flash_mem=%p, flash_addr=%d\n", flash_mem, flash_addr);
+    pc->printf(" Previous Packets Logged: %d\n", previous_num_packets - packet_save_incr);
     flight_timer.start(); // start timer once logging begins
     event_flags.set(LOGGING_FLAG);
     thread_logging.start(callback(this, &ctrldRogallo::logDataLoop));
