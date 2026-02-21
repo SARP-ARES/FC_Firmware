@@ -458,11 +458,6 @@ void ctrldRogallo::imuUpdateLoop() {
     }
 }
 
-// /** @brief Starts the CLI Thread */
-// void ctrldRogallo::startThreadCLI() {
-//     event_flags.set(CLI_FLAG);
-//     this->thread_cli.start(callback(this, &ctrldRogallo::commandLineLoop));
-// }
 
 /** @brief Starts the IMU update Thread */
 void ctrldRogallo::startThreadIMU() {
@@ -504,10 +499,7 @@ void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
     pc->printf("BMP thread started!\n");
 }
 
-/** @brief Thread killing functions, disables the 'run' flags for each thread */ 
-// void ctrldRogallo::killThreadCLI() { 
-//     event_flags.clear(CLI_FLAG); 
-// }
+/** @brief Thread killing functions, disables the 'run' flags for each thread */
 
 void ctrldRogallo::killThreadIMU() { 
     event_flags.clear(BNO_FLAG); 

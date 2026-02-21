@@ -14,20 +14,20 @@
 #include <cstring>
 #include "rtos.h"
 
+// Instantiations
 EUSBSerial pc;
 Mutex_I2C i2c(PB_7, PB_8);
-ctrldRogallo ARES(&i2c);
-
-// = # of pages, 4.55 hours at 1Hz
-// 16 pages per sector
 flash flash_chip(PA_7, PA_6, PA_5, PA_4, &pc);
+uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256; 
+ctrldRogallo ARES(&i2c);
+CLI cli(&pc, &ARES, &flash_chip, &flash_addr);
+
+// LEDs
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
-Thread thread;
 
-FlightPacket state; // global state makes more sense than individual logging states (could be moved to logging multi-function as a pointer)
-
-uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256; 
+// Initialize state struct
+FlightPacket state; // potentially move this to a different scope
 
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
@@ -243,8 +243,8 @@ void testMode(ctrldRogallo* ARES, uint32_t* flash_addr){
 
 
 /** 
- * @brief Determines what flight (logging) mode to enter used for readability 
- * @param mode the FlightMode enum to enter
+ * @brief Determines what flight mode to enter used for readability 
+ * @param mode the RunMode enum (Test or Flight)
  * @param ARES reference to the ctrldRogallo flight object
  */
 void runMode(RunMode mode, ctrldRogallo* ARES) {
@@ -273,9 +273,13 @@ void runMode(RunMode mode, ctrldRogallo* ARES) {
 
 
 int main() {
-    CLI cli(&pc, &ARES, &flash_chip, &flash_addr);
-    
-    cli.run();
+
+    // Start the command-line interface in the background
+    Thread cli_thread(osPriorityLow);
+    cli_thread.start(callback(&cli, &CLI::run));
+
+    // this either runs testMode or autoFlight loops
+    runMode(RunMode::Test, &ARES);
 
     // Should never reach here
     while (true){

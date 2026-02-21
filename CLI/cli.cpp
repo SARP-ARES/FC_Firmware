@@ -8,7 +8,7 @@ extern void autoFlight(ctrldRogallo* ARES, uint32_t* flash_addr);
 extern void runMode(RunMode mode, ctrldRogallo* ARES);
 
 
-/** @brief constructor */
+/** @brief constructor for command-line interface class*/
 CLI::CLI(EUSBSerial* pc_init,
         ctrldRogallo* ARES_init,
         flash* flash_chip_init,
