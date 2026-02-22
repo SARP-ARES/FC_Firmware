@@ -81,7 +81,7 @@ void GPS::set_logging_rate(uint32_t hz) {
 ADD DESCRIPTION
 */
 gpsState GPS::getState() const{
-    // ScopedLock<Mutex> gpsLock(gpsMutex); // "heavyweight" mutex, replace with lightweight sub mutexes
+    ScopedLock<Mutex> gpsLock(gpsMutex);
     return state; // return a copy of the state (can't be modified bc its private)
 }
 
