@@ -52,8 +52,15 @@ int BMP280::updateTemperatureData(){
 
     //Shifts each byte into useful position
     int32_t rawTemperature = ((int32_t)msb << 12) | ((int32_t)lsb << 4 ) | ((int32_t)xlsb >> 4);
-    values.temp_c = convert_temp(rawTemperature) - 3.5; // offsets temperature by experimentally gathered amount
-    values.temp_f = values.temp_c * 9.0/5.0 + 32.0; 
+
+    double temp = convert_temp(rawTemperature) - 3.5;
+
+    {   
+        ScopedLock<Mutex> lock(this->mutex);
+        values.temp_c = temp; // offsets temperature by experimentally gathered amount
+        values.temp_f = values.temp_c * 9.0/5.0 + 32.0; 
+    }
+
     return totalErr; 
 }
 
@@ -71,8 +78,15 @@ int BMP280::updatePressureData(){
 
     // Shifts each byte into useful position 
     uint32_t rawPressure = ((uint32_t)msb << 12) | ((uint32_t)lsb << 4 ) | ((uint32_t)xlsb >> 4);
-    values.press_pa = convert_press(rawPressure) - 2000; // offset from experimental data
-    values.press_psi = values.press_pa * 0.000145038;
+
+    double press = convert_press(rawPressure) - 2000; 
+
+    {   
+        ScopedLock<Mutex> lock(this->mutex);
+        values.press_pa = press; // offset from experimental data
+        values.press_psi = values.press_pa * 0.000145038;
+    }
+
     return totalErr; 
 }
 
@@ -184,6 +198,8 @@ void BMP280::updateAltitudeM() {
     double P = values.press_pa;
 
     double exponent = (R * L) / (g * M);
+
+    ScopedLock<Mutex> lock(this->mutex);
 
     values.altitude_m =
         (T0 / L) *

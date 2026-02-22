@@ -22,7 +22,7 @@ public:
     float readNum(uint32_t address);
     uint32_t readPacket(uint32_t address, FlightPacket& pkt);
     uint16_t getNumPacketsWritten();
-    void incrementNumPacketsWritten();
+    void saveState(uint16_t packets_logged);
 
     // Read data to CSV
     void printCSVHeader();
@@ -34,7 +34,6 @@ public:
     void writeByte(uint32_t address, uint8_t data);
     uint32_t writeNum(uint32_t address, float data);
     uint32_t writePacket(uint32_t address, const FlightPacket& pkt);
-    void updateNumPacketsWritten();
     
     // Erase operations
     int eraseSector(uint32_t address);
