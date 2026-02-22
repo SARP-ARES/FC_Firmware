@@ -120,8 +120,7 @@ void auto_flight(ctrldRogallo* ARES){
             
             // Mode once on the ground, ends flight logging
             case FSM_GROUNDED: {
-                ARES->stopLogging();
-                ARES->killAllSensorThreads();
+                ARES->stopAllThreads()
                 break;
             }
 
@@ -243,7 +242,7 @@ void test_mode(ctrldRogallo* ARES){
             }
         }
 
-        // Event Scheduling, slow to 50hz if running faster than schedule 
+        // Event Scheduling, slow if faster than schedule 
         auto elapsed_time = execution_timer.elapsed_time();
         if (elapsed_time < EXECUTION_PERIOD) {
             ThisThread::sleep_for(
