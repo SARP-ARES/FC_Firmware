@@ -1,31 +1,36 @@
 #include "BufferedSerial.h"
-#include "EUSBSerial.h"
 #include "GPS.h"
 #include "GPS_CMD.h"
+#include "mbed.h"
 #include <cmath>
+#include <mutex>
 
 
-/**
- * @brief Constructor for GPS object
- * @param rx_gps name of pin on the microcontroller connected to RX on the GPS module
- * @param tx_gps name of pin on the microcontroller connected to TX on the GPS module
- */
+/*
+
+ADD DESCRIPTION
+
+*/
 GPS::GPS(PinName rx_gps, PinName tx_gps) : serial(rx_gps, tx_gps) {}
 
 
-/**
- * @brief sets the sampling rate on the GPS
- * @param hz commanded sampling rate (1, 5, or 10)
- */
+
+/*
+
+Peter's set Loggin rate method
+
+*/
 void GPS::set_logging_rate(uint32_t hz) {
     // Choose valid GPS settings based on requested Hz
-    const GPSCmd* baudCmd = nullptr;
+    const GPSCmd* baudCmd = nullptr; // GPSCmd* baudCmd means the var "baudCmd" just stores the memory address for the acutal GPSCmd object
     const GPSCmd* updateCmd = nullptr;
-    const GPSCmd* fixCmd = nullptr;
+    const GPSCmd* fixCmd = nullptr; //check if * placement does anything
+    const GPSCmd* nemaCmd = &CMD_NMEA_NECESSARY;
     uint32_t uart_baud = 0;
 
+
     if (hz <= 1) {
-        baudCmd = &CMD_BAUD_9600;
+        baudCmd = &CMD_BAUD_9600; // & menas to grab the memory adress of the given variable/object. 
         updateCmd = &CMD_UPDATE_1HZ;
         fixCmd = &CMD_FIXCTL_1HZ;
         uart_baud = 9600;
@@ -35,42 +40,52 @@ void GPS::set_logging_rate(uint32_t hz) {
         fixCmd = &CMD_FIXCTL_5HZ;
         uart_baud = 38400;
     } else { // default: 10 Hz
-        baudCmd = &CMD_BAUD_38400;  // GPS stable at 10Hz with 38400
+        baudCmd = &CMD_BAUD_38400;  // GPS stable at 10Hz with 38400 -> 115200 doesnt work for some reason
         updateCmd = &CMD_UPDATE_10HZ;
         fixCmd = &CMD_FIXCTL_10HZ;
         uart_baud = 38400;
     }
 
+    
+
     // Step 1: Set GPS baud rate
-    serial.write(baudCmd->cmd, baudCmd->len);
+    this->serial.write(baudCmd->cmd, baudCmd->len);
+    ThisThread::sleep_for(100ms); //are these okay or can we not set the thread to sleep (other threads need it)
 
     // Step 2: Update STM32 UART baud to match GPS
-    serial.set_baud(uart_baud);
+    this->serial.set_baud(uart_baud);
+    ThisThread::sleep_for(100ms);
 
     // Step 3: Set GPS update rate
-    serial.write(updateCmd->cmd, updateCmd->len);
+    this->serial.write(updateCmd->cmd, updateCmd->len);
+    ThisThread::sleep_for(100ms);
 
     // Step 4: Set GPS fix interval
-    serial.write(fixCmd->cmd, fixCmd->len);
+    this->serial.write(fixCmd->cmd, fixCmd->len);
+    ThisThread::sleep_for(100ms);
+
+    // Step 5: Set NEMA sentence types
+    this->serial.write(nemaCmd->cmd, nemaCmd->len);
+    ThisThread::sleep_for(100ms);
 
 }
 
 
 
-/**
- * @brief getter for data buffer
- * @return state, member struct containing all current GPS data
- */
-GPSData GPS::getData() const{
+/*
+ADD DESCRIPTION
+*/
+GPSData GPS::getData() const {
+    ScopedLock<Mutex> lock(gpsMutex);
     return state; // return a copy of the state (can't be modified bc its private)
 }
 
 
-/**
- * @brief gets the message type of an NMEA message (GGA, GSV, RMC, etc.)
- * @param msg pointer to buffer containing NMEA message string
- * @return the type (NMEA_Type) of the NMEA message
- */
+/*
+ADD DESCRIPTION
+*/
+// say "const" so that it can't be modified (only reading it)
+// msg will be the entire line 
 NMEA_Type GPS::getMsgType(const char* msg) {
 
     switch (msg[4]) {
@@ -131,20 +146,20 @@ int GPS::getLonSign() {
 
 float GPS::lat2deg(float lat_ddmm){
     int lat_sign = getLatSign(); // -1 or 1
-    float lat_deg = floor(lat_ddmm/100.0);       // extract degrees
-    float lat_min = fmod(lat_ddmm, 100.0);     // extract minutes
+    float lat_deg = floor(lat_ddmm/100);       // extract degrees
+    float lat_min = fmod(lat_ddmm, 100);     // extract minutes
     // convert degrees & minutes to radians
-    lat_deg = lat_sign*(lat_deg + lat_min/60.0); 
+    lat_deg = lat_sign*(lat_deg + lat_min/60); 
     return lat_deg;
 }
 
 float GPS::lon2deg(float lon_dddmm){
-    int lon_sign = getLonSign(); // -1 for west, 1 for east
-    float lon_deg = floor(lon_dddmm / 100.0);           // extract degrees
-    float lon_min = lon_dddmm - lon_deg * 100.0;        // extract minutes
-    float decimal_lon = lon_sign * (lon_deg + lon_min/60.0);
-    return decimal_lon; 
-    return decimal_lon;
+    int lon_sign = getLonSign(); // -1 or 1
+    float lon_deg = floor(lon_dddmm/100);       // extract degrees
+    float lon_min = fmod(lon_dddmm, 1000);     // extract minutes
+    // convert degrees & minutes to radians
+    lon_deg = lon_sign*(lon_deg + lon_min/60); 
+    return lon_deg;
 }
 
 
@@ -195,15 +210,21 @@ int GPS::update_GGA(const char* msg){
     result = sscanf(msg, "$G%cGGA,%f,%f,%c,%f,%c,%d,%d,%f,%f", &subtype, &utc, &lat, &latNS, &lon, \
                         &lonEW, &fix, &nsats, &hdop, &alt);
               
-    // assign values to the state
-    this->state.utc = utc2sec(utc);
-    this->state.lat = lat2deg(lat);
-    this->state.latNS = latNS;
-    this->state.lon = lon2deg(lon);
-    this->state.lonEW = lonEW;
-    this->state.fix = fix;
-    this->state.hdop = hdop;
-    this->state.alt = alt;
+    // assign values to the state (add mutex)
+
+    {
+        ScopedLock<Mutex> lock(gpsMutex);
+
+        this->state.utc = utc2sec(utc);
+        this->state.lat = lat2deg(lat);
+        this->state.latNS = latNS;
+        this->state.lon = lon2deg(lon);
+        this->state.lonEW = lonEW;
+        this->state.fix = fix;
+        this->state.hdop = hdop;
+        this->state.alt = alt;
+
+    }
 
     return result;
 }
@@ -286,12 +307,18 @@ int GPS::update_GSA(const char* msg){
     int result2 = sscanf(msgDops, "%f,%f,%f*%x", &pdop, &hdop, &vdop, &checksum); 
     result = result + result2;
 
-    // Assign values to the state
-    this->state.mode1 = mode1;
-    this->state.mode2 = mode2;
-    this->state.pdop = pdop;
-    this->state.hdop = hdop;
-    this->state.vdop = vdop;
+    // Assign values to the state (add mutex)
+
+    {
+        ScopedLock<Mutex> lock(gpsMutex);
+    
+        this->state.mode1 = mode1;
+        this->state.mode2 = mode2;
+        this->state.pdop = pdop;
+        this->state.hdop = hdop;
+        this->state.vdop = vdop;
+
+    }    
 
     return result;
 }
@@ -316,16 +343,22 @@ int GPS::update_RMC(const char* msg){
                         &gspeed, &heading, &date,
                         &magneticVariation, &mode, &checksum);
 
-    // Assign values to the state
-    this->state.utc = utc2sec(utc);
-    this->state.rmcStatus = status;
-    this->state.lat = lat2deg(lat);
-    this->state.latNS = latNS;
-    this->state.lon = lon2deg(lon);
-    this->state.lonEW = lonEW;
-    this->state.gspeed = gspeed*KNOT_TO_M_S; // convert knots to m/s
-    this->state.heading = heading;
-    this->state.date = date;
+    // Assign values to the state (add mutex)
+
+    {
+        ScopedLock<Mutex> lock(gpsMutex);
+
+        this->state.utc = utc2sec(utc);
+        this->state.rmcStatus = status;
+        this->state.lat = lat2deg(lat);
+        this->state.latNS = latNS;
+        this->state.lon = lon2deg(lon);
+        this->state.lonEW = lonEW;
+        this->state.gspeed = gspeed*KNOT_TO_M_S; // convert knots to m/s
+        this->state.heading = heading;
+        this->state.date = date;
+
+    }
 
     return result;
 }
@@ -387,11 +420,111 @@ int GPS::update(NMEA_Type msgType, const char* msg){
 }
 
 
+/*
+
+ADD DESCRIPTION
+
+*/
+void GPS::setOriginECEFr() { // uses current position to set origin if nothing is passed
+    // get longitude and latitude into radians
+    float lat_rad = state.lat * pi/180;
+    float lon_rad = state.lon * pi/180;
+
+    const float a = 6378137; // earth semi-major axis        (m)
+    const float b = 6356752.3142; // earth semi-minor axis   (m)
+    const float f = (a-b)/a; // ellipsoid flatness 
+    const float e = sqrt(f*(2-f)); // eccentricity
+    // distance from the earth's surface to the z-axis along the ellipsoid normal
+    const float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
+
+    // get current position in ECEF-r coordinates
+    float h = state.alt;
+    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
+    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
+    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
+    origin.x = x;
+    origin.y = y;
+    origin.z = z;
+}
+
+
+const float a = 6378137; // earth semi-major axis        (m)
+const float b = 6356752.3142; // earth semi-minor axis   (m)
+const float f = (a-b)/a; // ellipsoid flatness 
+const float e = sqrt(f*(2-f)); // eccentricity
+
+/*
+Overloaded... 
+can specify the lattitude and longitude of the origin in degrees if needed
+instead of pulling from the current GPS position
+*/
+void GPS::setOriginECEFr(float lat_deg, float lon_deg, float h) { // uses current position to set origin if nothing is passed
+    // convert longitude and latitude into radians
+    float lat_rad = lat_deg * pi/180;
+    float lon_rad = lon_deg * pi/180;
+ 
+    // distance from the earth's surface to the z-axis along the ellipsoid normal
+    const float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
+
+    // get current position in ECEF-r coordinates
+    // float h = state.alt;
+    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
+    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
+    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
+    origin.x = x;
+    origin.y = y;
+    origin.z = z;
+} 
+
+
+
+
+void GPS::updatePosLTP() {
+    // state.lat = ddmm.mmmm ... state.lat/100 = dd.mmmmmm
+    // North = positive, South = negative
+    // East = positive, West = negative 
+    
+    // get longitude and latitude from degrees into radians
+    float lat_rad = deg2rad(state.lat);
+    float lon_rad = deg2rad(state.lon);
+
+    // distance from the earth's surface to the z-axis along the ellipsoid normal
+    float N = a/sqrt( 1 - pow(e, 2)* pow(sin(lat_rad), 2) ); 
+
+    // get current position in ECEF-r coordinates
+    float h = state.alt;
+    float x = (h + N)*cos(lat_rad)*cos(lon_rad);
+    float y = (h + N)*cos(lat_rad)*sin(lon_rad);
+    float z = (h + N*(1 - pow(e,2)))*sin(lat_rad);
+    
+    // subtract the origin ECEF-r coordinate to get relative position vector
+    float x_p = x - origin.x;
+    float y_p = y - origin.y;
+    float z_p = z - origin.z;
+
+    // rotate to allign y-axis w/ LTP
+    float x_pp = -x_p*sin(lon_rad) + y_p*cos(lon_rad);
+    float y_pp = x_p*cos(lon_rad) + y_p*sin(lon_rad);
+    float z_pp = z_p;
+
+    // // final rotation to allign z_axis with up
+    // pos.e = x_pp;
+    // pos.n = -y_pp*sin(lat_rad) + z_pp*cos(lat_rad);
+    // pos.u = y_pp*cos(lat_rad) + z_pp*sin(lat_rad);
+
+    // TESTING RELATIVE POSITION IN ECEFr
+    pos.e = x_p;
+    pos.n = y_p;
+    pos.u = z_p;
+}
+
 
 int GPS::bigUpdate(){
     // multiple messages come in... gotta parse all of them and then update the state
     Timer t;
     t.start();
+
+    updatePosLTP(); // update local tangent plane position
 
     char buf[256] = {0};
     int index = 0;
