@@ -192,7 +192,6 @@ void test_mode(ctrldRogallo* ARES, uint32_t* flash_addr){
 
         // print number of packets logged (stored at the last two bytes of the flash chip) for debugging
         packet_count = flash_chip.getNumPacketsWritten();
-        // pc.printf("Packets Logged: %d\n", packet_count);
 
         // State machine mode selection 
         switch (mode) {
