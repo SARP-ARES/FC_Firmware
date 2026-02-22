@@ -91,6 +91,7 @@ class GPS {
         posLTP pos;
         posECEFr origin;
         EUSBSerial& eSerialDebug; // EUSB serial output
+        Mutex gpsMutex;
 
         int getLatSign();
         int getLonSign();

@@ -156,6 +156,11 @@ gps.set_logging_rate(10);
 
 // // function cmd setting end
 
+    int rslt5 = gps.serial.write(CMD_ENABLE_ANTENNA_STATUS.cmd, CMD_ENABLE_ANTENNA_STATUS.len);
+    ThisThread::sleep_for(100ms);
+    pc.printf("\n\n...Wrote Enable Antenna status cmd sentence set cmd... result: %d", rslt5);
+
+
     ThisThread::sleep_for(5s);
     led_B.write(0);
     ThisThread::sleep_for(500ms);

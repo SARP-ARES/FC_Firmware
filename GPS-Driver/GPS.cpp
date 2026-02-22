@@ -3,6 +3,7 @@
 #include "GPS.h"
 #include "GPS_CMD.h"
 #include <cmath>
+#include <mutex>
 
 
 /*
@@ -39,7 +40,7 @@ void GPS::set_logging_rate(uint32_t hz) {
         fixCmd = &CMD_FIXCTL_5HZ;
         uart_baud = 38400;
     } else { // default: 10 Hz
-        baudCmd = &CMD_BAUD_38400;  // GPS stable at 10Hz with 38400 (CHECK WHETER TO USE THIS OR 115200)
+        baudCmd = &CMD_BAUD_38400;  // GPS stable at 10Hz with 38400 -> 115200 doesnt work for some reason
         updateCmd = &CMD_UPDATE_10HZ;
         fixCmd = &CMD_FIXCTL_10HZ;
         uart_baud = 38400;
@@ -80,6 +81,7 @@ void GPS::set_logging_rate(uint32_t hz) {
 ADD DESCRIPTION
 */
 gpsState GPS::getState() const{
+    // ScopedLock<Mutex> gpsLock(gpsMutex); // "heavyweight" mutex, replace with lightweight sub mutexes
     return state; // return a copy of the state (can't be modified bc its private)
 }
 
@@ -213,15 +215,21 @@ int GPS::update_GGA(const char* msg){
     result = sscanf(msg, "$G%cGGA,%f,%f,%c,%f,%c,%d,%d,%f,%f", &subtype, &utc, &lat, &latNS, &lon, \
                         &lonEW, &fix, &nsats, &hdop, &alt);
               
-    // assign values to the state
-    this->state.utc = utc2sec(utc);
-    this->state.lat = lat2deg(lat);
-    this->state.latNS = latNS;
-    this->state.lon = lon2deg(lon);
-    this->state.lonEW = lonEW;
-    this->state.fix = fix;
-    this->state.hdop = hdop;
-    this->state.alt = alt;
+    // assign values to the state (add mutex)
+
+    {
+        Scoped_lock<Mutex> lock(gpsMutex);
+
+        this->state.utc = utc2sec(utc);
+        this->state.lat = lat2deg(lat);
+        this->state.latNS = latNS;
+        this->state.lon = lon2deg(lon);
+        this->state.lonEW = lonEW;
+        this->state.fix = fix;
+        this->state.hdop = hdop;
+        this->state.alt = alt;
+
+    }
 
     return result;
 }
@@ -304,12 +312,18 @@ int GPS::update_GSA(const char* msg){
     int result2 = sscanf(msgDops, "%f,%f,%f*%x", &pdop, &hdop, &vdop, &checksum); 
     result = result + result2;
 
-    // Assign values to the state
-    this->state.mode1 = mode1;
-    this->state.mode2 = mode2;
-    this->state.pdop = pdop;
-    this->state.hdop = hdop;
-    this->state.vdop = vdop;
+    // Assign values to the state (add mutex)
+
+    {
+        Scoped_lock<Mutex> lock(gpsMutex);
+    
+        this->state.mode1 = mode1;
+        this->state.mode2 = mode2;
+        this->state.pdop = pdop;
+        this->state.hdop = hdop;
+        this->state.vdop = vdop;
+
+    }    
 
     return result;
 }
@@ -334,16 +348,22 @@ int GPS::update_RMC(const char* msg){
                         &gspeed, &heading, &date,
                         &magneticVariation, &mode, &checksum);
 
-    // Assign values to the state
-    this->state.utc = utc2sec(utc);
-    this->state.rmcStatus = status;
-    this->state.lat = lat2deg(lat);
-    this->state.latNS = latNS;
-    this->state.lon = lon2deg(lon);
-    this->state.lonEW = lonEW;
-    this->state.gspeed = gspeed*KNOT_TO_M_S; // convert knots to m/s
-    this->state.heading = heading;
-    this->state.date = date;
+    // Assign values to the state (add mutex)
+
+    {
+        Scoped_lock<Mutex> lock(gpsMutex);
+
+        this->state.utc = utc2sec(utc);
+        this->state.rmcStatus = status;
+        this->state.lat = lat2deg(lat);
+        this->state.latNS = latNS;
+        this->state.lon = lon2deg(lon);
+        this->state.lonEW = lonEW;
+        this->state.gspeed = gspeed*KNOT_TO_M_S; // convert knots to m/s
+        this->state.heading = heading;
+        this->state.date = date;
+
+    }
 
     return result;
 }
