@@ -422,7 +422,7 @@ bool ctrldRogallo::requestMotorPacket(){
 }
 
 
-/** @brief updates BMP280 internal data struct (~50Hz) */ 
+/** @brief updates BMP280 internal data struct */ 
 void ctrldRogallo::bmpUpdateLoop() {
     while (true) {
         // Check if BMP_FLAG is active
@@ -430,19 +430,33 @@ void ctrldRogallo::bmpUpdateLoop() {
         event_flags.wait_any(BMP_FLAG, osWaitForever, false);
 
         bmp.update();
-        ThisThread::sleep_for(20ms);
+        ThisThread::sleep_for(50ms); // ~20Hz
     }
 }
 
 /** @brief updates GPS internal data struct */ 
 void ctrldRogallo::gpsUpdateLoop(){
+    Kernel::Clock::duration GPS_PERIOD = 100ms;
     while (true) {
         // Check if GPS_FLAG is active
         // Wait until active if not active
         event_flags.wait_any(GPS_FLAG, osWaitForever, false);
 
-        gps.bigUpdate(); // this takes 100-1000ms TODO: implement 10Hz GPS
-        ThisThread::sleep_for(1ms); // avoid hammering just in case
+        auto start_time = flight_timer.elapsed_time();
+
+        gps.bigUpdate(); // this should take 100ms
+
+        auto end_time = flight_timer.elapsed_time();
+        auto compute_time = end_time - start_time;
+
+        // wait until next period to log next packet
+        if (compute_time < GPS_PERIOD) {
+            ThisThread::sleep_for(
+                chrono::duration_cast<Kernel::Clock::duration>(
+                    GPS_PERIOD - compute_time
+                )
+            );
+        } // else log the next packet ASAP
     }
 }
 
@@ -454,7 +468,7 @@ void ctrldRogallo::imuUpdateLoop() {
         event_flags.wait_any(BNO_FLAG, osWaitForever, false);
 
         bno.update();
-        ThisThread::sleep_for(20ms); // TODO: replace with timer
+        ThisThread::sleep_for(50ms); // ~20Hz
     }
 }
 
@@ -499,17 +513,17 @@ void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
     pc->printf("BMP thread started!\n");
 }
 
-/** @brief Thread killing functions, disables the 'run' flags for each thread */
+/** @brief Thread stoping functions, disables the 'run' flags for each thread */
 
-void ctrldRogallo::killThreadIMU() { 
+void ctrldRogallo::stopThreadIMU() { 
     event_flags.clear(BNO_FLAG); 
 }
 
-void ctrldRogallo::killThreadBMP() { 
+void ctrldRogallo::stopThreadBMP() { 
     event_flags.clear(BMP_FLAG); 
 }
 
-void ctrldRogallo::killThreadGPS() { 
+void ctrldRogallo::stopThreadGPS() { 
     event_flags.clear(GPS_FLAG); 
 }
 
@@ -517,15 +531,15 @@ void ctrldRogallo::stopLogging()   {
     event_flags.clear(LOGGING_FLAG); 
 }
 
-void ctrldRogallo::killAllSensorThreads() {
-    killThreadGPS();
-    killThreadIMU();
-    killThreadBMP();
+void ctrldRogallo::stopAllSensorThreads() {
+    stopThreadGPS();
+    stopThreadIMU();
+    stopThreadBMP();
 }
 
 void ctrldRogallo::stopAllThreads(){
     this->stopLogging();
-    this->killAllSensorThreads();
+    this->stopAllSensorThreads();
 }
 
 

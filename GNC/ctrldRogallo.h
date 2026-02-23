@@ -47,11 +47,11 @@ class ctrldRogallo {
         void startThreadBMP();
         void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
         void startLogging(flash* flash_mem, EUSBSerial* pc);
-        void killThreadCLI();
-        void killThreadGPS();
-        void killThreadIMU();
-        void killThreadBMP();
-        void killAllSensorThreads();
+        void stopThreadCLI();
+        void stopThreadGPS();
+        void stopThreadIMU();
+        void stopThreadBMP();
+        void stopAllSensorThreads();
         
         void stopLogging();
         void stopAllThreads();
