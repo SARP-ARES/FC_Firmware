@@ -1,12 +1,7 @@
 #include "cli.h"
 #include "flight_packet.h"
-#include "run_mode.h"
 
-// Forward declarations for flight functions that still live elsewhere
-extern void testMode(ctrldRogallo* ARES, uint32_t* flash_addr);
-extern void autoFlight(ctrldRogallo* ARES, uint32_t* flash_addr);
-extern void runMode(RunMode mode, ctrldRogallo* ARES);
-
+const uint32_t PRINT_FLAG = (1UL << 0);
 
 /** @brief constructor for command-line interface class*/
 CLI::CLI(EUSBSerial* pc_init,
@@ -19,6 +14,9 @@ CLI::CLI(EUSBSerial* pc_init,
         flash_chip(flash_chip_init),
         flash_addr(flash_addr_init)
         {
+            // Start the thread state printing thread
+            // It will immediately block and wait for PRINT_FLAG to be set
+            print_state_thread.start(callback(this, &CLI::printStateLoop));
         }
 
 
@@ -28,22 +26,22 @@ void CLI::run() {
     char cmd_buffer[32];
     ThisThread::sleep_for(2s);
 
-    bool print_menu = true;
-
     while (true) {
 
-        if (print_menu) {
+        if (this->print_menu) {
             printMenu();
-            print_menu = false;
+            this->print_menu = false;
         }
 
+        // reset buffer
         memset(cmd_buffer, 0, sizeof(cmd_buffer));
 
+        // catch incoming commands
         if (pc->readline(cmd_buffer, sizeof(cmd_buffer))) {
+            stopPrintingState();
             handleCommand(cmd_buffer);
-            print_menu = true;
         }
-
+        
         ThisThread::sleep_for(100ms);
     }
 }
@@ -55,7 +53,7 @@ void CLI::eraseData(){
     t.start();
     pc->printf("\nErasing flash chip memory...\n\n");
     int erase_err = flash_chip->eraseAll(); 
-    int ms = t.read_ms(); 
+    int ms = chrono::duration_cast<chrono::milliseconds>(t.elapsed_time()).count();
     if (erase_err == 0) {
         pc->printf("...Erasing Complete... (%d ms)\n\n", ms);
     } else if(erase_err == 1) {
@@ -91,6 +89,7 @@ void CLI::doubleCheckErase() {
     pc->printf("1. \"yes\"\n2. \"no\"\n");
     
     Timer t;
+    int ms;
     t.start();
     while (true) {
         if (pc->readline(cmdBuf, sizeof(cmdBuf))) {
@@ -117,7 +116,8 @@ void CLI::doubleCheckErase() {
             }
         }
         // break (don't erase) if there is no response in 15 seconds
-        if (t.read_ms() > 15000) {
+        ms = chrono::duration_cast<chrono::milliseconds>(t.elapsed_time()).count();
+        if (ms > 15000) {
             pc->printf("You took too long! Try again...");
             break;
         }
@@ -175,77 +175,153 @@ void CLI::setOrigin() {
     
 }
 
+void CLI::printCompactState() {
+    // grab current state from ARES
+    FlightPacket state = ARES->getState();
+
+    pc->printf("Timer:\t\t\t\t\t%f s\n", state.timestamp_timer);
+    pc->printf("Lat (deg), Lon (deg), Alt (m):\t\t%f, %f, %.3f\n", 
+                state.latitude_deg, state.longitude_deg, state.altitude_m);
+    pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 
+                state.pos_north_m, state.pos_east_m);
+    pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
+                state.heading_deg, state.target_heading_deg, state.heading_error_deg);
+    pc->printf("FC CMD:\t\t\t\t\t%.1f\n", state.fc_cmd); // TODO: implement PID 
+    pc->printf("Motor 1 Position (in), EXT:\t\t%.4f, %0.3f\n", state.leftPosition, state.leftPull);
+    pc->printf("Motor 2 Position (in), EXT:\t\t%.4f, %0.3f\n", state.rightPosition, state.rightPull);
+    pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
+
+    const char* MODE_NAMES[] = {"IDLE", "SEEKING", "SPIRAL", "GROUNDED"};
+    if (state.fsm_mode >= 0 && state.fsm_mode < 4) pc->printf("FSM mode:\t\t\t\t%s\n", MODE_NAMES[state.fsm_mode]);
+
+    pc->printf("Temperature C: \t\t\t\t%lf\n", state.temp_c);
+    pc->printf("Altitude M: \t\t\t\t%lf\n", state.altitude_bmp_m);
+    pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
+    pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
+    pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
+    pc->printf("==========================================================\n");
+}
+
+/**
+* @brief prints the ARES state at 0.5-ish Hz
+*/
+ void CLI::printStateLoop() {
+     while (true) {
+         event_flags.wait_any(PRINT_FLAG, osWaitForever, false);
+         printCompactState();
+         ThisThread::sleep_for(2s); // ~0.5Hz
+     }
+ }
+
+/**
+* @brief sets the print_state flag to TRUE so the printStateLoop thread can run */
+void CLI::startPrintingState() {
+    event_flags.set(PRINT_FLAG);
+}
+
+/**
+* @brief sets the print_state flag to FALSE so the printStateLoop thread does not run 
+*/
+void CLI::stopPrintingState() {
+    event_flags.clear(PRINT_FLAG);
+    ThisThread::sleep_for(100ms);
+}
+
 
 void CLI::printMenu(){
     pc->printf("\n\nARES is waiting for user input... What would you like to run?\n");
-    pc->printf("0. \"flight_mode\"\n");
-    pc->printf("1. \"test_mode\"\n");
-    pc->printf("2. \"dump\"\n");
-    pc->printf("3. \"set_origin\"\n");
-    pc->printf("4. \"clear\"\n");
-    pc->printf("5. \"dump_to_ser\"");
+    pc->printf("1. \"dump\"\n");
+    pc->printf("2. \"set_origin\"\n");
+    pc->printf("3. \"clear\"\n");
+    pc->printf("4. \"print_on\"\n");
+    pc->printf("5. \"print_off\"\n");
     pc->printf("\n> ");  // command prompt
 }
 
 
 void CLI::handleCommand(const char* cmd) {
     // =========================
-    // test mode
-    // =========================
-    if (strcmp(cmd, "test_mode") == 0 || strcmp(cmd, "1") == 0) {
-        pc->printf("\"test_mode\" cmd received.\n");
-        pc->printf("Use \"quit\" to stop logging.\n");
-        pc->printf("Use \"seeking\", \"idle\", or \"spiral\" to force FSM.\n");
-        ThisThread::sleep_for(1500ms);
-        runMode(RunMode::Test, ARES);
-    }
-
-    // =========================
-    // flight mode
-    // =========================
-    if (strcmp(cmd, "flight_mode") == 0 || strcmp(cmd, "6") == 0) {
-        pc->printf("\"flight_mode\" cmd received.");
-        ThisThread::sleep_for(1500ms);
-        runMode(RunMode::Flight, ARES);
-    }
-
-    // =========================
     // dump data
     // =========================
-    else if (strcmp(cmd, "dump") == 0 || strcmp(cmd, "2") == 0) {
+    if (strcmp(cmd, "dump") == 0 || strcmp(cmd, "1") == 0) {
         pc->printf("\"dump\" cmd received\n");
         ThisThread::sleep_for(1500ms);
         dumpData();
-    }
-
-    // =========================
-    // dump data (30s delay)
-    // =========================
-    else if (strcmp(cmd, "dump_to_ser") == 0 || strcmp(cmd, "5") == 0) {
-        pc->printf("\"dump_to_ser\" cmd received\n");
-        pc->printf("Waiting 30s, disconnect from serial port and start serial parser\n");
-        ThisThread::sleep_for(30s);
-        dumpData();
+        this->print_menu = true;
     }
 
     // =========================
     // set origin
     // =========================
-
-    else if (strcmp(cmd, "set_origin") == 0 || strcmp(cmd, "3") == 0) {
-
-        pc->printf("\"set_origin\" cmd received...\n");
+    else if (strcmp(cmd, "set_origin") == 0 || strcmp(cmd, "2") == 0) {
+        pc->printf("\"set_origin\" cmd received...\n");        
         ThisThread::sleep_for(1500ms);
         setOrigin();
+        this->print_menu = true;
     }        
 
     // =========================
     // clear data
     // =========================
-    else if (strcmp(cmd, "clear") == 0 || strcmp(cmd, "4") == 0) {
+    else if (strcmp(cmd, "clear") == 0 || strcmp(cmd, "3") == 0) {
         pc->printf("\"clear\" cmd received\n");
         ThisThread::sleep_for(1500ms);
         doubleCheckErase(); // make sure the user wants to clear the data
+        this->print_menu = true;
+    }
+
+    // =========================
+    // print state over usb
+    // =========================
+    else if (strcmp(cmd, "print_on") == 0 || strcmp(cmd, "4") == 0)  {
+        pc->printf("\"print_on\" received\n");
+        ThisThread::sleep_for(100ms);
+        startPrintingState();
+    }
+
+    // =========================
+    // stop printing state
+    // =========================
+    else if (strcmp(cmd, "print_off") == 0 || strcmp(cmd, "5") == 0) {
+        pc->printf("\"print_off\" cmd received\n");
+        ThisThread::sleep_for(100ms);
+        stopPrintingState();
+    }
+
+    // =========================
+    // FSM idle
+    // =========================
+    else if (strcmp(cmd, "FSM_idle") == 0 || strcmp(cmd, "M0") == 0) {
+        pc->printf("\"FSM_idle\" cmd received\n");
+        ThisThread::sleep_for(100ms);
+        ARES->setFSMMode(FSM_IDLE);
+    }
+
+    // =========================
+    // FSM seeking
+    // =========================
+    else if (strcmp(cmd, "FSM_seeking") == 0 || strcmp(cmd, "M1") == 0) {
+        pc->printf("\"FSM_seeking\" cmd received\n");
+        ThisThread::sleep_for(100ms);
+        ARES->setFSMMode(FSM_SEEKING);
+    }
+
+    // =========================
+    // FSM spiral
+    // =========================
+    else if (strcmp(cmd, "FSM_spiral") == 0 || strcmp(cmd, "M2") == 0) {
+        pc->printf("\"FSM_spiral\" cmd received\n");
+        ThisThread::sleep_for(100ms);
+        ARES->setFSMMode(FSM_SPIRAL);
+    }
+
+    // =========================
+    // FSM grounded
+    // =========================
+    else if (strcmp(cmd, "FSM_grounded") == 0 || strcmp(cmd, "M3") == 0) {
+        pc->printf("\"FSM_grounded\" cmd received\n");
+        ThisThread::sleep_for(100ms);
+        ARES->setFSMMode(FSM_GROUNDED);
     }
 
     // =========================
@@ -255,6 +331,7 @@ void CLI::handleCommand(const char* cmd) {
         pc->printf("\"hello\" received\n");
         ThisThread::sleep_for(1500ms);
         pc->printf("\nhello! :)\n");
+        this->print_menu = true;
     }
 
     // =========================
@@ -262,7 +339,7 @@ void CLI::handleCommand(const char* cmd) {
     // =========================
     else {
         pc->printf("Unknown command: %s\n", cmd);
+        this->print_menu = true;
     }
-
 }
 

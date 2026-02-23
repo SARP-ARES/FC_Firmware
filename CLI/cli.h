@@ -5,6 +5,7 @@
 #include "EUSBSerial.h"
 #include "ctrldRogallo.h"
 #include "flash.h"
+#include "flight_packet.h"
 
 class CLI {
 public:
@@ -15,10 +16,22 @@ public:
 
     void run();   // start CLI loop
 
+    // thread business
+    void startPrintingState();
+    void stopPrintingState();
+
 private:
     EUSBSerial* pc;
     ctrldRogallo* ARES;
     flash* flash_chip;
+
+    EventFlags event_flags;
+    Thread print_state_thread;
+    void printCompactState();
+    void printStateLoop();
+
+    bool print_menu = false;
+
     uint32_t* flash_addr;
 
     void printMenu();
@@ -31,4 +44,4 @@ private:
     void setOrigin();
 };
 
-#endif
+#endif // CLI_H
