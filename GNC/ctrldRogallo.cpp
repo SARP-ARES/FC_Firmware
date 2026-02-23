@@ -449,7 +449,7 @@ void ctrldRogallo::gpsUpdateLoop(){
 /** @brief updates BNO055 internal data struct (~50Hz) */ 
 void ctrldRogallo::imuUpdateLoop() {
     while (true) {
-        // Check if BNO_FLAG
+        // Check if BNO_FLAG is active
         // Wait until active if not active
         event_flags.wait_any(BNO_FLAG, osWaitForever, false);
 
@@ -637,34 +637,12 @@ uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     return 0; 
 }
 
-void ctrldRogallo::printCompactState(EUSBSerial* pc) {
-    ScopedLock<Mutex> lock(this->state_mutex);
-    pc->printf("Timer:\t\t\t\t\t%f s\n", state.timestamp_timer);
-    pc->printf("Lat (deg), Lon (deg), Alt (m):\t\t%f, %f, %.3f\n", 
-                state.latitude_deg, state.longitude_deg, state.altitude_m);
-    pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 
-                state.pos_north_m, state.pos_east_m);
-    pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
-                state.heading_deg, state.target_heading_deg, state.heading_error_deg);
-    pc->printf("FC CMD:\t\t\t\t\t%.1f\n", state.fc_cmd); // TODO: implement PID 
-    pc->printf("Motor 1 Position (in), EXT:\t\t%.4f, %0.3f\n", state.leftPosition, state.leftPull);
-    pc->printf("Motor 2 Position (in), EXT:\t\t%.4f, %0.3f\n", state.rightPosition, state.rightPull);
-    pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
 
-    const char* MODE_NAMES[] = {"IDLE", "SEEKING", "SPIRAL", "GROUNDED"};
-    if (state.fsm_mode >= 0 && state.fsm_mode < 4) pc->printf("FSM mode:\t\t\t\t%s\n", MODE_NAMES[state.fsm_mode]);
-
-    pc->printf("Temperature C: \t\t\t\t%lf\n", state.temp_c);
-    pc->printf("Altitude M: \t\t\t\t%lf\n", state.altitude_bmp_m);
-    pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
-    pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
-    pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
-    pc->printf("==========================================================\n");
-}
-
-/** @brief isnan failing for some reason, just checks IEE float encoding for NAN */ 
+/** 
+* @brief isnan failing for some reason, just checks IEE float encoding for NAN */ 
 bool ctrldRogallo::is_nan_safe(float f) {
     uint32_t i;
     memcpy(&i, &f, sizeof(i));
     return (i & 0x7F800000) == 0x7F800000 && (i & 0x007FFFFF) != 0;
 }
+
