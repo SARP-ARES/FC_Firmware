@@ -29,13 +29,14 @@ DigitalOut led_G(PA_15);
 FlightPacket state; // potentially move this to a different scope
 
 // Main loop execution speed
-const Kernel::Clock::duration MAIN_EXECUTION_PERIOD = 2000ms; 
+const Kernel::Clock::duration MAIN_EXECUTION_PERIOD = 50ms; 
+
+// time step for PID controller to calculate derivative & integral
+// cast main loop execution period to seconds
+const float DT_CTRL          =  std::chrono::duration_cast<std::chrono::seconds>(MAIN_EXECUTION_PERIOD).count();
 
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
-
-// time step for PID controller to calculate derivative & integral
-const float DT_CTRL          =  0.020; //
 
 
 void executeFlightLogic() {
@@ -59,10 +60,10 @@ void executeFlightLogic() {
             float heading_error = ARES.getHeadingError();
             float delta_a_cmd = ARES.computeCtrl(heading_error, DT_CTRL);
 
-            // State logging
+            // set lat command for spiral logic
             ARES.setLastFCcmd(delta_a_cmd);
 
-            // Control Communication
+            // Send control command to MC/PC
             bool success = ARES.sendCtrl(delta_a_cmd);
             break;
         }
@@ -70,7 +71,7 @@ void executeFlightLogic() {
         // Mode once on the ground, ends flight logging
         case FSM_GROUNDED: {
             ARES.stopLogging();
-            ARES.killAllSensorThreads();
+            ARES.stopAllSensorThreads();
 
             // sleep trap after grounded to preserve power
             while (true) { ThisThread::sleep_for(1s); } 
