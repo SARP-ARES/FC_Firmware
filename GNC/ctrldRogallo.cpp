@@ -31,7 +31,7 @@ const float Ki                            = 0.001;
 const float Kd                            = 0.1;
 
 // Logger 
-const int packet_save_incr                = 100;
+const int packet_save_incr                = 20;
 const int flight_packet_size              = 256; 
 
 /** @brief constructor that initializes the sensors and flash chip on the ARES flight computer. */ 
@@ -58,7 +58,7 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
     this->flash_mem = flash_mem;
 
     // Logging setup
-    packets_logged =  flash_mem->getNumPacketsWritten();
+    packets_logged = flash_mem->getNumPacketsWritten();
 
     if (packets_logged != 0) {
         packets_logged += packet_save_incr;
@@ -272,6 +272,7 @@ void ctrldRogallo::resetFlightPacket() {
 
 void ctrldRogallo::resetPacketsLogged() {
     ScopedLock<Mutex> lock(this->state_mutex);
+    this->flash_addr = 0;
     this->packets_logged = 0;
 }
 void ctrldRogallo::setLastFCcmd(float cmd) { 

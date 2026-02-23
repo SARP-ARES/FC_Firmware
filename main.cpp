@@ -43,7 +43,7 @@ const int MAX_NUM_PACKETS    =  16384;
 const int NUM_PACKETS_TO_LOG =  16000;
 const float DT_CTRL          =  0.01; // time step for PID controller to calculate derivative & integral
 
-const int packet_save_incr   = 100;
+const int packet_save_incr   = 20;
 
 /** @brief clears all data off of the flash chip */
 void clear_data() {
@@ -120,7 +120,7 @@ void auto_flight(ctrldRogallo* ARES){
             
             // Mode once on the ground, ends flight logging
             case FSM_GROUNDED: {
-                ARES->stopAllThreads()
+                ARES->stopAllThreads();
                 break;
             }
 
@@ -169,9 +169,11 @@ void test_mode(ctrldRogallo* ARES){
     float deflection = 0;
     bool up = true;
 
-    ModeFSM mode = ARES->getMode();
+    ARES->setFSMMode(FSM_IDLE);
 
-    while(mode != FSM_GROUNDED) {
+    ModeFSM mode;
+
+    while(true) {
         execution_timer.reset();
         // Get current sensor data and put it in the state struct
         ARES->updateFlightPacket();
@@ -179,12 +181,13 @@ void test_mode(ctrldRogallo* ARES){
 
         // print state for testing
         // ARES->printCompactState(&pc);
-        state = ARES->getState();
 
         // State machine mode selection 
         switch (mode) {
 
-            case FSM_IDLE: { break; }
+            case FSM_IDLE: { 
+                break; 
+            }
 
             case FSM_SEEKING: {
                 // Ctrl Setup
@@ -229,7 +232,7 @@ void test_mode(ctrldRogallo* ARES){
             if(strcmp(cmdBuf, "quit") == 0) {
                 pc.printf("\"quit\" cmd recieved...\n");
                 ARES->stopAllThreads();
-                ARES->setFSMMode(ModeFSM::FSM_GROUNDED);
+                break; 
             } else if (strcmp(cmdBuf, "seeking") == 0) {
                 pc.printf("\"seeking\" cmd recieved...\n"); 
                 ARES->setFSMMode(ModeFSM::FSM_SEEKING);
