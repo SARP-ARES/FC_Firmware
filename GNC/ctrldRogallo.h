@@ -11,10 +11,10 @@
 #include <cstdint>
 
 // Event flags uses bit masks, not indexes
-const int BMP_FLAG        = (1UL << 0); // 1
-const int BNO_FLAG        = (1UL << 1); // 2
-const int GPS_FLAG        = (1UL << 2); // 4
-const int LOGGING_FLAG    = (1UL << 3); // 8
+const uint32_t BMP_FLAG        = (1UL << 0); // 1
+const uint32_t BNO_FLAG        = (1UL << 1); // 2
+const uint32_t GPS_FLAG        = (1UL << 2); // 4
+const uint32_t LOGGING_FLAG    = (1UL << 3); // 8
 
 // Finite State Machine Modes
 typedef enum {
@@ -42,16 +42,18 @@ class ctrldRogallo {
         void resetPacketsLogged();
 
         // ---- thread handlers ----
+        void startThreadCLI();
         void startThreadGPS(); 
         void startThreadIMU();
         void startThreadBMP();
-        void startAllSensorThreads();
-        void killThreadGPS();
-        void killThreadIMU();
-        void killThreadBMP();
-        void killAllSensorThreads();
-        void logDataLoop();
-        void startLogging();
+        void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
+        void startLogging(flash* flash_mem, EUSBSerial* pc);
+        void stopThreadCLI();
+        void stopThreadGPS();
+        void stopThreadIMU();
+        void stopThreadBMP();
+        void stopAllSensorThreads();
+        
         void stopLogging();
         void stopAllThreads();
         void startAllThreads();
@@ -133,9 +135,11 @@ class ctrldRogallo {
         float prev_time;
 
         // ---- threads ----
+        void commandLineLoop(EUSBSerial* pc);
         void bmpUpdateLoop();
         void imuUpdateLoop();
         void gpsUpdateLoop();
+        void logDataLoop();
 
         // ---- navigation utilities ----
         float computeGreatCircleDistance(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);

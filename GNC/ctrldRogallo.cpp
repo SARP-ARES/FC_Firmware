@@ -9,6 +9,7 @@
 #include <string>
 #include "mbed.h"
 
+
 // Constants
 const int DEG_LLA_TO_M_CONVERSION         = 111111;
 const int APOGEE_THRESHOLD_BUFFER         = 600;
@@ -104,8 +105,8 @@ const uint16_t ctrldRogallo::getPacketsLogged(){
  * @todo WRITE TARGET TO FLASH CHIP
  */ 
 void ctrldRogallo::setTarget(double lat, double lon) { 
-    target_lat = lat; 
-    target_lon = lon; 
+    this->target_lat = lat; 
+    this->target_lon = lon; 
     // TODO WRITE TARGET TO FLASH CHIP
 }
 
@@ -118,7 +119,7 @@ void ctrldRogallo::setTarget(double lat, double lon) {
  * @param lat2_deg - latitude of second coordinate pair in degrees
  * @param lon2_deg - longitude of second coordinate pair in degrees
  */ 
-float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg, 
+float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg,
                                                double lat2_deg, double lon2_deg) {
 
     double dLat = (lat1_deg - lat2_deg) * DEG_TO_RAD;
@@ -446,7 +447,8 @@ bool ctrldRogallo::requestMotorPacket(){
     return true; // success
 }
 
-/** @brief updates BMP280 internal data struct (~50Hz) */ 
+
+/** @brief updates BMP280 internal data struct */ 
 void ctrldRogallo::bmpUpdateLoop() {
     while (true) {
         // Check if BMP_FLAG is active
@@ -454,33 +456,48 @@ void ctrldRogallo::bmpUpdateLoop() {
         event_flags.wait_any(BMP_FLAG, osWaitForever, false);
 
         bmp.update();
-        ThisThread::sleep_for(20ms);
+        ThisThread::sleep_for(50ms); // ~20Hz
     }
 }
 
 /** @brief updates GPS internal data struct */ 
 void ctrldRogallo::gpsUpdateLoop(){
+    Kernel::Clock::duration GPS_PERIOD = 100ms;
     while (true) {
         // Check if GPS_FLAG is active
         // Wait until active if not active
         event_flags.wait_any(GPS_FLAG, osWaitForever, false);
 
-        gps.bigUpdate(); // this takes 100-1000ms TODO: implement 10Hz GPS
-        ThisThread::sleep_for(1ms); // avoid hammering just in case
+        auto start_time = flight_timer.elapsed_time();
+
+        gps.bigUpdate(); // this should take 100ms
+
+        auto end_time = flight_timer.elapsed_time();
+        auto compute_time = end_time - start_time;
+
+        // wait until next period to log next packet
+        if (compute_time < GPS_PERIOD) {
+            ThisThread::sleep_for(
+                chrono::duration_cast<Kernel::Clock::duration>(
+                    GPS_PERIOD - compute_time
+                )
+            );
+        } // else log the next packet ASAP
     }
 }
 
 /** @brief updates BNO055 internal data struct (~50Hz) */ 
 void ctrldRogallo::imuUpdateLoop() {
     while (true) {
-        // Check if BNO_FLAG
+        // Check if BNO_FLAG is active
         // Wait until active if not active
         event_flags.wait_any(BNO_FLAG, osWaitForever, false);
 
         bno.update();
-        ThisThread::sleep_for(20ms); // TODO: replace with timer
+        ThisThread::sleep_for(50ms); // ~20Hz
     }
 }
+
 
 /** @brief Starts the IMU update Thread */
 void ctrldRogallo::startThreadIMU() {
@@ -512,16 +529,17 @@ void ctrldRogallo::startAllSensorThreads(){
 
 }
 
-/** @brief Thread killing functions, disables the 'run' flags for each thread */ 
-void ctrldRogallo::killThreadIMU() { 
+/** @brief Thread stoping functions, disables the 'run' flags for each thread */
+
+void ctrldRogallo::stopThreadIMU() { 
     event_flags.clear(BNO_FLAG); 
 }
 
-void ctrldRogallo::killThreadBMP() { 
+void ctrldRogallo::stopThreadBMP() { 
     event_flags.clear(BMP_FLAG); 
 }
 
-void ctrldRogallo::killThreadGPS() { 
+void ctrldRogallo::stopThreadGPS() { 
     event_flags.clear(GPS_FLAG); 
 }
 
@@ -529,15 +547,15 @@ void ctrldRogallo::stopLogging()   {
     event_flags.clear(LOGGING_FLAG); 
 }
 
-void ctrldRogallo::killAllSensorThreads() {
-    killThreadGPS();
-    killThreadIMU();
-    killThreadBMP();
+void ctrldRogallo::stopAllSensorThreads() {
+    stopThreadGPS();
+    stopThreadIMU();
+    stopThreadBMP();
 }
 
 void ctrldRogallo::stopAllThreads(){
     this->stopLogging();
-    this->killAllSensorThreads();
+    this->stopAllSensorThreads();
 }
 
 void ctrldRogallo::startAllThreads() { 
@@ -653,34 +671,12 @@ uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     return 0; 
 }
 
-void ctrldRogallo::printCompactState(EUSBSerial* pc) {
-    ScopedLock<Mutex> lock(this->state_mutex);
-    pc->printf("Timer:\t\t\t\t\t%f s\n", state.timestamp_timer);
-    pc->printf("Lat (deg), Lon (deg), Alt (m):\t\t%f, %f, %.3f\n", 
-                state.latitude_deg, state.longitude_deg, state.altitude_m);
-    pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 
-                state.pos_north_m, state.pos_east_m);
-    pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
-                state.heading_deg, state.target_heading_deg, state.heading_error_deg);
-    pc->printf("FC CMD:\t\t\t\t\t%.1f\n", state.fc_cmd); // TODO: implement PID 
-    pc->printf("Motor 1 Position (in), EXT:\t\t%.4f, %0.3f\n", state.leftPosition, state.leftPull);
-    pc->printf("Motor 2 Position (in), EXT:\t\t%.4f, %0.3f\n", state.rightPosition, state.rightPull);
-    pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
 
-    const char* MODE_NAMES[] = {"IDLE", "SEEKING", "SPIRAL", "GROUNDED"};
-    if (state.fsm_mode >= 0 && state.fsm_mode < 4) pc->printf("FSM mode:\t\t\t\t%s\n", MODE_NAMES[state.fsm_mode]);
-
-    pc->printf("Temperature C: \t\t\t\t%lf\n", state.temp_c);
-    pc->printf("Altitude M: \t\t\t\t%lf\n", state.altitude_bmp_m);
-    pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
-    pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
-    pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
-    pc->printf("==========================================================\n");
-}
-
-/** @brief isnan failing for some reason, just checks IEE float encoding for NAN */ 
+/** 
+* @brief isnan failing for some reason, just checks IEE float encoding for NAN */ 
 bool ctrldRogallo::is_nan_safe(float f) {
     uint32_t i;
     memcpy(&i, &f, sizeof(i));
     return (i & 0x7F800000) == 0x7F800000 && (i & 0x007FFFFF) != 0;
 }
+
