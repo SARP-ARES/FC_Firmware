@@ -54,6 +54,7 @@ void CLI::eraseData(){
     pc->printf("\nErasing flash chip memory...\n\n");
     int erase_err = flash_chip->eraseAll(); 
     int ms = chrono::duration_cast<chrono::milliseconds>(t.elapsed_time()).count();
+    ARES->resetPacketsLogged();
     if (erase_err == 0) {
         pc->printf("...Erasing Complete... (%d ms)\n\n", ms);
     } else if(erase_err == 1) {
@@ -310,7 +311,7 @@ void CLI::handleCommand(const char* cmd) {
     else if (strcmp(cmd, "logging_on") == 0 || strcmp(cmd, "7") == 0) {
         pc->printf("\"logging_on\" cmd received\n> ");
         ThisThread::sleep_for(100ms);
-        ARES->startLogging(flash_chip, pc);
+        ARES->startLogging();
     }
 
     // =========================
@@ -328,7 +329,7 @@ void CLI::handleCommand(const char* cmd) {
     else if (strcmp(cmd, "sensors_on") == 0 || strcmp(cmd, "9") == 0) {
         pc->printf("\"sensors_on\" cmd received\n> ");
         ThisThread::sleep_for(100ms);
-        ARES->startAllSensorThreads(pc);
+        ARES->startAllSensorThreads();
     }
 
     // =========================

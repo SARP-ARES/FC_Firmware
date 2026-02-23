@@ -46,8 +46,8 @@ class ctrldRogallo {
         void startThreadGPS(); 
         void startThreadIMU();
         void startThreadBMP();
-        void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
-        void startLogging(flash* flash_mem, EUSBSerial* pc);
+        void startAllSensorThreads();
+        void startLogging();
         void stopThreadCLI();
         void stopThreadGPS();
         void stopThreadIMU();
@@ -83,8 +83,6 @@ class ctrldRogallo {
         // ---- FSM mode ----
         uint32_t apogeeDetection(double prevAlt, double currAlt);
         uint32_t groundedDetection(double prevAlt, double currAlt);
-
-        void printCompactState(EUSBSerial* pc);
 
     private:
 

@@ -15,8 +15,6 @@
 
 // Instantiations
 EUSBSerial pc;
-
-// ARES startup
 Mutex_I2C i2c(PB_7, PB_8);
 flash flash_chip(PA_7, PA_6, PA_5, PA_4, &pc);
 uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256; 
@@ -24,9 +22,6 @@ ctrldRogallo ARES(&i2c, &flash_chip);
 CLI cli(&pc, &ARES, &flash_chip, &flash_addr);
 
 // LEDs
-ctrldRogallo ARES(&i2c, &flash_chip);
-
-// LED
 DigitalOut led_B(PA_8);
 DigitalOut led_G(PA_15);
 
@@ -104,8 +99,8 @@ int main() {
     cli_thread.start(callback(&cli, &CLI::run));
 
     // ARES boot sequence
-    ARES.startAllSensorThreads(&pc); // REMOVE BEFORE FLIGHT: &pc
-    ARES.startLogging(&flash_chip, &pc); // REMOVE BEFORE FLIGHT: &pc
+    ARES.startAllSensorThreads();
+    ARES.startLogging();
 
     // wait for stable altitude measurement
     ThisThread::sleep_for(5s);
