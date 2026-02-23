@@ -504,22 +504,12 @@ void ctrldRogallo::startThreadGPS() {
  *  @brief Starts all sensor threads 
  *  @param pc -> Reference to the serial EUSB object
  */ 
-void ctrldRogallo::startAllSensorThreads(EUSBSerial* pc){
+void ctrldRogallo::startAllSensorThreads(){
 
-    // GPS
-    pc->printf("Starting GPS thread...\n"); 
     startThreadGPS(); 
-    pc->printf("GPS thread started!\n");
-
-    // IMU
-    pc->printf("Starting IMU thread...\n"); 
     startThreadIMU(); 
-    pc->printf("IMU thread started!\n");
-
-   // BMP 
-    pc->printf("Starting BMP thread...\n"); 
     startThreadBMP(); 
-    pc->printf("BMP thread started!\n");
+
 }
 
 /** @brief Thread killing functions, disables the 'run' flags for each thread */ 
@@ -550,9 +540,9 @@ void ctrldRogallo::stopAllThreads(){
     this->killAllSensorThreads();
 }
 
-void ctrldRogallo::startAllThreads(EUSBSerial* pc) { 
-    this->startAllSensorThreads(pc);
-    this->startLogging(pc);
+void ctrldRogallo::startAllThreads() { 
+    this->startAllSensorThreads();
+    this->startLogging();
 }
 
 
@@ -602,9 +592,7 @@ void ctrldRogallo::logDataLoop(){
     }
 }
 
-void ctrldRogallo::startLogging(EUSBSerial* pc) {
-    pc->printf("Starting logger\n");
-    pc->printf(" Previous Packets Logged: %d\n", packets_logged);
+void ctrldRogallo::startLogging() {
     flight_timer.start(); // start timer once logging begins
     event_flags.set(LOGGING_FLAG);
     thread_logging.start(callback(this, &ctrldRogallo::logDataLoop));

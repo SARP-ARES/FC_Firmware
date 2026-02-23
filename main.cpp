@@ -71,23 +71,10 @@ void auto_flight(ctrldRogallo* ARES){
     Timer execution_timer;
     execution_timer.start();
     auto EXECUTION_PERIOD = 20ms; 
-
-    float theta_error;
-    uint16_t packet_count;
-    
-    ThisThread::sleep_for(10ms);
-    ARES->startAllSensorThreads(&pc);
-    ThisThread::sleep_for(10ms);
-    ARES->startLogging(&pc);
-    ThisThread::sleep_for(10ms);
     
     pc.printf("\n\n\t ARES ONLINE \n\n"); 
 
-    // TESTING APPLICATIONS
-    float deflection = 0;
-    bool up = true;
-
-    ModeFSM mode = ARES->getMode();
+    ModeFSM mode;
 
     while(mode != FSM_GROUNDED) {
         execution_timer.reset();
@@ -120,7 +107,6 @@ void auto_flight(ctrldRogallo* ARES){
             
             // Mode once on the ground, ends flight logging
             case FSM_GROUNDED: {
-                ARES->stopAllThreads();
                 break;
             }
 
@@ -159,17 +145,10 @@ void test_mode(ctrldRogallo* ARES){
     auto EXECUTION_PERIOD = 20ms; // 500ms = 2Hz
 
     char cmdBuf[32];
-    float theta_error;
-    uint16_t packet_count;
-
-    ARES->startAllThreads(&pc);
-    ARES->setThreshold();
 
     // TESTING APPLICATIONS
     float deflection = 0;
     bool up = true;
-
-    ARES->setFSMMode(FSM_IDLE);
 
     ModeFSM mode;
 
@@ -210,7 +189,6 @@ void test_mode(ctrldRogallo* ARES){
             }
             
             case FSM_GROUNDED: {
-                ARES->stopAllThreads();
                 break;
             }
 
@@ -231,7 +209,6 @@ void test_mode(ctrldRogallo* ARES){
         if(pc.readline(cmdBuf, sizeof(cmdBuf))) {
             if(strcmp(cmdBuf, "quit") == 0) {
                 pc.printf("\"quit\" cmd recieved...\n");
-                ARES->stopAllThreads();
                 break; 
             } else if (strcmp(cmdBuf, "seeking") == 0) {
                 pc.printf("\"seeking\" cmd recieved...\n"); 
@@ -352,13 +329,18 @@ void set_origin(ctrldRogallo* ARES, double lat, double lon) {
  * @param ARES reference to the ctrldRogallo flight object
  */
 void flight_mode(FlightMode mode, ctrldRogallo* ARES) {
-    ARES->setThreshold();
-    ARES->updateFlightPacket();
+
+    // Flight Setup
+    ARES->startAllThreads();
     ThisThread::sleep_for(1s);
+    ARES->setThreshold();
+    ARES->setFSMMode(FSM_IDLE);
+
+
     switch (mode) {
         
         case test:  
-            pc.printf("\nEntering Testing mode... %s\n", ' ');
+            pc.printf("\nStarting Test... %s\n", ' ');
             test_mode(ARES);                    // Testing mode
             pc.printf("==========================================================\n");
             break; 
@@ -369,6 +351,9 @@ void flight_mode(FlightMode mode, ctrldRogallo* ARES) {
             pc.printf("==========================================================\n");
             break; 
     }
+
+    // Flight Cleanup
+    ARES->stopAllThreads();
 
     pc.printf("==============================%s\n", ' ');
     pc.printf("ARES data collection complete\n");

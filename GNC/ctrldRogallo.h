@@ -45,16 +45,16 @@ class ctrldRogallo {
         void startThreadGPS(); 
         void startThreadIMU();
         void startThreadBMP();
-        void startAllSensorThreads(EUSBSerial* pc); // REMOVE ARG AFTER DEBUG COMPLETE
+        void startAllSensorThreads();
         void killThreadGPS();
         void killThreadIMU();
         void killThreadBMP();
         void killAllSensorThreads();
         void logDataLoop();
-        void startLogging(EUSBSerial* pc);
+        void startLogging();
         void stopLogging();
         void stopAllThreads();
-        void startAllThreads(EUSBSerial* pc);
+        void startAllThreads();
 
 
         // ---- state handlers ---
