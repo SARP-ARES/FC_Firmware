@@ -11,10 +11,10 @@
 #include <cstdint>
 
 // Event flags uses bit masks, not indexes
-const int BMP_FLAG        = (1UL << 0); // 1
-const int BNO_FLAG        = (1UL << 1); // 2
-const int GPS_FLAG        = (1UL << 2); // 4
-const int LOGGING_FLAG    = (1UL << 3); // 8
+const uint32_t BMP_FLAG        = (1UL << 0); // 1
+const uint32_t BNO_FLAG        = (1UL << 1); // 2
+const uint32_t GPS_FLAG        = (1UL << 2); // 4
+const uint32_t LOGGING_FLAG    = (1UL << 3); // 8
 
 // Finite State Machine Modes
 typedef enum {
@@ -89,7 +89,7 @@ class ctrldRogallo {
         BNO055 bno;
         GPS gps;
         PID pid;
-        Mutex_I2C* i2c; 
+        Mutex_I2C* i2c;
         flash* flash_mem = nullptr;
         
         uint32_t flash_addr;
@@ -106,7 +106,6 @@ class ctrldRogallo {
         Mutex state_mutex;
 
         /* Threads */ 
-        Thread thread_cli;
         Thread thread_logging;
         Thread thread_imu;
         Thread thread_bmp;
