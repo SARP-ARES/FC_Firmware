@@ -71,6 +71,7 @@ class ctrldRogallo {
         void setThreshold(); 
         void setTarget(double latitude, double longitude);
         void setPIDGains(float Kp, float Ki, float Kd);
+        void runControlSequence();
 
         float getHeadingError();
         float getTargetHeading();

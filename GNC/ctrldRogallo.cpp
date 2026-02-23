@@ -288,6 +288,35 @@ void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) {
     this->pid.updateGains(Kp, Ki, Kd); 
 }
 
+void ctrldRogallo::runControlSequence() {
+    // ensure main control loop is not sending control commands at the same time
+    setFSMMode(FSM_IDLE);
+    ThisThread::sleep_for(1s);
+    sendCtrl(0.25f);
+    setLastFCcmd(0.25f);
+    ThisThread::sleep_for(10s);
+    sendCtrl(0.5f);
+    setLastFCcmd(0.5f);
+    ThisThread::sleep_for(10s);
+    sendCtrl(1.0f);
+    setLastFCcmd(1.0f);
+    ThisThread::sleep_for(10s);
+    sendCtrl(0.0f);
+    setLastFCcmd(0.0f);
+    ThisThread::sleep_for(10s);
+    sendCtrl(-0.25f);
+    setLastFCcmd(-0.25f);
+    ThisThread::sleep_for(10s);
+    sendCtrl(-0.5f);
+    setLastFCcmd(-0.5f);
+    ThisThread::sleep_for(10s);
+    sendCtrl(-1.0f);
+    setLastFCcmd(-1.0f);
+    ThisThread::sleep_for(10s);
+    sendCtrl(0.0f);
+    setLastFCcmd(0.0f);
+}
+
 void ctrldRogallo::setAlphaAlt(float newAlphaAlt) { 
     alphaAlt = newAlphaAlt;
 }

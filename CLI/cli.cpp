@@ -241,6 +241,7 @@ void CLI::printMenu(){
     pc->printf("7. \"logging_on\"\n");
     pc->printf("8. \"sensors_off\"\n");
     pc->printf("9. \"sensors_on\"\n");
+    pc->printf("10. \"control_sequence\"\n");
     pc->printf("Force FSM transition with \"FSM_<mode>\"\n");
     pc->printf("\n> ");  // command prompt
 }
@@ -333,6 +334,16 @@ void CLI::handleCommand(const char* cmd) {
     }
 
     // =========================
+    // control sequence
+    // =========================
+    else if (strcmp(cmd, "control_sequence") == 0 || strcmp(cmd, "10") == 0) {
+        pc->printf("\"control_sequence\" received\n");
+        pc->printf("COMMENCING CONTROL SEQUENCE...\n");
+        ThisThread::sleep_for(1500ms);
+        ARES->runControlSequence();
+    }
+
+    // =========================
     // FSM idle
     // =========================
     else if (strcmp(cmd, "FSM_idle") == 0 || strcmp(cmd, "M0") == 0) {
@@ -368,6 +379,7 @@ void CLI::handleCommand(const char* cmd) {
         ARES->setFSMMode(FSM_GROUNDED);
     }
 
+
     // =========================
     // hello
     // =========================
@@ -377,6 +389,7 @@ void CLI::handleCommand(const char* cmd) {
         pc->printf("\nhello! :)\n");
         this->print_menu = true;
     }
+
 
     // =========================
     // help
