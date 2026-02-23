@@ -79,6 +79,7 @@ void CLI::dumpData(){
         flash_chip->dumpAllPackets(numPacketDump);
         pc->printf("==================================\n");
     }
+
 }
 
 
@@ -130,7 +131,7 @@ void CLI::setOrigin() {
     char cmd_buffer[32]; // user input buffer
 
     pc->printf("Where would you like to set the origin?\n");
-    pc->printf("Enter \"here\" or \"lat, lon\"\n> ");
+    pc->printf("Enter \"here\" or \"<lat>, <lon>\"\n> ");
 
     // Wait for user input
     while (true) {
@@ -150,8 +151,8 @@ void CLI::setOrigin() {
 
         if (state.latitude_deg != NAN && state.longitude_deg != NAN){
             ARES->setTarget(state.latitude_deg, state.longitude_deg);
-            pc->printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", \
-                    state.latitude_deg, state.longitude_deg);
+            pc->printf("Origin has been set...\nLat, Lon: %f deg, %f deg\n", state.latitude_deg, state.longitude_deg);
+            ThisThread::sleep_for(1500ms);
         } else { // lat/lon are nans... GPS doesn't have a fix yet.
             pc->printf("Origin has NOT been set because the GPS does not yet have fix.\n" \
                     "Make sure the antenna has a clear view of the sky and try again later.");
@@ -235,6 +236,11 @@ void CLI::printMenu(){
     pc->printf("3. \"clear\"\n");
     pc->printf("4. \"print_on\"\n");
     pc->printf("5. \"print_off\"\n");
+    pc->printf("6. \"logging_off\"\n");
+    pc->printf("7. \"logging_on\"\n");
+    pc->printf("8. \"sensors_off\"\n");
+    pc->printf("9. \"sensors_on\"\n");
+    pc->printf("Force FSM transition with \"FSM_<mode>\"\n");
     pc->printf("\n> ");  // command prompt
 }
 
@@ -263,8 +269,8 @@ void CLI::handleCommand(const char* cmd) {
     // =========================
     // clear data
     // =========================
-    else if (strcmp(cmd, "clear") == 0 || strcmp(cmd, "3") == 0) {
-        pc->printf("\"clear\" cmd received\n");
+    else if (strcmp(cmd, "clear_data") == 0 || strcmp(cmd, "3") == 0) {
+        pc->printf("\"clear_data\" cmd received\n");
         ThisThread::sleep_for(1500ms);
         doubleCheckErase(); // make sure the user wants to clear the data
         this->print_menu = true;
@@ -286,13 +292,50 @@ void CLI::handleCommand(const char* cmd) {
         pc->printf("\"print_off\" cmd received\n");
         ThisThread::sleep_for(100ms);
         stopPrintingState();
+        pc->printf("> ");
+    }
+
+    // =========================
+    // stop logging
+    // =========================
+    else if (strcmp(cmd, "logging_off") == 0 || strcmp(cmd, "6") == 0) {
+        pc->printf("\"logging_off\" cmd received\n> ");
+        ThisThread::sleep_for(100ms);
+        ARES->stopLogging();
+    }
+
+    // =========================
+    // start logging
+    // =========================
+    else if (strcmp(cmd, "logging_on") == 0 || strcmp(cmd, "7") == 0) {
+        pc->printf("\"logging_on\" cmd received\n> ");
+        ThisThread::sleep_for(100ms);
+        ARES->startLogging(flash_chip, pc);
+    }
+
+    // =========================
+    // stop sensor threads
+    // =========================
+    else if (strcmp(cmd, "sensors_off") == 0 || strcmp(cmd, "8") == 0) {
+        pc->printf("\"sensors_off\" cmd received\n> ");
+        ThisThread::sleep_for(100ms);
+        ARES->stopAllSensorThreads();
+    }
+
+    // =========================
+    // start sensor threads
+    // =========================
+    else if (strcmp(cmd, "sensors_on") == 0 || strcmp(cmd, "9") == 0) {
+        pc->printf("\"sensors_on\" cmd received\n> ");
+        ThisThread::sleep_for(100ms);
+        ARES->startAllSensorThreads(pc);
     }
 
     // =========================
     // FSM idle
     // =========================
     else if (strcmp(cmd, "FSM_idle") == 0 || strcmp(cmd, "M0") == 0) {
-        pc->printf("\"FSM_idle\" cmd received\n");
+        pc->printf("\"FSM_idle\" cmd received\n> ");
         ThisThread::sleep_for(100ms);
         ARES->setFSMMode(FSM_IDLE);
     }
@@ -301,7 +344,7 @@ void CLI::handleCommand(const char* cmd) {
     // FSM seeking
     // =========================
     else if (strcmp(cmd, "FSM_seeking") == 0 || strcmp(cmd, "M1") == 0) {
-        pc->printf("\"FSM_seeking\" cmd received\n");
+        pc->printf("\"FSM_seeking\" cmd received\n> ");
         ThisThread::sleep_for(100ms);
         ARES->setFSMMode(FSM_SEEKING);
     }
@@ -310,7 +353,7 @@ void CLI::handleCommand(const char* cmd) {
     // FSM spiral
     // =========================
     else if (strcmp(cmd, "FSM_spiral") == 0 || strcmp(cmd, "M2") == 0) {
-        pc->printf("\"FSM_spiral\" cmd received\n");
+        pc->printf("\"FSM_spiral\" cmd received\n> ");
         ThisThread::sleep_for(100ms);
         ARES->setFSMMode(FSM_SPIRAL);
     }
@@ -319,7 +362,7 @@ void CLI::handleCommand(const char* cmd) {
     // FSM grounded
     // =========================
     else if (strcmp(cmd, "FSM_grounded") == 0 || strcmp(cmd, "M3") == 0) {
-        pc->printf("\"FSM_grounded\" cmd received\n");
+        pc->printf("\"FSM_grounded\" cmd received\n> ");
         ThisThread::sleep_for(100ms);
         ARES->setFSMMode(FSM_GROUNDED);
     }
@@ -331,6 +374,15 @@ void CLI::handleCommand(const char* cmd) {
         pc->printf("\"hello\" received\n");
         ThisThread::sleep_for(1500ms);
         pc->printf("\nhello! :)\n");
+        this->print_menu = true;
+    }
+
+    // =========================
+    // help
+    // =========================
+    else if (strcmp(cmd, "help") == 0) {
+        pc->printf("\"help\" received\n");
+        ThisThread::sleep_for(1500ms);
         this->print_menu = true;
     }
 
