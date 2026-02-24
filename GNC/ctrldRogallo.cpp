@@ -12,11 +12,11 @@
 
 // Constants
 const int DEG_LLA_TO_M_CONVERSION         = 111111;
-const int APOGEE_THRESHOLD_BUFFER         = 600;
-const int GROUNDED_THRESHOLD_BUFFER       = 100;
-const float ALPHA_ALT_START_PERCENT       = 0.05;
-const int SPIRAL_RADIUS                   = 10;
-const float PI                            = 3.1415926535;
+const int APOGEE_THRESHOLD_BUFFER         = 600;    // m
+const int GROUNDED_THRESHOLD_BUFFER       = 100;    // m
+const float ALPHA_ALT_START_PERCENT       = 0.05;   // frac
+const int SPIRAL_RADIUS                   = 10;     // m
+const float PI                            = 3.1415926535;// rad
 const float DEG_TO_RAD                    = PI/180.0;
 
 // Driver Setup
