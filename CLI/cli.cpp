@@ -38,7 +38,7 @@ void CLI::run() {
 
         // catch incoming commands
         if (pc->readline(cmd_buffer, sizeof(cmd_buffer))) {
-            stopPrintingState();
+            // stopPrintingState();
             handleCommand(cmd_buffer);
         }
         
