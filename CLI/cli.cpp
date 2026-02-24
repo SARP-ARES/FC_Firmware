@@ -234,7 +234,7 @@ void CLI::printMenu(){
     pc->printf("\n\nARES is waiting for user input... What would you like to run?\n");
     pc->printf("1. \"dump\"\n");
     pc->printf("2. \"set_origin\"\n");
-    pc->printf("3. \"clear\"\n");
+    pc->printf("3. \"clear_data\"\n");
     pc->printf("4. \"print_on\"\n");
     pc->printf("5. \"print_off\"\n");
     pc->printf("6. \"logging_off\"\n");
