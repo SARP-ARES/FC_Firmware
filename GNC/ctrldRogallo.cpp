@@ -12,9 +12,13 @@
 
 // Constants
 const int DEG_LLA_TO_M_CONVERSION         = 111111;
-const int APOGEE_THRESHOLD_BUFFER         = 600;    // m
-const int GROUNDED_THRESHOLD_BUFFER       = 100;    // m
-const float ALPHA_ALT_START_PERCENT       = 0.05;   // frac
+const int APOGEE_THRESHOLD_BUFFER         = 15;     // m
+const int APOGEE_COUNTER_THRESHOLD        = 125;
+const int GROUNDED_THRESHOLD_BUFFER       = 10;     // m
+const float GROUNDED_VELOCITY_RANGE       = 0.3;    // m/s
+const float GROUNDED_COUNTER_THRESHOLD    = 10000;
+const float APOGEE_DETECTION_VELOCITY     = -0.8;   // m/s
+const float ALPHA_ALT_PERCENT             = 0.05;   // frac
 const int SPIRAL_RADIUS                   = 10;     // m
 const float PI                            = 3.1415926535;// rad
 const float DEG_TO_RAD                    = PI/180.0;
@@ -68,7 +72,7 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
     flash_addr = packets_logged * flight_packet_size;
 
 
-    alphaAlt = ALPHA_ALT_START_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
+    alphaAlt = ALPHA_ALT_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
 
     prev_time = getElapsedSeconds();
@@ -389,7 +393,7 @@ void ctrldRogallo::updateFlightPacket(){
     apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); 
 
     // Robust counter for extreme noise 
-    if(apogeeCounter >= 200) {
+    if(apogeeCounter >= APOGEE_COUNTER_THRESHOLD) {
         apogeeDetected = true;
     }
 
@@ -404,7 +408,7 @@ void ctrldRogallo::updateFlightPacket(){
         groundedCounter += groundedDetection(state.prevAlt, state.altitude_m); // checks if not moving and below threshold
 
         // Similar Idea to apogee detection, now just steady ground state
-        if(groundedCounter >= 300) {
+        if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
             mode = FSM_GROUNDED;
         }
     }
@@ -641,12 +645,11 @@ float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
  * @return 0 if non apogee 1 if apogee
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
-    float apogeeVelo = -1.2; // m/s
-    float curr_time = getElapsedSeconds();
+    float curr_time = 0.0;
     float velo = (currAlt - prevAlt)/(curr_time - prev_time);
     prev_time = curr_time;
 
-    if(velo <= apogeeVelo && currAlt > apogeeThreshold) {
+    if(velo <= APOGEE_DETECTION_VELOCITY && currAlt > apogeeThreshold) {
         return 1; 
     }
 
@@ -664,7 +667,7 @@ uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
     float velo = (currAlt - prevAlt)/(curr_time - prev_time);
     prev_time = curr_time;
 
-    if (velo < 0.3 && velo > -0.3 && currAlt < groundedThreshold) {
+    if (velo < GROUNDED_VELOCITY_RANGE && velo > -GROUNDED_VELOCITY_RANGE && currAlt < groundedThreshold) {
         return 1;
     }
 
