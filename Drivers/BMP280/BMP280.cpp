@@ -79,7 +79,7 @@ int BMP280::updatePressureData(){
     // Shifts each byte into useful position 
     uint32_t rawPressure = ((uint32_t)msb << 12) | ((uint32_t)lsb << 4 ) | ((uint32_t)xlsb >> 4);
 
-    double press = convert_press(rawPressure) - 2000; 
+    double press = convert_press(rawPressure) - 1000; 
 
     {   
         ScopedLock<Mutex> lock(this->mutex);
