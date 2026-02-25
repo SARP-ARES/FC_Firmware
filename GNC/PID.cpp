@@ -24,7 +24,7 @@ float PID::compute(float error, float dt) {
     float I = -Ki * integralError;
     float D = -Kd * (error - errorLast) / dt;
     errorLast = error;
-    int output = P + I + D;
+    float output = P + I + D;
     if (output > 1) {
         integralError = 0; // anti-windup (control is saturated)
         return 1;
