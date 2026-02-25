@@ -153,12 +153,15 @@ float GPS::lat2deg(float lat_ddmm){
     return lat_deg;
 }
 
-float GPS::lon2deg(float lon_dddmm){
+float GPS::lon2deg(float lon_dddmm) {
     int lon_sign = getLonSign(); // -1 or 1
-    float lon_deg = floor(lon_dddmm/100);       // extract degrees
-    float lon_min = fmod(lon_dddmm, 1000);     // extract minutes
-    // convert degrees & minutes to radians
-    lon_deg = lon_sign*(lon_deg + lon_min/60); 
+    
+    float lon_deg = floor(lon_dddmm / 100.0f);   // extract degrees (DDD)
+    float lon_min = fmod(lon_dddmm, 100.0f);     // extract minutes (MM.MMMMM)
+    
+    // convert degrees & minutes to decimal degrees
+    lon_deg = lon_sign * (lon_deg + (lon_min / 60.0f)); 
+    
     return lon_deg;
 }
 
