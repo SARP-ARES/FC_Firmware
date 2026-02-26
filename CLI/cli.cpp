@@ -198,6 +198,8 @@ void CLI::printCompactState() {
 
     pc->printf("Temperature C: \t\t\t\t%lf\n", state.temp_c);
     pc->printf("Altitude M: \t\t\t\t%lf\n", state.altitude_m);
+    pc->printf("GPS ALT: \t\t\t%lf\n", state.altitude_gps_m);
+    pc->printf("BMP ALT: \t\t\t%lf\n", state.altitude_bmp_m);
     pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
     pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
     pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
