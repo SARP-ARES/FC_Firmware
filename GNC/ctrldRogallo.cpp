@@ -32,7 +32,7 @@ const PinName GPS_TX_PIN                  = PA_3;
 
 // PID (tuned to receive an error in radians)
 const float Kp                            = 1.0;
-const float Ki                            = 0.01;
+const float Ki                            = 0.02;
 const float Kd                            = 0.1;
 
 // Logger 
