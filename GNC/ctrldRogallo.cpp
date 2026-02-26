@@ -20,7 +20,7 @@ const float GROUNDED_COUNTER_THRESHOLD    = 10000;
 const float APOGEE_DETECTION_VELOCITY     = -1.2;   // m/s
 const float ALPHA_ALT_PERCENT             = 0.05;   // frac
 const int SPIRAL_RADIUS                   = 10;     // m
-const float PI                            = 3.1415926535;// rad
+const float PI                            = 3.1415926535;
 const float DEG_TO_RAD                    = PI/180.0;
 
 // Driver Setup
@@ -30,9 +30,9 @@ const int BNO_I2C_ADDR                    = 0x51;
 const PinName GPS_RX_PIN                  = PA_2;
 const PinName GPS_TX_PIN                  = PA_3;
 
-// PID
+// PID (tuned to receive an error in radians)
 const float Kp                            = 1.0;
-const float Ki                            = 0.001;
+const float Ki                            = 0.01;
 const float Kd                            = 0.1;
 
 // Logger 
@@ -214,8 +214,9 @@ float ctrldRogallo::getHeadingError(){
     return thetaErr_deg;
 }
 
-float ctrldRogallo::computeCtrl(float heading_error, float dt) {
-    float delta_a_cmd = this->pid.compute(heading_error, dt);
+float ctrldRogallo::computeCtrl(float heading_error_deg, float dt) {
+    float heading_error_rad = heading_error_deg * DEG_TO_RAD;
+    float delta_a_cmd = this->pid.compute(heading_error_rad, dt);
     return delta_a_cmd;
 }
 
