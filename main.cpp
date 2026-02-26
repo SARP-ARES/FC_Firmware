@@ -21,10 +21,6 @@ uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256;
 ctrldRogallo ARES(&i2c, &flash_chip);
 CLI cli(&pc, &ARES, &flash_chip, &flash_addr);
 
-// LEDs
-DigitalOut led_B(PA_8);
-DigitalOut led_G(PA_15);
-
 // Initialize state struct
 FlightPacket state; // potentially move this to a different scope
 

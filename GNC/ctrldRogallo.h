@@ -46,6 +46,7 @@ class ctrldRogallo {
         void startThreadGPS(); 
         void startThreadIMU();
         void startThreadBMP();
+        void startThreadLED();
         void startAllSensorThreads();
         void startLogging();
         void stopThreadCLI();
@@ -92,6 +93,8 @@ class ctrldRogallo {
         GPS gps;
         PID pid;
         Mutex_I2C* i2c; 
+        DigitalOut led_b;
+        DigitalOut led_g;
         flash* flash_mem;
         
         uint32_t flash_addr;
@@ -112,6 +115,7 @@ class ctrldRogallo {
         Thread thread_imu;
         Thread thread_bmp;
         Thread thread_gps;
+        Thread thread_led;
 
         /* Threading Flag Handler */
         EventFlags event_flags; 
@@ -138,6 +142,7 @@ class ctrldRogallo {
         void imuUpdateLoop();
         void gpsUpdateLoop();
         void logDataLoop();
+        void FSM_led_loop();
 
         // ---- navigation utilities ----
         float computeGreatCircleDistance(double lat_deg, double lon_deg, double lat_target_deg, double lon_target_deg);

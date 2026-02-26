@@ -35,13 +35,18 @@ const float Kp                            = 1.0;
 const float Ki                            = 0.02;
 const float Kd                            = 0.1;
 
+// LED pins
+const PinName BLUE_LED_PIN                = PA_8;
+const PinName GREEN_LED_PIN               = PA_15;
+
 // Logger 
 const int packet_save_incr                = 20;
 const int flight_packet_size              = 256; 
 
 /** @brief constructor that initializes the sensors and flash chip on the ARES flight computer. */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem) 
-    : gps(GPS_RX_PIN, GPS_TX_PIN), bmp(i2c, BMP_I2C_ADDR), bno(i2c, BNO_I2C_ADDR), pid(Kp, Ki, Kd), i2c(i2c) {
+    : gps(GPS_RX_PIN, GPS_TX_PIN), bmp(i2c, BMP_I2C_ADDR), bno(i2c, BNO_I2C_ADDR), 
+      pid(Kp, Ki, Kd), i2c(i2c),  led_b(BLUE_LED_PIN), led_g(GREEN_LED_PIN) {
 
     // Driver Startup
     bmp.start();
@@ -299,8 +304,8 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt) {
 
 void ctrldRogallo::setThreshold(){
     ScopedLock<Mutex> lock(this->state_mutex);
-    groundedThreshold = state.altitude_m + GROUNDED_THRESHOLD_BUFFER;
-    apogeeThreshold = state.altitude_m + APOGEE_THRESHOLD_BUFFER; 
+    groundedThreshold = state.altitude_m + GROUNDED_ALT_THRESHOLD_BUFFER;
+    apogeeThreshold = state.altitude_m + APOGEE_ALT_THRESHOLD_BUFFER; 
 }
 
 /**
@@ -504,6 +509,53 @@ void ctrldRogallo::imuUpdateLoop() {
 }
 
 
+/** @brief Turns on LEDs based on FSM mode 
+
+ *         Mode     |   Color  
+ *         ---------|-----------
+ *         IDLE     |   Green    
+ *         SEEKING  |   Green + Blue
+ *         SPIRAL   |   Blue
+ *         GROUNDED |   Flashing Green and Blue
+ */
+void ctrldRogallo::FSM_led_loop(void) {
+    while(true) {
+
+        switch(this->mode) {
+
+            case FSM_IDLE: {
+                led_g.write(1);
+                break;
+            }
+
+            case FSM_SEEKING: {
+                led_g.write(1);
+                led_b.write(1);
+                break;
+            }
+
+            case FSM_SPIRAL: {
+                led_g.write(0);
+                led_b.write(1);
+                break;
+            }
+
+            case FSM_GROUNDED: {
+                led_b.write(1);
+                led_g.write(1);
+                ThisThread::sleep_for(1s);
+                led_g.write(0);
+                led_b.write(0);
+                break;
+            }
+
+            default: break;
+        } 
+
+        ThisThread::sleep_for(1s);
+    }
+}
+
 /** @brief Starts the IMU update Thread */
 void ctrldRogallo::startThreadIMU() {
     event_flags.set(BNO_FLAG);
@@ -531,11 +583,11 @@ void ctrldRogallo::startAllSensorThreads(){
     startThreadGPS(); 
     startThreadIMU(); 
     startThreadBMP(); 
+    startThreadLED();
 
 }
 
 /** @brief Thread stoping functions, disables the 'run' flags for each thread */
-
 void ctrldRogallo::stopThreadIMU() { 
     event_flags.clear(BNO_FLAG); 
 }
@@ -568,6 +620,9 @@ void ctrldRogallo::startAllThreads() {
     this->startLogging();
 }
 
+void ctrldRogallo::startThreadLED(void) { 
+        this->thread_led.start(callback(this, &ctrldRogallo::FSM_led_loop));
+}
 
 /** @brief Data logging thread main loop, regulates logging time interally */
 void ctrldRogallo::logDataLoop(){
