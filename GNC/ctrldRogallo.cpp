@@ -525,6 +525,7 @@ void ctrldRogallo::FSM_led_loop(void) {
 
             case FSM_IDLE: {
                 led_g.write(1);
+                led_b.write(0);
                 break;
             }
 
