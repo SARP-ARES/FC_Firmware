@@ -300,7 +300,8 @@ void flash::printCSVHeader() {
         "gps_antenna_status,"
         "heading_deg,"
         "target_heading_deg,"
-        "target_heading_deg,"
+        "heading_error_deg,"
+        "fc_cmd,"
         "h_speed_m_s,"
         "v_speed_m_s,"
         "latitude_deg,"
@@ -313,7 +314,6 @@ void flash::printCSVHeader() {
         "distance_to_target_m,"
         "temp_c,"
         "pressure_pa,"
-        "fc_cmd,"
         "apogee_counter,"
         "apogee_detected,"
         "yaw_rate,"
@@ -362,6 +362,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // heading_deg
         "%.4f,"      // target_heading_deg
         "%.4f,"      // heading_error_deg
+        "%.4f,"      // fc_cmd
         "%.4f,"      // h_speed_m_s
         "%.4f,"      // v_speed_m_s
         "%.7f,"      // latitude_deg
@@ -374,7 +375,6 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // distance_to_target_m
         "%.4f,"      // temp_c
         "%.4f,"      // pressure_pa
-        "%.4f,"      // fc_cmd
         "%u,"        // apogee_counter
         "%u,"        // apogee_detected
         "%.4f,"      // yaw_rate
@@ -414,6 +414,7 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.heading_deg,
         pkt.target_heading_deg,
         pkt.heading_error_deg,
+        pkt.fc_cmd,
         pkt.h_speed_m_s,
         pkt.v_speed_m_s,
         pkt.latitude_deg,
@@ -426,7 +427,6 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.distance_to_target_m,
         pkt.temp_c,
         pkt.pressure_pa,
-        pkt.fc_cmd,
         pkt.apogee_counter,
         static_cast<unsigned>(pkt.apogee_detected),
         pkt.yaw_rate,
