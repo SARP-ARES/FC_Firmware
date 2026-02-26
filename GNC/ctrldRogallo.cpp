@@ -12,12 +12,12 @@
 
 // Constants
 const int DEG_LLA_TO_M_CONVERSION         = 111111;
-const int APOGEE_THRESHOLD_BUFFER         = 15;     // m
+const int APOGEE_THRESHOLD_BUFFER         = 20;     // m
 const int APOGEE_COUNTER_THRESHOLD        = 125;
 const int GROUNDED_THRESHOLD_BUFFER       = 10;     // m
 const float GROUNDED_VELOCITY_RANGE       = 0.3;    // m/s
 const float GROUNDED_COUNTER_THRESHOLD    = 10000;
-const float APOGEE_DETECTION_VELOCITY     = -0.8;   // m/s
+const float APOGEE_DETECTION_VELOCITY     = -1.2;   // m/s
 const float ALPHA_ALT_PERCENT             = 0.05;   // frac
 const int SPIRAL_RADIUS                   = 10;     // m
 const float PI                            = 3.1415926535;// rad
@@ -645,7 +645,7 @@ float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
  * @return 0 if non apogee 1 if apogee
  */ 
 uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
-    float curr_time = 0.0;
+    float curr_time = getElapsedSeconds();
     float velo = (currAlt - prevAlt)/(curr_time - prev_time);
     prev_time = curr_time;
 
