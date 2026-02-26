@@ -299,8 +299,8 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt) {
 
 void ctrldRogallo::setThreshold(){
     ScopedLock<Mutex> lock(this->state_mutex);
-    groundedThreshold = state.altitude_m + GROUNDED_THRESHOLD_BUFFER;
-    apogeeThreshold = state.altitude_m + APOGEE_THRESHOLD_BUFFER; 
+    groundedThreshold = state.altitude_m + GROUNDED_ALT_THRESHOLD_BUFFER;
+    apogeeThreshold = state.altitude_m + APOGEE_ALT_THRESHOLD_BUFFER; 
 }
 
 /**
@@ -391,7 +391,7 @@ void ctrldRogallo::updateFlightPacket(){
     }
 
     // checks if descending and above threshold
-    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); 
+    apogeeCounter += apogeeDetection(); 
 
     // Robust counter for extreme noise 
     if(apogeeCounter >= APOGEE_COUNTER_THRESHOLD) {
@@ -406,7 +406,7 @@ void ctrldRogallo::updateFlightPacket(){
             mode = FSM_SEEKING;
         } 
 
-        groundedCounter += groundedDetection(state.prevAlt, state.altitude_m); // checks if not moving and below threshold
+        groundedCounter += groundedDetection(); // checks if not moving and below threshold
 
         // Similar Idea to apogee detection, now just steady ground state
         if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
@@ -420,7 +420,7 @@ void ctrldRogallo::updateFlightPacket(){
     state.groundedCounter = groundedCounter;
 
     // Used in apogee detection calculation
-    state.prevAlt = state.altitude_m; 
+    state.prev_altitude = state.altitude_m; 
 
 } // mutex unlocks outside this scope
 
@@ -639,18 +639,38 @@ float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
     return fuzedAlt;
 }
 
-/** 
- * @brief - detects if rocket has reached apogee based upon current velocity
- * @param prevAlt - previous altitude 
- * @param currAlt - current altitude
- * @return 0 if non apogee 1 if apogee
- */ 
-uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
+
+/**
+ * @brief calculates current vertical speed (up is positive)
+*/
+float ctrldRogallo::getVerticalSpeed(){
     float curr_time = getElapsedSeconds();
-    float velo = (currAlt - prevAlt)/(curr_time - prev_time);
+    float curr_alt;
+    float prev_alt;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        curr_alt = state.altitude_m;
+        prev_alt = state.prev_altitude;
+    }
+    
+    float vert_speed = (curr_alt - prev_alt)/(curr_time - prev_time);
     prev_time = curr_time;
 
-    if(velo <= APOGEE_DETECTION_VELOCITY && currAlt > apogeeThreshold) {
+    return vert_speed;
+}
+
+/** 
+ * @brief - detects if rocket has reached apogee based upon current velocity
+ * @return 0 if non apogee 1 if apogee
+ */ 
+uint32_t ctrldRogallo::apogeeDetection(){
+    float vert_speed = getVerticalSpeed();
+    float curr_alt;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        curr_alt = state.altitude_m;
+    }
+    if(vert_speed <= APOGEE_DETECTION_VELOCITY && curr_alt > apogeeThreshold) {
         return 1; 
     }
 
@@ -659,16 +679,17 @@ uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
 
 /** 
  * @brief - detects if rocket has settled on the ground 
- * @param prevAlt - previous altitude 
- * @param currAlt - current altitude
  * @return 0 if non apogee 1 if grounded
  */ 
-uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
-    float curr_time = getElapsedSeconds();
-    float velo = (currAlt - prevAlt)/(curr_time - prev_time);
-    prev_time = curr_time;
+uint32_t ctrldRogallo::groundedDetection() {
+    float curr_alt;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        curr_alt = state.altitude_m;
+    }
+    float vert_speed = getVerticalSpeed();
 
-    if (velo < GROUNDED_VELOCITY_RANGE && velo > -GROUNDED_VELOCITY_RANGE && currAlt < groundedThreshold) {
+    if (vert_speed < GROUNDED_VELOCITY_RANGE && vert_speed > -GROUNDED_VELOCITY_RANGE && curr_alt < groundedThreshold) {
         return 1;
     }
 

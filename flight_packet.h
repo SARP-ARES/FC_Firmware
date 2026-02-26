@@ -12,6 +12,7 @@ struct FlightPacket {
     float heading_deg;           // 4
     float target_heading_deg;    // 4
     float heading_error_deg;     // 4
+    float fc_cmd;                // 4
     float h_speed_m_s;           // 4
     float v_speed_m_s;           // 4
     double latitude_deg;         // 8
@@ -24,7 +25,6 @@ struct FlightPacket {
     float distance_to_target_m;  // 4
     float temp_c;                // 4
     float pressure_pa;           // 4
-    float fc_cmd;                // 4
     uint32_t apogee_counter;     // 4
     bool apogee_detected;        // 1
 
@@ -69,7 +69,7 @@ struct FlightPacket {
 
     char compass_heading[3];         // 3
     uint32_t groundedCounter;
-    float prevAlt; 
+    float prev_altitude;             // 4
 
     // --- END BNO055 Sensor Fields ---
 
