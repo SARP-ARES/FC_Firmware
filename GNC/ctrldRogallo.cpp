@@ -149,22 +149,30 @@ float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg,
           meters east and north of the target and updates distance to target
  */ 
 void ctrldRogallo::updateGreatCircleDistance(void){
+    double curr_lat;
+    double curr_lon;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        curr_lat = state.latitude_deg;
+        curr_lon = state.longitude_deg;
+    }
+    
     // only compute distance between latitudes to get NORTH coord
-    haversineCoordNorth = computeGreatCircleDistance(state.latitude_deg, target_lon, target_lat, target_lon);
+    this->haversineCoordNorth = computeGreatCircleDistance(curr_lat, target_lon, target_lat, target_lon);
     // make negative if south of target
-    if (state.latitude_deg < target_lat)  { 
+    if (curr_lat < target_lat)  { 
         haversineCoordNorth = -1 * haversineCoordNorth; 
     }
 
     // only compute distance between longitudes to get EAST coord
-    haversineCoordEast = computeGreatCircleDistance(target_lat, state.longitude_deg, target_lat, target_lon);
+    this->haversineCoordEast = computeGreatCircleDistance(target_lat, curr_lon, target_lat, target_lon);
     // make negative if west of target
-    if (state.longitude_deg < target_lon)  { 
+    if (curr_lon < target_lon)  { 
         haversineCoordEast = -1 * haversineCoordEast; 
     }
 
     // update distance to target field
-    distanceToTarget = computeGreatCircleDistance(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
+    this->distanceToTarget = computeGreatCircleDistance(curr_lat, curr_lon, target_lat, target_lon);
 }
 
 bool ctrldRogallo::isWithinTarget(void) { 
@@ -414,7 +422,7 @@ void ctrldRogallo::updateFlightPacket(){
         }
     }
 
-    // Control Sequence State
+    // FSM counters
     state.apogee_counter  = apogeeCounter;
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = groundedCounter;
