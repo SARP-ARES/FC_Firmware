@@ -461,7 +461,7 @@ void ctrldRogallo::bmpUpdateLoop() {
         event_flags.wait_any(BMP_FLAG, osWaitForever, false);
 
         bmp.update();
-        ThisThread::sleep_for(50ms); // ~20Hz
+        ThisThread::sleep_for(33ms); // ~30Hz
     }
 }
 
@@ -499,7 +499,7 @@ void ctrldRogallo::imuUpdateLoop() {
         event_flags.wait_any(BNO_FLAG, osWaitForever, false);
 
         bno.update();
-        ThisThread::sleep_for(50ms); // ~20Hz
+        ThisThread::sleep_for(33ms); // ~30Hz
     }
 }
 
