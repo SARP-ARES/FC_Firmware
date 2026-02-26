@@ -182,8 +182,8 @@ void CLI::printCompactState() {
     FlightPacket state = ARES->getState();
 
     pc->printf("Timer:\t\t\t\t\t%f s\n", state.timestamp_timer);
-    pc->printf("Lat (deg), Lon (deg), Alt (m):\t\t%f, %f, %.3f\n", 
-                state.latitude_deg, state.longitude_deg, state.altitude_m);
+    pc->printf("Lat (deg), Lon (deg)\t\t%f, %f\n", 
+                state.latitude_deg, state.longitude_deg);
     pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 
                 state.pos_north_m, state.pos_east_m);
     pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
@@ -198,8 +198,6 @@ void CLI::printCompactState() {
 
     pc->printf("Temperature C: \t\t\t\t%lf\n", state.temp_c);
     pc->printf("Altitude M: \t\t\t\t%lf\n", state.altitude_m);
-    pc->printf("GPS ALT: \t\t\t%lf\n", state.altitude_gps_m);
-    pc->printf("BMP ALT: \t\t\t%lf\n", state.altitude_bmp_m);
     pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
     pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
     pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
