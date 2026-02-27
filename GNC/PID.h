@@ -18,6 +18,7 @@ class PID {
         float errorLast;
         float integralError;
         bool positiveLast;
+        bool firstCompute;
 };
 
 
