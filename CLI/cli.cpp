@@ -182,7 +182,7 @@ void CLI::printCompactState() {
     FlightPacket state = ARES->getState();
 
     pc->printf("Timer:\t\t\t\t\t%f s\n", state.timestamp_timer);
-    pc->printf("Lat (deg), Lon (deg)\t\t%f, %f\n", 
+    pc->printf("Lat (deg), Lon (deg)\t\t\t%f, %f\n", 
                 state.latitude_deg, state.longitude_deg);
     pc->printf("Pos North (m), Pos East (m):\t\t\t%.2f, %.2f\n", 
                 state.pos_north_m, state.pos_east_m);

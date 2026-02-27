@@ -177,7 +177,7 @@ float GPS::deg2rad(float deg) {
 
 /**
  * @brief converts UTC time in hhmmss.sss to seconds
- * @param utc - time in UTC with forma hhmmss.sss
+ * @param utc - time in UTC with format hhmmss.sss
  * @return time in seconds (UTC)
  */
 float GPS::utc2sec(float utc) {

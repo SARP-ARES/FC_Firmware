@@ -29,7 +29,7 @@ const Kernel::Clock::duration MAIN_EXECUTION_PERIOD = 50ms;
 
 // time step for PID controller to calculate derivative & integral
 // cast main loop execution period to seconds
-const float DT_CTRL          =  std::chrono::duration_cast<std::chrono::seconds>(MAIN_EXECUTION_PERIOD).count();
+const float DT_CTRL = std::chrono::duration<float>(MAIN_EXECUTION_PERIOD).count();
 
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
@@ -46,6 +46,11 @@ void executeFlightLogic() {
         
         // Mode prior to apogee, waiting phase
         case FSM_IDLE: {
+            // compute control stuff for logging but DON'T send to MC/PS
+            float target_heading = ARES.getTargetHeading();
+            float heading_error = ARES.getHeadingError();
+            float delta_a_cmd = ARES.computeCtrl(heading_error, DT_CTRL);
+            ARES.saveCtrlStates(target_heading, heading_error, delta_a_cmd);
             break; 
         }
 
@@ -56,8 +61,7 @@ void executeFlightLogic() {
             float heading_error = ARES.getHeadingError();
             float delta_a_cmd = ARES.computeCtrl(heading_error, DT_CTRL);
 
-            // set lat command for spiral logic
-            ARES.setLastFCcmd(delta_a_cmd);
+            ARES.saveCtrlStates(target_heading, heading_error, delta_a_cmd);
 
             // Send control command to MC/PC
             bool success = ARES.sendCtrl(delta_a_cmd);
@@ -75,9 +79,11 @@ void executeFlightLogic() {
 
         // Mode once within target radius
         case FSM_SPIRAL: {
-            float cmd = state.fc_cmd > 0 ? 1 : -1;
-            ARES.setLastFCcmd(cmd);
-            ARES.sendCtrl(cmd);
+            float delta_a_cmd = state.fc_cmd > 0 ? 1 : -1;
+            float target_heading = NAN;
+            float heading_error = NAN;
+            ARES.saveCtrlStates(target_heading, heading_error, delta_a_cmd);
+            ARES.sendCtrl(delta_a_cmd);
             break; 
         }
 
@@ -107,12 +113,13 @@ int main() {
     execution_timer.start();
 
     while (true) {
-        execution_timer.reset();
+        auto start_time = execution_timer.elapsed_time();
         
         executeFlightLogic(); // the whole shabang
-        
+
         // scheduling
-        auto elapsed_time = execution_timer.elapsed_time();
+        auto end_time = execution_timer.elapsed_time();
+        auto elapsed_time = end_time - start_time;
         if (elapsed_time < MAIN_EXECUTION_PERIOD) {
             ThisThread::sleep_for(
                 chrono::duration_cast<Kernel::Clock::duration>(

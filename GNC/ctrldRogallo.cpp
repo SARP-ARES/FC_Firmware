@@ -10,16 +10,28 @@
 #include "mbed.h"
 
 
-// Constants
-const int DEG_LLA_TO_M_CONVERSION         = 111111;
+// Parameters
+const char FLIGHT_ID[8]                   = "ARES-02";
 const int APOGEE_ALT_THRESHOLD_BUFFER     = 600;    // m
 const int APOGEE_COUNTER_THRESHOLD        = 200;    // counts
 const int GROUNDED_ALT_THRESHOLD_BUFFER   = 100;    // m
 const float GROUNDED_VELOCITY_RANGE       = 0.3;    // m/s
 const float GROUNDED_COUNTER_THRESHOLD    = 1000;   // counts
 const float APOGEE_DETECTION_VELOCITY     = -1.3;   // m/s
-const float ALPHA_ALT_PERCENT             = 0.05;   // frac
 const int SPIRAL_RADIUS                   = 10;     // m
+const float ALPHA_ALT_PERCENT             = 0.05;   // frac
+
+// PID (tuned to receive an error in radians)
+const float Kp                            = 1.0;
+const float Ki                            = 0.02;
+const float Kd                            = 0.0;
+
+// Logger 
+const int packet_save_incr                = 20;
+const int flight_packet_size              = 256; 
+
+// Constants
+const int DEG_LLA_TO_M_CONVERSION         = 111111;
 const float PI                            = 3.1415926535;
 const float DEG_TO_RAD                    = PI/180.0;
 
@@ -154,22 +166,30 @@ float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg,
           meters east and north of the target and updates distance to target
  */ 
 void ctrldRogallo::updateGreatCircleDistance(void){
+    double curr_lat;
+    double curr_lon;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        curr_lat = state.latitude_deg;
+        curr_lon = state.longitude_deg;
+    }
+    
     // only compute distance between latitudes to get NORTH coord
-    haversineCoordNorth = computeGreatCircleDistance(state.latitude_deg, target_lon, target_lat, target_lon);
+    this->haversineCoordNorth = computeGreatCircleDistance(curr_lat, target_lon, target_lat, target_lon);
     // make negative if south of target
-    if (state.latitude_deg < target_lat)  { 
+    if (curr_lat < target_lat)  { 
         haversineCoordNorth = -1 * haversineCoordNorth; 
     }
 
     // only compute distance between longitudes to get EAST coord
-    haversineCoordEast = computeGreatCircleDistance(target_lat, state.longitude_deg, target_lat, target_lon);
+    this->haversineCoordEast = computeGreatCircleDistance(target_lat, curr_lon, target_lat, target_lon);
     // make negative if west of target
-    if (state.longitude_deg < target_lon)  { 
+    if (curr_lon < target_lon)  { 
         haversineCoordEast = -1 * haversineCoordEast; 
     }
 
     // update distance to target field
-    distanceToTarget = computeGreatCircleDistance(state.latitude_deg, state.longitude_deg, target_lat, target_lon);
+    this->distanceToTarget = computeGreatCircleDistance(curr_lat, curr_lon, target_lat, target_lon);
 }
 
 bool ctrldRogallo::isWithinTarget(void) { 
@@ -207,8 +227,13 @@ float ctrldRogallo::getTargetHeading(){
  * @return heading error (current - target)
  */ 
 float ctrldRogallo::getHeadingError(){
-    ScopedLock<Mutex> lock(this->state_mutex);
-    float thetaErr_deg = this->state.target_heading_deg - this->state.heading_deg;
+    float thetaErr_deg;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        // current heading - goal heading
+        thetaErr_deg = this->state.heading_deg - this->state.target_heading_deg;
+    }// nans are caught in computeCtrl();
+    
     if (thetaErr_deg > 180){
         // if its greater than 180 deg, subtract 360 deg
         thetaErr_deg = thetaErr_deg - 360;
@@ -220,8 +245,14 @@ float ctrldRogallo::getHeadingError(){
 }
 
 float ctrldRogallo::computeCtrl(float heading_error_deg, float dt) {
-    float heading_error_rad = heading_error_deg * DEG_TO_RAD;
-    float delta_a_cmd = this->pid.compute(heading_error_rad, dt);
+    float heading_error_rad;
+    float delta_a_cmd;
+    if (!is_nan_safe(heading_error_deg)) {
+        heading_error_rad = heading_error_deg * DEG_TO_RAD;
+        delta_a_cmd = this->pid.compute(heading_error_rad, dt);
+    } else { // its a nan, start cranking 90s 
+        delta_a_cmd = 1.0;
+    }
     return delta_a_cmd;
 }
 
@@ -286,8 +317,11 @@ void ctrldRogallo::resetPacketsLogged() {
     this->flash_addr = 0;
     this->packets_logged = 0;
 }
-void ctrldRogallo::setLastFCcmd(float cmd) { 
-    state.fc_cmd = cmd; 
+void ctrldRogallo::saveCtrlStates(float target_heading, float heading_error, float delta_a_cmd) { 
+    ScopedLock<Mutex> lock(this->state_mutex);
+    state.target_heading_deg = target_heading;
+    state.heading_error_deg = heading_error;
+    state.fc_cmd = delta_a_cmd;
 }
 
 void ctrldRogallo::setFSMMode(ModeFSM mode) {
@@ -381,6 +415,9 @@ void ctrldRogallo::updateFlightPacket(){
     state.bno_quat_y = bno_buf.quat_y;
     state.bno_quat_z = bno_buf.quat_z;
 
+    state.target_latitude_deg = target_lat;
+    state.target_longitude_deg = target_lon;
+
     if (success) {
         state.leftPosition   = motor.leftPosition;
         state.rightPosition  = motor.rightPosition;
@@ -395,8 +432,10 @@ void ctrldRogallo::updateFlightPacket(){
         state.readSuccess    = false;
     }
 
+    state.v_speed_m_s = getVerticalSpeed();
+
     // checks if descending and above threshold
-    apogeeCounter += apogeeDetection(state.prevAlt, state.altitude_m); 
+    apogeeCounter += apogeeDetection(); 
 
     // Robust counter for extreme noise 
     if(apogeeCounter >= APOGEE_COUNTER_THRESHOLD) {
@@ -411,7 +450,7 @@ void ctrldRogallo::updateFlightPacket(){
             mode = FSM_SEEKING;
         } 
 
-        groundedCounter += groundedDetection(state.prevAlt, state.altitude_m); // checks if not moving and below threshold
+        groundedCounter += groundedDetection(); // checks if not moving and below threshold
 
         // Similar Idea to apogee detection, now just steady ground state
         if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
@@ -419,13 +458,16 @@ void ctrldRogallo::updateFlightPacket(){
         }
     }
 
-    // Control Sequence State
+    // FSM counters
     state.apogee_counter  = apogeeCounter;
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = groundedCounter;
 
     // Used in apogee detection calculation
-    state.prevAlt = state.altitude_m; 
+    state.prev_altitude = state.altitude_m;
+
+    // copy flight ID
+    strncpy(state.flight_id, FLIGHT_ID, sizeof(state.flight_id));
 
 } // mutex unlocks outside this scope
 
@@ -695,18 +737,38 @@ float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
     return fuzedAlt;
 }
 
-/** 
- * @brief - detects if rocket has reached apogee based upon current velocity
- * @param prevAlt - previous altitude 
- * @param currAlt - current altitude
- * @return 0 if non apogee 1 if apogee
- */ 
-uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
+
+/**
+ * @brief calculates current vertical speed (up is positive)
+*/
+float ctrldRogallo::getVerticalSpeed(){
     float curr_time = getElapsedSeconds();
-    float velo = (currAlt - prevAlt)/(curr_time - prev_time);
+    float curr_alt;
+    float prev_alt;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        curr_alt = state.altitude_m;
+        prev_alt = state.prev_altitude;
+    }
+    
+    float vert_speed = (curr_alt - prev_alt)/(curr_time - prev_time);
     prev_time = curr_time;
 
-    if(velo <= APOGEE_DETECTION_VELOCITY && currAlt > apogeeThreshold) {
+    return vert_speed;
+}
+
+/** 
+ * @brief - detects if rocket has reached apogee based upon current velocity
+ * @return 0 if non apogee 1 if apogee
+ */ 
+uint32_t ctrldRogallo::apogeeDetection(){
+    float vert_speed = getVerticalSpeed();
+    float curr_alt;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        curr_alt = state.altitude_m;
+    }
+    if(vert_speed <= APOGEE_DETECTION_VELOCITY && curr_alt > apogeeThreshold) {
         return 1; 
     }
 
@@ -715,16 +777,17 @@ uint32_t ctrldRogallo::apogeeDetection(double prevAlt, double currAlt){
 
 /** 
  * @brief - detects if rocket has settled on the ground 
- * @param prevAlt - previous altitude 
- * @param currAlt - current altitude
  * @return 0 if non apogee 1 if grounded
  */ 
-uint32_t ctrldRogallo::groundedDetection(double prevAlt, double currAlt) {
-    float curr_time = getElapsedSeconds();
-    float velo = (currAlt - prevAlt)/(curr_time - prev_time);
-    prev_time = curr_time;
+uint32_t ctrldRogallo::groundedDetection() {
+    float curr_alt;
+    {
+        ScopedLock<Mutex> lock(this->state_mutex);
+        curr_alt = state.altitude_m;
+    }
+    float vert_speed = getVerticalSpeed();
 
-    if (velo < GROUNDED_VELOCITY_RANGE && velo > -GROUNDED_VELOCITY_RANGE && currAlt < groundedThreshold) {
+    if (vert_speed < GROUNDED_VELOCITY_RANGE && vert_speed > -GROUNDED_VELOCITY_RANGE && curr_alt < groundedThreshold) {
         return 1;
     }
 
