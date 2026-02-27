@@ -184,7 +184,7 @@ void CLI::printCompactState() {
     pc->printf("Timer:\t\t\t\t\t%f s\n", state.timestamp_timer);
     pc->printf("Lat (deg), Lon (deg)\t\t\t%f, %f\n", 
                 state.latitude_deg, state.longitude_deg);
-    pc->printf("Pos North (m), Pos East (m):\t\t\t%.2f, %.2f\n", 
+    pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 
                 state.pos_north_m, state.pos_east_m);
     pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
                 state.heading_deg, state.target_heading_deg, state.heading_error_deg);

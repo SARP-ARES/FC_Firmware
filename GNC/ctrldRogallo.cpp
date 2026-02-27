@@ -42,18 +42,9 @@ const int BNO_I2C_ADDR                    = 0x51;
 const PinName GPS_RX_PIN                  = PA_2;
 const PinName GPS_TX_PIN                  = PA_3;
 
-// PID (tuned to receive an error in radians)
-const float Kp                            = 1.0;
-const float Ki                            = 0.02;
-const float Kd                            = 0.1;
-
 // LED pins
 const PinName BLUE_LED_PIN                = PA_8;
 const PinName GREEN_LED_PIN               = PA_15;
-
-// Logger 
-const int packet_save_incr                = 20;
-const int flight_packet_size              = 256; 
 
 /** @brief constructor that initializes the sensors and flash chip on the ARES flight computer. */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem) 
