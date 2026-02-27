@@ -37,7 +37,7 @@ class ctrldRogallo {
         ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem);
 
         // -- Setters --
-        void setLastFCcmd(float cmd);
+        void saveCtrlStates(float target_heading, float heading_error, float delta_a_cmd);
         void setFSMMode(ModeFSM mode);
         void resetPacketsLogged();
 
