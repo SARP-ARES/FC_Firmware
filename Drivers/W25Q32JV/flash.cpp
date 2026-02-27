@@ -306,6 +306,8 @@ void flash::printCSVHeader() {
         "v_speed_m_s,"
         "latitude_deg,"
         "longitude_deg,"
+        "target_latitude_deg,"
+        "target_longitude_deg,"
         "altitude_gps_m,"
         "altitude_bmp_m,"
         "altitude_m,"
@@ -367,6 +369,8 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         "%.4f,"      // v_speed_m_s
         "%.7f,"      // latitude_deg
         "%.7f,"      // longitude_deg
+        "%.7f,"      // target_latitude_deg
+        "%.7f,"      // target_longitude_deg
         "%.4f,"      // altitude_gps_m
         "%.4f,"      // altitude_bmp_m
         "%.4f,"      // altitude_m
@@ -419,6 +423,8 @@ void flash::printPacketAsCSV(const FlightPacket& pkt) {
         pkt.v_speed_m_s,
         pkt.latitude_deg,
         pkt.longitude_deg,
+        pkt.target_latitude_deg,
+        pkt.target_longitude_deg,
         pkt.altitude_gps_m,
         pkt.altitude_bmp_m,
         pkt.altitude_m,

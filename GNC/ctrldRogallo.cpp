@@ -24,7 +24,7 @@ const float ALPHA_ALT_PERCENT             = 0.05;   // frac
 // PID (tuned to receive an error in radians)
 const float Kp                            = 1.0;
 const float Ki                            = 0.02;
-const float Kd                            = 0.1;
+const float Kd                            = 0.0;
 
 // Logger 
 const int packet_save_incr                = 20;
@@ -400,6 +400,9 @@ void ctrldRogallo::updateFlightPacket(){
     state.bno_quat_x = bno_buf.quat_x;
     state.bno_quat_y = bno_buf.quat_y;
     state.bno_quat_z = bno_buf.quat_z;
+
+    state.target_latitude_deg = target_lat;
+    state.target_longitude_deg = target_lon;
 
     if (success) {
         state.leftPosition   = motor.leftPosition;

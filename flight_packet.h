@@ -17,6 +17,8 @@ struct FlightPacket {
     float v_speed_m_s;           // 4
     double latitude_deg;         // 8
     double longitude_deg;        // 8
+    double target_latitude_deg;  // 8
+    double target_longitude_deg; // 8
     float altitude_gps_m;        // 4
     float altitude_bmp_m;        // 4
     float altitude_m;            // 4
