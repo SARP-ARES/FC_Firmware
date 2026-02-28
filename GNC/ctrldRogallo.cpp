@@ -368,7 +368,8 @@ void ctrldRogallo::updateFlightPacket(){
     state.altitude_gps_m = gps_buf.alt;
 
     // Bias Filter
-    state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt);
+    // state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt);
+    state.altitude_m = bmp_buf.altitude_m;
 
     // Relative State
     updateGreatCircleDistance();
