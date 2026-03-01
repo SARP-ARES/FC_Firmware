@@ -71,7 +71,6 @@ struct FlightPacket {
 
     char compass_heading[3];         // 3
     uint32_t groundedCounter;
-    float prev_altitude;             // 4
 
     // --- END BNO055 Sensor Fields ---
 
