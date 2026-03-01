@@ -22,7 +22,7 @@ public:
     float readNum(uint32_t address);
     uint32_t readPacket(uint32_t address, FlightPacket& pkt);
     uint16_t getNumPacketsWritten();
-    void saveState(uint16_t packets_logged);
+    void saveNumPacketsLogged(uint16_t packets_logged);
 
     // Read data to CSV
     void printCSVHeader();

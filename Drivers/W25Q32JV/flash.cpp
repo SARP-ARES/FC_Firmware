@@ -275,7 +275,7 @@ uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     return address + 256; // increment write address to the next page
 }
 
-void flash::saveState(uint16_t packets_logged) {
+void flash::saveNumPacketsLogged(uint16_t packets_logged) {
     { 
         // lock to make sure erased count isn't read elsewhere before new count is written
         ScopedLock<Mutex> lock(this->flash_lock);
