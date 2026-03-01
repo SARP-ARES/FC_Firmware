@@ -12,14 +12,17 @@
 
 // Parameters
 const char FLIGHT_ID[8]                   = "ARES-02";
-const int APOGEE_ALT_THRESHOLD_BUFFER     = 600;    // m
-const int APOGEE_COUNTER_THRESHOLD        = 200;    // counts
-const int GROUNDED_ALT_THRESHOLD_BUFFER   = 100;    // m
-const float GROUNDED_VELOCITY_RANGE       = 0.3;    // m/s
-const float GROUNDED_COUNTER_THRESHOLD    = 1000;   // counts
-const float APOGEE_DETECTION_VELOCITY     = -1.3;   // m/s
-const int SPIRAL_RADIUS                   = 10;     // m
-const float ALPHA_ALT_PERCENT             = 0.05;   // frac
+const int APOGEE_ALT_THRESHOLD_BUFFER     = 15;         // m
+const float APOGEE_DETECTION_VELOCITY     = -1.0;       // m/s
+const int APOGEE_COUNTER_THRESHOLD        = 75;        // counts
+const int GROUNDED_ALT_THRESHOLD_BUFFER   = 5;          // m
+const float GROUNDED_VELOCITY_RANGE       = 0.3;        // m/s
+const float GROUNDED_COUNTER_THRESHOLD    = 4000;       // counts
+const int INNER_SPIRAL_RADIUS             = 15;         // m
+const int OUTER_SPIRAL_RADIUS             = 30;         // m
+const float ALPHA_ALT_PERCENT             = 0.05;       // frac
+const double DEFAULT_TARGET_LAT           = 47.659078;  // deg
+const double DEFAULT_TARGET_LON           = -122.298950;// deg
 
 // PID (tuned to receive an error in radians)
 const float Kp                            = 1.0;
@@ -34,6 +37,7 @@ const int flight_packet_size              = 256;
 const int DEG_LLA_TO_M_CONVERSION         = 111111;
 const float PI                            = 3.1415926535;
 const float DEG_TO_RAD                    = PI/180.0;
+const double MAX_DOUBLE                   = 0x1.fffffffffffffp+1023;
 
 // Driver Setup
 const int MCPS_I2C_ADDR                   = 0x02 << 1; 
@@ -72,18 +76,20 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
 
     // Logging setup
     packets_logged = flash_mem->getNumPacketsWritten();
-
     if (packets_logged != 0) {
         packets_logged += packet_save_incr;
     }
-
     flash_addr = packets_logged * flight_packet_size;
-
 
     alphaAlt = ALPHA_ALT_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
     mode = FSM_IDLE; // initialize in idle mode
 
-    prev_time = getElapsedSeconds();
+    vspeed_prev_time = getElapsedSeconds();
+    vspeed_prev_alt = NAN;
+
+    // set target landing spot
+    // setTargetFromMemory();
+    setTarget(DEFAULT_TARGET_LAT, DEFAULT_TARGET_LON);
 } 
  
 /**
@@ -114,13 +120,44 @@ const uint16_t ctrldRogallo::getPacketsLogged(){
  * @brief sets the seeking/landing target latitude & longitude
  * @param lat - target latitude
  * @param lon - target longitude
- * @todo WRITE TARGET TO FLASH CHIP
  */ 
 void ctrldRogallo::setTarget(double lat, double lon) { 
     this->target_lat = lat; 
     this->target_lon = lon; 
-    // TODO WRITE TARGET TO FLASH CHIP
+
+    // // save both doubles to the end of the flash chip
+    // // log latitude at 3FFFE[C,D,E,F]
+    // flash_mem->write(0x3FFFEC, reinterpret_cast<uint8_t*>(&lat), 4);  
+
+    // // log longitude at 3FFFF[A,B,C,D] (E and F are for numPacketsLogged)
+    // flash_mem->write(0x3FFFFA, reinterpret_cast<uint8_t*>(&lon), 4);
 }
+
+double ctrldRogallo::getTargetLat(){
+    double lat;
+    flash_mem->read(0x3FFFEC, reinterpret_cast<uint8_t*> (&lat), 4);
+    return lat;
+}
+
+double ctrldRogallo::getTargetLon(){
+    double lon;
+    flash_mem->read(0x3FFFFA, reinterpret_cast<uint8_t*> (&lon), 4);
+    return lon;
+}
+
+// void ctrldRogallo::setTargetFromMemory(){
+//     target_lat = getTargetLat();
+//     target_lon = getTargetLon();
+
+//     // check if the memory is uninitialized
+//     // set default target if uninitialized
+//     if (target_lat == MAX_DOUBLE || target_lon == MAX_DOUBLE) {
+//         setTarget(DEFAULT_TARGET_LAT, DEFAULT_TARGET_LON);
+//     } else {
+//         setTarget(target_lat, target_lon);
+//     }
+// }
+
 
 
 /**
@@ -142,7 +179,7 @@ float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg,
     double lat_rad = lat1_deg * DEG_TO_RAD;
     double target_lat_rad = lat2_deg * DEG_TO_RAD;
 
-    // apply formulae
+    // apply formulaeu
     double a = pow(sin(dLat / 2), 2) + 
                 pow(sin(dLon / 2), 2) * cos(lat_rad) * cos(target_lat_rad);
 
@@ -181,10 +218,6 @@ void ctrldRogallo::updateGreatCircleDistance(void){
 
     // update distance to target field
     this->distanceToTarget = computeGreatCircleDistance(curr_lat, curr_lon, target_lat, target_lon);
-}
-
-bool ctrldRogallo::isWithinTarget(void) { 
-    return distanceToTarget < SPIRAL_RADIUS; 
 }
 
 /*  Python Code
@@ -367,10 +400,6 @@ void ctrldRogallo::updateFlightPacket(){
     state.longitude_deg = gps_buf.lon;
     state.altitude_gps_m = gps_buf.alt;
 
-    // Bias Filter
-    // state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt);
-    state.altitude_m = bmp_buf.altitude_m;
-
     // Relative State
     updateGreatCircleDistance();
     state.pos_east_m = haversineCoordEast;
@@ -424,10 +453,28 @@ void ctrldRogallo::updateFlightPacket(){
         state.readSuccess    = false;
     }
 
-    state.v_speed_m_s = getVerticalSpeed();
+    // Bias Filter
+    // state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt);
+    state.altitude_m = bmp_buf.altitude_m;
+
+
+    
+    // Calculate vertical speed
+    float curr_time = getElapsedSeconds();
+    float dt_vspeed = curr_time - vspeed_prev_time;
+    if (dt_vspeed > 1.0f) {
+        if (!is_nan_safe(vspeed_prev_alt)) {
+            state.v_speed_m_s = (state.altitude_m - vspeed_prev_alt) / dt_vspeed;
+        } else {
+            state.v_speed_m_s = 0.0f; // Failsafe for the first loop
+        }
+        // update at 1 Hz
+        vspeed_prev_time = curr_time;
+        vspeed_prev_alt = state.altitude_m;
+    }
 
     // checks if descending and above threshold
-    apogeeCounter += apogeeDetection(); 
+    apogeeCounter += apogeeDetection(state.v_speed_m_s, state.altitude_m);
 
     // Robust counter for extreme noise 
     if(apogeeCounter >= APOGEE_COUNTER_THRESHOLD) {
@@ -436,13 +483,18 @@ void ctrldRogallo::updateFlightPacket(){
 
     // Post Apogee sequence
     if(apogeeDetected) {
-        if(isWithinTarget()){    
-            mode = FSM_SPIRAL; 
-        } else  {
-            mode = FSM_SEEKING;
-        } 
 
-        groundedCounter += groundedDetection(); // checks if not moving and below threshold
+        if (mode == FSM_SEEKING) {
+            // spiral if within inner spiral radius
+            if (distanceToTarget < INNER_SPIRAL_RADIUS) { 
+                mode = FSM_SPIRAL;
+            }
+        } else if (distanceToTarget > OUTER_SPIRAL_RADIUS) {
+            // go back to seeking if you exit the outer spiral radius
+            mode = FSM_SEEKING;
+        }
+
+        groundedCounter += groundedDetection(state.v_speed_m_s, state.altitude_m); // checks if not moving and below threshold
 
         // Similar Idea to apogee detection, now just steady ground state
         if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
@@ -454,9 +506,6 @@ void ctrldRogallo::updateFlightPacket(){
     state.apogee_counter  = apogeeCounter;
     state.apogee_detected = apogeeDetected;
     state.groundedCounter = groundedCounter;
-
-    // Used in apogee detection calculation
-    state.prev_altitude = state.altitude_m;
 
     // copy flight ID
     strncpy(state.flight_id, FLIGHT_ID, sizeof(state.flight_id));
@@ -678,9 +727,9 @@ void ctrldRogallo::logDataLoop(){
         // write current state to flash chip & increment address
         flash_addr = flash_mem->writePacket(flash_addr, state_snapshot);
 
-        // Save every state incrementally
+        // Save number of packets logged at every increment
         if(packets_logged % packet_save_incr == 0) {
-            flash_mem->saveState(packets_logged);
+            flash_mem->saveNumPacketsLogged(packets_logged);
         }
         
         // log at 10Hz while seeking or spiraling, 1Hz while idle, turn off once grounded
@@ -729,61 +778,28 @@ float ctrldRogallo::getFuzedAlt(float alt1, float alt2){
     return fuzedAlt;
 }
 
-
-/**
- * @brief calculates current vertical speed (up is positive)
-*/
-float ctrldRogallo::getVerticalSpeed(){
-    float curr_time = getElapsedSeconds();
-    float curr_alt;
-    float prev_alt;
-    {
-        ScopedLock<Mutex> lock(this->state_mutex);
-        curr_alt = state.altitude_m;
-        prev_alt = state.prev_altitude;
-    }
-    
-    float vert_speed = (curr_alt - prev_alt)/(curr_time - prev_time);
-    prev_time = curr_time;
-
-    return vert_speed;
-}
-
 /** 
  * @brief - detects if rocket has reached apogee based upon current velocity
  * @return 0 if non apogee 1 if apogee
  */ 
-uint32_t ctrldRogallo::apogeeDetection(){
-    float vert_speed = getVerticalSpeed();
-    float curr_alt;
-    {
-        ScopedLock<Mutex> lock(this->state_mutex);
-        curr_alt = state.altitude_m;
-    }
+uint32_t ctrldRogallo::apogeeDetection(float vert_speed, float curr_alt){
     if(vert_speed <= APOGEE_DETECTION_VELOCITY && curr_alt > apogeeThreshold) {
         return 1; 
+    } else {
+        return 0;
     }
-
-    return 0; 
 }
 
 /** 
  * @brief - detects if rocket has settled on the ground 
  * @return 0 if non apogee 1 if grounded
  */ 
-uint32_t ctrldRogallo::groundedDetection() {
-    float curr_alt;
-    {
-        ScopedLock<Mutex> lock(this->state_mutex);
-        curr_alt = state.altitude_m;
-    }
-    float vert_speed = getVerticalSpeed();
-
+uint32_t ctrldRogallo::groundedDetection(float vert_speed, float curr_alt) {
     if (vert_speed < GROUNDED_VELOCITY_RANGE && vert_speed > -GROUNDED_VELOCITY_RANGE && curr_alt < groundedThreshold) {
         return 1;
+    } else {
+        return 0; 
     }
-
-    return 0; 
 }
 
 

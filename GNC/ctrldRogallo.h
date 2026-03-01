@@ -71,6 +71,9 @@ class ctrldRogallo {
         float getElapsedSeconds();
         void setThreshold(); 
         void setTarget(double latitude, double longitude);
+        double getTargetLat();
+        double getTargetLon();
+        void setTargetFromMemory();
         void setPIDGains(float Kp, float Ki, float Kd);
 
         float getHeadingError();
@@ -82,8 +85,8 @@ class ctrldRogallo {
         bool requestMotorPacket();
 
         // ---- FSM mode ----
-        uint32_t apogeeDetection();
-        uint32_t groundedDetection();
+        uint32_t apogeeDetection(float vert_speed, float curr_alt);
+        uint32_t groundedDetection(float vert_speed, float curr_alt);
 
     private:
 
@@ -134,7 +137,8 @@ class ctrldRogallo {
         uint32_t groundedThreshold; 
         uint32_t currentFlashAddress;
         uint16_t packets_logged;
-        float prev_time;
+        float vspeed_prev_time; // 1Hz vspeed tracking
+        float vspeed_prev_alt;  // ^
 
         // ---- threads ----
         void commandLineLoop(EUSBSerial* pc);
@@ -151,8 +155,6 @@ class ctrldRogallo {
         bool isWithinTarget(void);
         float getFuzedAlt(float alt1, float alt2);
         void setAlphaAlt(float newAlphaAlt);
-        void updateApogeeDetection();
-        float getVerticalSpeed();
 
         // nan helper 
         bool is_nan_safe(float f);
