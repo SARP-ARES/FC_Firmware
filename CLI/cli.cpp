@@ -180,24 +180,27 @@ void CLI::setOrigin() {
 void CLI::printCompactState() {
     // grab current state from ARES
     FlightPacket state = ARES->getState();
-
+    
     pc->printf("Timer:\t\t\t\t\t%f s\n", state.timestamp_timer);
     pc->printf("Lat (deg), Lon (deg)\t\t\t%f, %f\n", 
                 state.latitude_deg, state.longitude_deg);
+    pc->printf("TARGET Lat (deg), TARGET Lon (deg)\t%f, %f\n", 
+                state.target_latitude_deg, state.target_longitude_deg);
     pc->printf("Pos North (m), Pos East (m):\t\t%.2f, %.2f\n", 
                 state.pos_north_m, state.pos_east_m);
+    pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
     pc->printf("(Heading, deg) Current, Desired, Error:\t%.1f, %.1f, %.1f\n", 
                 state.heading_deg, state.target_heading_deg, state.heading_error_deg);
     pc->printf("FC CMD:\t\t\t\t\t%.1f\n", state.fc_cmd); // TODO: implement PID 
     pc->printf("Motor 1 Position (in), EXT:\t\t%.4f, %0.3f\n", state.leftPosition, state.leftPull);
     pc->printf("Motor 2 Position (in), EXT:\t\t%.4f, %0.3f\n", state.rightPosition, state.rightPull);
-    pc->printf("Distance to Target (m):\t\t\t%.2f\n", state.distance_to_target_m);
 
     const char* MODE_NAMES[] = {"IDLE", "SEEKING", "SPIRAL", "GROUNDED"};
     if (state.fsm_mode >= 0 && state.fsm_mode < 4) pc->printf("FSM mode:\t\t\t\t%s\n", MODE_NAMES[state.fsm_mode]);
 
-    pc->printf("Temperature C: \t\t\t\t%lf\n", state.temp_c);
-    pc->printf("Altitude M: \t\t\t\t%lf\n", state.altitude_m);
+    pc->printf("Altitude (m): \t\t\t\t%f\n", state.altitude_m);
+    pc->printf("Vertical Speed (m): \t\t\t%f\n", state.v_speed_m_s);
+    pc->printf("Temperature C: \t\t\t\t%f\n", state.temp_c);
     pc->printf("Apogee Counter:\t\t\t\t%d\n", state.apogee_counter);
     pc->printf("Apogee Detected:\t\t\t%d\n", state.apogee_detected);
     pc->printf("Grounded Counter:\t\t\t%d \n", state.groundedCounter);
@@ -211,7 +214,7 @@ void CLI::printCompactState() {
      while (true) {
          event_flags.wait_any(PRINT_FLAG, osWaitForever, false);
          printCompactState();
-         ThisThread::sleep_for(2s); // ~0.5Hz
+         ThisThread::sleep_for(1s); // ~1Hz
      }
  }
 
@@ -233,7 +236,7 @@ void CLI::stopPrintingState() {
 void CLI::printMenu(){
     pc->printf("\n\nARES is waiting for user input... What would you like to run?\n");
     pc->printf("1. \"dump\"\n");
-    pc->printf("2. \"set_origin\"\n");
+    pc->printf("2. \"set_target\"\n");
     pc->printf("3. \"clear_data\"\n");
     pc->printf("4. \"print_on\"\n");
     pc->printf("5. \"print_off\"\n");
@@ -260,8 +263,8 @@ void CLI::handleCommand(const char* cmd) {
     // =========================
     // set origin
     // =========================
-    else if (strcmp(cmd, "set_origin") == 0 || strcmp(cmd, "2") == 0) {
-        pc->printf("\"set_origin\" cmd received...\n");        
+    else if (strcmp(cmd, "set_target") == 0 || strcmp(cmd, "2") == 0) {
+        pc->printf("\"set_target\" cmd received...\n");        
         ThisThread::sleep_for(1500ms);
         setOrigin();
         this->print_menu = true;
