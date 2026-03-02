@@ -177,6 +177,11 @@ void CLI::setOrigin() {
     
 }
 
+void CLI::table_test_mode(){
+    char cmd_buffer[32]; // user input buffer
+    pc->printf("Type ")
+}
+
 void CLI::printCompactState() {
     // grab current state from ARES
     FlightPacket state = ARES->getState();
@@ -241,6 +246,7 @@ void CLI::printMenu(){
     pc->printf("7. \"logging_on\"\n");
     pc->printf("8. \"sensors_off\"\n");
     pc->printf("9. \"sensors_on\"\n");
+    pc->printf("10. \"table_test\"\n");
     pc->printf("Force FSM transition with \"FSM_<mode>\"\n");
     pc->printf("\n> ");  // command prompt
 }
@@ -384,6 +390,16 @@ void CLI::handleCommand(const char* cmd) {
     else if (strcmp(cmd, "help") == 0) {
         pc->printf("\"help\" received\n");
         ThisThread::sleep_for(1500ms);
+        this->print_menu = true;
+    }
+
+    // =========================
+    // Table-Test
+    // =========================
+    else if (strcmp(cmd, "table_test") == 0 || strcmp(cmd, "10") == 0) {
+        pc->printf("\"table_test\" received\n");
+        ThisThread::sleep_for(1500ms);
+        table_test_mode(); 
         this->print_menu = true;
     }
 
