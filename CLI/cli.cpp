@@ -179,7 +179,49 @@ void CLI::setOrigin() {
 
 void CLI::table_test_mode(){
     char cmd_buffer[32]; // user input buffer
-    pc->printf("Type ")
+
+    // Force idle for the test, disable sensors and stop printing state
+    ARES->setFSMMode(FSM_IDLE);
+    ARES->stopAllSensorThreads();
+
+    ThisThread::sleep_for(1s);
+    pc->printf("Type a float in range [-1.0, 1.0], with format '#.#' to send a cmd to the MCPS\n");
+    ThisThread::sleep_for(1s);
+    pc->printf("Type 'quit' or 'q' to exit the table test\n");
+    ThisThread::sleep_for(1s);
+
+    FlightPacket state;
+
+    while(true) {
+
+        ARES->updateFlightPacket();
+        state = ARES->getState();
+
+        memset(cmd_buffer, 0, sizeof(cmd_buffer));
+
+        // catch incoming commands
+        if (pc->readline(cmd_buffer, sizeof(cmd_buffer))) {
+            float cmd;
+            pc->printf("\n");
+            if(strcmp(cmd_buffer, "quit") == 0 | strcmp(cmd_buffer, "q") == 0) {
+                pc->printf("quit command recieved: Quitting table test\n");
+                break; 
+            } else if (sscanf(cmd_buffer, "%f", &cmd) == 1) {
+                pc->printf("Sending deflection %f\n", cmd);
+                ARES->sendCtrl(cmd);
+            } else {
+                pc->printf("Unknown Input\n");
+            }
+            pc->printf("\n");
+        }
+
+        pc->printf("Left Motor Position: %f Right Motor Position: %f\n", state.leftPosition, state.rightPosition);
+        
+        ThisThread::sleep_for(100ms);
+    }
+
+    // Restart sensors after the test
+    ARES->startAllSensorThreads();
 }
 
 void CLI::printCompactState() {
@@ -400,7 +442,6 @@ void CLI::handleCommand(const char* cmd) {
         pc->printf("\"table_test\" received\n");
         ThisThread::sleep_for(1500ms);
         table_test_mode(); 
-        this->print_menu = true;
     }
 
     // =========================
