@@ -14,15 +14,17 @@
 const char FLIGHT_ID[8]                   = "ARES-02";
 const int APOGEE_ALT_THRESHOLD_BUFFER     = 15;         // m
 const float APOGEE_DETECTION_VELOCITY     = -1.0;       // m/s
-const int APOGEE_COUNTER_THRESHOLD        = 75;        // counts
+const int APOGEE_COUNTER_THRESHOLD        = 75;         // counts
 const int GROUNDED_ALT_THRESHOLD_BUFFER   = 5;          // m
 const float GROUNDED_VELOCITY_RANGE       = 0.3;        // m/s
 const float GROUNDED_COUNTER_THRESHOLD    = 4000;       // counts
 const int INNER_SPIRAL_RADIUS             = 15;         // m
 const int OUTER_SPIRAL_RADIUS             = 30;         // m
 const float ALPHA_ALT_PERCENT             = 0.05;       // frac
-const double DEFAULT_TARGET_LAT           = 47.659078;  // deg
-const double DEFAULT_TARGET_LON           = -122.298950;// deg
+const double IMA_TARGET_LAT               = 47.659078;  // deg
+const double IMA_TARGET_LON               = -122.298950;// deg
+const double PASCO_TARGET_A_LAT           = 46.409600;  // deg
+const double PASCO_TARGET_A_LON           = -119.017166;// deg
 
 // PID (tuned to receive an error in radians)
 const float Kp                            = 1.0;
@@ -89,7 +91,7 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
 
     // set target landing spot
     // setTargetFromMemory();
-    setTarget(DEFAULT_TARGET_LAT, DEFAULT_TARGET_LON);
+    setTarget(IMA_TARGET_LAT, IMA_TARGET_LON);
 } 
  
 /**
