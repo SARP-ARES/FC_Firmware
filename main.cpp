@@ -34,7 +34,6 @@ const float DT_CTRL = std::chrono::duration<float>(MAIN_EXECUTION_PERIOD).count(
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
 
-
 void executeFlightLogic() {
     // State handling
     ARES.updateFlightPacket();

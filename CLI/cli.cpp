@@ -177,6 +177,53 @@ void CLI::setOrigin() {
     
 }
 
+void CLI::table_test_mode(){
+    char cmd_buffer[32]; // user input buffer
+
+    // Force idle for the test, disable sensors and stop printing state
+    ARES->setFSMMode(FSM_IDLE);
+    ARES->stopAllSensorThreads();
+
+    ThisThread::sleep_for(1s);
+    pc->printf("Type a float in range [-1.0, 1.0], with format '#.#' to send a cmd to the MCPS\n");
+    ThisThread::sleep_for(1s);
+    pc->printf("Type 'quit' or 'q' to exit the table test\n");
+    ThisThread::sleep_for(1s);
+
+    FlightPacket state;
+
+    while(true) {
+
+        ARES->updateFlightPacket();
+        state = ARES->getState();
+
+        memset(cmd_buffer, 0, sizeof(cmd_buffer));
+
+        // catch incoming commands
+        if (pc->readline(cmd_buffer, sizeof(cmd_buffer))) {
+            float cmd;
+            pc->printf("\n");
+            if(strcmp(cmd_buffer, "quit") == 0 | strcmp(cmd_buffer, "q") == 0) {
+                pc->printf("quit command recieved: Quitting table test\n");
+                break; 
+            } else if (sscanf(cmd_buffer, "%f", &cmd) == 1) {
+                pc->printf("Sending deflection %f\n", cmd);
+                ARES->sendCtrl(cmd);
+            } else {
+                pc->printf("Unknown Input\n");
+            }
+            pc->printf("\n");
+        }
+
+        pc->printf("Left Motor Position: %f Right Motor Position: %f\n", state.leftPosition, state.rightPosition);
+        
+        ThisThread::sleep_for(100ms);
+    }
+
+    // Restart sensors after the test
+    ARES->startAllSensorThreads();
+}
+
 void CLI::printCompactState() {
     // grab current state from ARES
     FlightPacket state = ARES->getState();
@@ -244,6 +291,7 @@ void CLI::printMenu(){
     pc->printf("7. \"logging_on\"\n");
     pc->printf("8. \"sensors_off\"\n");
     pc->printf("9. \"sensors_on\"\n");
+    pc->printf("10. \"table_test\"\n");
     pc->printf("Force FSM transition with \"FSM_<mode>\"\n");
     pc->printf("\n> ");  // command prompt
 }
@@ -388,6 +436,15 @@ void CLI::handleCommand(const char* cmd) {
         pc->printf("\"help\" received\n");
         ThisThread::sleep_for(1500ms);
         this->print_menu = true;
+    }
+
+    // =========================
+    // Table-Test
+    // =========================
+    else if (strcmp(cmd, "table_test") == 0 || strcmp(cmd, "10") == 0) {
+        pc->printf("\"table_test\" received\n");
+        ThisThread::sleep_for(1500ms);
+        table_test_mode(); 
     }
 
     // =========================

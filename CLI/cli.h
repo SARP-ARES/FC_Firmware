@@ -38,6 +38,7 @@ private:
     void handleCommand(const char* cmd);
 
     // commands
+    void table_test_mode(void);
     void dumpData();
     void doubleCheckErase();
     void eraseData();
