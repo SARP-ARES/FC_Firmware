@@ -10,26 +10,40 @@
 #include "mbed.h"
 
 
-// Parameters
+// FSM Transition Parameters
 const char FLIGHT_ID[8]                   = "ARES-02";
-const int APOGEE_ALT_THRESHOLD_BUFFER     = 15;         // m
+const int APOGEE_ALT_THRESHOLD_BUFFER     = 500;         // m
 const float APOGEE_DETECTION_VELOCITY     = -1.0;       // m/s
-const int APOGEE_COUNTER_THRESHOLD        = 75;         // counts
-const int GROUNDED_ALT_THRESHOLD_BUFFER   = 5;          // m
+const int APOGEE_COUNTER_THRESHOLD        = 100;         // counts
+const int GROUNDED_ALT_THRESHOLD_BUFFER   = 10;         // m
 const float GROUNDED_VELOCITY_RANGE       = 0.3;        // m/s
-const float GROUNDED_COUNTER_THRESHOLD    = 4000;       // counts
+const float GROUNDED_COUNTER_THRESHOLD    = 2000;       // counts
 const int INNER_SPIRAL_RADIUS             = 15;         // m
 const int OUTER_SPIRAL_RADIUS             = 30;         // m
-const float ALPHA_ALT_PERCENT             = 0.05;       // frac
+
+/* --- Target coordintates to chose from --- */
+// 3min parking spot next to IMA parking lot
 const double IMA_TARGET_LAT               = 47.659078;  // deg
 const double IMA_TARGET_LON               = -122.298950;// deg
-const double PASCO_TARGET_A_LAT           = 46.409600;  // deg
-const double PASCO_TARGET_A_LON           = -119.017166;// deg
+
+// At Pasco TCR launch site, 100ft from the road on the west end of the crop circle
+const double PASCO_TARGET_A_LAT           = 46.411306;  // deg
+const double PASCO_TARGET_A_LON           = -119.018300;// deg
+/* ------------------------------------------*/
+
+
+/* --- Chosen coordinates --- */
+const double ARES_TARGET_LAT              = PASCO_TARGET_A_LAT;
+const double ARES_TARGET_LON              = PASCO_TARGET_A_LON;
+/* ---------------------------*/
 
 // PID (tuned to receive an error in radians)
 const float Kp                            = 1.0;
 const float Ki                            = 0.02;
 const float Kd                            = 0.0;
+
+// Altitude complimentary filter coefficient
+const float ALPHA_ALT_PERCENT             = 0.05;       // frac
 
 // Logger 
 const int packet_save_incr                = 20;
@@ -91,9 +105,9 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
 
     // set target landing spot
     // setTargetFromMemory();
-    setTarget(IMA_TARGET_LAT, IMA_TARGET_LON);
+    setTarget(ARES_TARGET_LAT, ARES_TARGET_LON);
 } 
- 
+
 /**
  * @brief getter for the current state of the system
  * @returns system state as a FlightPacket struct
