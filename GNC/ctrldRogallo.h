@@ -128,8 +128,8 @@ class ctrldRogallo {
         uint32_t apogeeCounter;
         float alphaAlt;
         uint32_t groundedCounter; 
-        float target_lat;
-        float target_lon;
+        double target_lat;
+        double target_lon;
         float haversineCoordNorth;
         float haversineCoordEast;
         float distanceToTarget;

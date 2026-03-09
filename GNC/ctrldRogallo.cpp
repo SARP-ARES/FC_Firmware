@@ -15,7 +15,7 @@ const char FLIGHT_ID[8]                   = "ARES-02";
 const int APOGEE_ALT_THRESHOLD_BUFFER     = 500;         // m
 const float APOGEE_DETECTION_VELOCITY     = -1.0;       // m/s
 const int APOGEE_COUNTER_THRESHOLD        = 100;         // counts
-const int GROUNDED_ALT_THRESHOLD_BUFFER   = 10;         // m
+const int GROUNDED_ALT_THRESHOLD_BUFFER   = 30;         // m
 const float GROUNDED_VELOCITY_RANGE       = 0.3;        // m/s
 const float GROUNDED_COUNTER_THRESHOLD    = 2000;       // counts
 const int INNER_SPIRAL_RADIUS             = 15;         // m
@@ -29,12 +29,18 @@ const double IMA_TARGET_LON               = -122.298950;// deg
 // At Pasco TCR launch site, 100ft from the road on the west end of the crop circle
 const double PASCO_TARGET_A_LAT           = 46.411306;  // deg
 const double PASCO_TARGET_A_LON           = -119.018300;// deg
+// southeast end of crop circle
+const double PASCO_TARGET_B_LAT           = 46.410557;  // deg
+const double PASCO_TARGET_B_LON           = -119.011137;// deg
+// east end of crop circle
+const double PASCO_TARGET_C_LAT           = 46.411373;  // deg
+const double PASCO_TARGET_C_LON           = -119.010485;// deg
 /* ------------------------------------------*/
 
 
 /* --- Chosen coordinates --- */
-const double ARES_TARGET_LAT              = PASCO_TARGET_A_LAT;
-const double ARES_TARGET_LON              = PASCO_TARGET_A_LON;
+const double ARES_TARGET_LAT              = PASCO_TARGET_C_LAT;
+const double ARES_TARGET_LON              = PASCO_TARGET_C_LON;
 /* ---------------------------*/
 
 // PID (tuned to receive an error in radians)
