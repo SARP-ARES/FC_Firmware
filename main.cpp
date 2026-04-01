@@ -91,8 +91,6 @@ void executeFlightLogic() {
     }
 }
 
-
-
 int main() {
     // Start CLI in the background
     // Thread cli_thread(osPriorityLow);

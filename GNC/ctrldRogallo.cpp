@@ -10,7 +10,6 @@
 #include "flight_config.h"
 #include "mbed.h"
 
-
 /** @brief constructor that initializes the sensors and flash chip on the ARES flight computer. */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem) 
     : gps(GPS_RX_PIN, GPS_TX_PIN), bmp(i2c, BMP_I2C_ADDR), bno(i2c, BNO_I2C_ADDR), 
