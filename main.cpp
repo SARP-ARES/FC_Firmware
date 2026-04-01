@@ -35,6 +35,8 @@ const float DT_CTRL = std::chrono::duration<float>(MAIN_EXECUTION_PERIOD).count(
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
 
+const int WATCHDOG_TIMEOUT_MS = 1000;
+
 void executeFlightLogic() {
     // State handling
     ARES.updateFlightPacket();
@@ -115,7 +117,7 @@ int main() {
     execution_timer.start();
 
     // Start watchdog, timeout in 1s
-    watchdog.start(1000);
+    watchdog.start(WATCHDOG_TIMEOUT_MS);
 
     while (true) {
         auto start_time = execution_timer.elapsed_time();
