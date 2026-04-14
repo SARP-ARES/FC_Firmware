@@ -39,6 +39,8 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
         packets_logged += packet_save_incr;
     }
 
+    this->apogeeDetected = apogee_detected;
+
     flash_addr = packets_logged * flight_packet_size;
 
     alphaAlt = ALPHA_ALT_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
@@ -179,25 +181,6 @@ void ctrldRogallo::updateGreatCircleDistance(void){
     this->distanceToTarget = computeGreatCircleDistance(curr_lat, curr_lon, target_lat, target_lon);
 }
 
-// DO WE STILL NEED THIS ?
-// ============================
-
-
-/*  Python Code
-def getTargetHeading(e, n):
-    targetHeading_rad = np.arctan2(e,n) + np.pi
-    targetHeading_deg = targetHeading_rad * 180 / np.pi
-    return targetHeading_deg
-
-def getThetaErr(actualHeading_deg, targetHeading_deg):
-    error_deg = actualHeading_deg - targetHeading_deg 
-    if error_deg > 180:
-        error_deg -= 360
-    elif error_deg < -180:
-        error_deg += 360
-    return error_deg
-*/
-
 /**
  * @brief calculates target heading to point towards the origin in local tangent plane coords
  * @return target heading 
@@ -320,11 +303,11 @@ void ctrldRogallo::setPIDGains(float Kp, float Ki, float Kd) {
 }
 
 void ctrldRogallo::setAlphaAlt(float newAlphaAlt) { 
-    alphaAlt = newAlphaAlt;
+    this->alphaAlt = newAlphaAlt;
 }
 
 void ctrldRogallo::setApogeeDetected(bool apogee_detected) {
-    apogeeDetected = apogee_detected;
+    this->apogeeDetected = apogee_detected;
 }
 
 void ctrldRogallo::setThreshold(){
@@ -424,8 +407,6 @@ void ctrldRogallo::updateFlightPacket(){
     // state.altitude_m = getFuzedAlt(bmp_buf.altitude_m, gps_buf.alt);
     state.altitude_m = bmp_buf.altitude_m;
 
-
-    
     // Calculate vertical speed
     float curr_time = getElapsedSeconds();
     float dt_vspeed = curr_time - vspeed_prev_time;
@@ -450,16 +431,17 @@ void ctrldRogallo::updateFlightPacket(){
 
     // Post Apogee sequence
     if(apogeeDetected) {
-        
         // Similar Idea to apogee detection, now just steady ground state
         if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
             mode = FSM_GROUNDED;
         } else if (mode == FSM_SEEKING) {
+
             // spiral if within inner spiral radius
             if (distanceToTarget < INNER_SPIRAL_RADIUS) { 
                 mode = FSM_SPIRAL;
             }
-        } else if (distanceToTarget > OUTER_SPIRAL_RADIUS) {
+
+        } else {
             // go back to seeking if you exit the outer spiral radius
             mode = FSM_SEEKING;
         }
