@@ -13,6 +13,7 @@
 #include <cstring>
 #include "rtos.h"
 
+
 // Instantiations
 EUSBSerial pc;
 Mutex_I2C i2c(PB_7, PB_8);
@@ -33,6 +34,8 @@ const float DT_CTRL = std::chrono::duration<float>(MAIN_EXECUTION_PERIOD).count(
 
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
+
+const int WATCHDOG_TIMEOUT_MS = 2000;
 
 void executeFlightLogic() {
     // State handling
@@ -86,8 +89,10 @@ void executeFlightLogic() {
 }
 
 int main() {
-    // Start CLI in the background
-    // Thread cli_thread(osPriorityLow);
+
+    // Watchdog timer
+    Watchdog& watchdog = Watchdog::get_instance();
+
     Thread cli_thread;
     cli_thread.start(callback(&cli, &CLI::run));
 
@@ -103,8 +108,14 @@ int main() {
     Timer execution_timer;
     execution_timer.start();
 
+    // Start watchdog, timeout in 1s
+    watchdog.start(WATCHDOG_TIMEOUT_MS);
+
     while (true) {
         auto start_time = execution_timer.elapsed_time();
+
+        // Reset watchdog timer
+        watchdog.kick();
         
         executeFlightLogic(); // the whole shabang
 
@@ -118,5 +129,6 @@ int main() {
                 )
             );
         }
+
     }
 }
