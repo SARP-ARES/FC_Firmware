@@ -21,8 +21,8 @@ public:
     uint8_t readByte(uint32_t address);
     float readNum(uint32_t address);
     uint32_t readPacket(uint32_t address, FlightPacket& pkt);
-    uint16_t getNumPacketsWritten();
-    void saveNumPacketsLogged(uint16_t packets_logged);
+    pair<uint16_t, bool> getFlightInformation();
+    void saveFlightInformation(uint16_t packets_logged, bool apogee_detected);
 
     // Read data to CSV
     void printCSVHeader();

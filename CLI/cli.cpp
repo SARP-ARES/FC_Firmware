@@ -292,6 +292,9 @@ void CLI::printMenu(){
     pc->printf("8. \"sensors_off\"\n");
     pc->printf("9. \"sensors_on\"\n");
     pc->printf("10. \"table_test\"\n");
+    pc->printf("11. \"reset\"\n");
+    pc->printf("12. \"force_apogee\"\n");
+    pc->printf("13. \"unforce_apogee\"\n");
     pc->printf("Force FSM transition with \"FSM_<mode>\"\n");
     pc->printf("\n> ");  // command prompt
 }
@@ -447,6 +450,36 @@ void CLI::handleCommand(const char* cmd) {
         table_test_mode(); 
     }
 
+    
+    // =========================
+    // Reset
+    // =========================
+    else if (strcmp(cmd, "reset") == 0 || strcmp(cmd, "11") == 0) {
+        pc->printf("\"Reseting\" received\n");
+        ThisThread::sleep_for(50ms);
+        NVIC_SystemReset();
+    }
+
+    // =========================
+    // Force Apogee Detec
+    // =========================
+    else if (strcmp(cmd, "force_apogee") == 0 || strcmp(cmd, "12") == 0) {
+        pc->printf("\"force_apogee\" received\n");
+        ThisThread::sleep_for(50ms);
+        ARES->setApogeeDetected(true);
+    }
+
+     // =========================
+    // unForce Apogee Detec
+    // =========================
+    else if (strcmp(cmd, "unforce_apogee") == 0 || strcmp(cmd, "13") == 0) {
+        pc->printf("\"unforce_apogee\" received\n");
+        ThisThread::sleep_for(50ms);
+        ARES->setApogeeDetected(false);
+        
+    }
+
+
     // =========================
     // unknown command
     // =========================
@@ -454,5 +487,6 @@ void CLI::handleCommand(const char* cmd) {
         pc->printf("Unknown command: %s\n", cmd);
         this->print_menu = true;
     }
+
 }
 

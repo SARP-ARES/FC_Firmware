@@ -19,8 +19,6 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
     bmp.start();
     bno.setup();
 
-    // Counter init
-    apogeeDetected = false; 
     apogeeCounter = 0;
     groundedCounter = 0; 
 
@@ -35,10 +33,12 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
     this->flash_mem = flash_mem;
 
     // Logging setup
-    packets_logged = flash_mem->getNumPacketsWritten();
+    auto [packets_logged, apogee_detected] = flash_mem->getFlightInformation();
+
     if (packets_logged != 0) {
         packets_logged += packet_save_incr;
     }
+
     flash_addr = packets_logged * flight_packet_size;
 
     alphaAlt = ALPHA_ALT_PERCENT; // used to determine complimentary filter preference (majority goes to BMP)
@@ -323,6 +323,10 @@ void ctrldRogallo::setAlphaAlt(float newAlphaAlt) {
     alphaAlt = newAlphaAlt;
 }
 
+void ctrldRogallo::setApogeeDetected(bool apogee_detected) {
+    apogeeDetected = apogee_detected;
+}
+
 void ctrldRogallo::setThreshold(){
     ScopedLock<Mutex> lock(this->state_mutex);
     groundedThreshold = state.altitude_m + GROUNDED_ALT_THRESHOLD_BUFFER;
@@ -446,8 +450,11 @@ void ctrldRogallo::updateFlightPacket(){
 
     // Post Apogee sequence
     if(apogeeDetected) {
-
-        if (mode == FSM_SEEKING) {
+        
+        // Similar Idea to apogee detection, now just steady ground state
+        if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
+            mode = FSM_GROUNDED;
+        } else if (mode == FSM_SEEKING) {
             // spiral if within inner spiral radius
             if (distanceToTarget < INNER_SPIRAL_RADIUS) { 
                 mode = FSM_SPIRAL;
@@ -458,11 +465,8 @@ void ctrldRogallo::updateFlightPacket(){
         }
 
         groundedCounter += groundedDetection(state.v_speed_m_s, state.altitude_m); // checks if not moving and below threshold
-
-        // Similar Idea to apogee detection, now just steady ground state
-        if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
-            mode = FSM_GROUNDED;
-        }
+    } else {
+        mode = FSM_IDLE;
     }
 
     // FSM counters
@@ -692,7 +696,7 @@ void ctrldRogallo::logDataLoop(){
 
         // Save number of packets logged at every increment
         if(packets_logged % packet_save_incr == 0) {
-            flash_mem->saveNumPacketsLogged(packets_logged);
+            flash_mem->saveFlightInformation(packets_logged, (bool)state_snapshot.apogee_detected);
         }
         
         // log at 10Hz while seeking or spiraling, 1Hz while idle, turn off once grounded
@@ -702,7 +706,7 @@ void ctrldRogallo::logDataLoop(){
             case FSM_SPIRAL:    LOG_PERIOD = 100ms; break;  // 10Hz
             case FSM_GROUNDED:  LOG_PERIOD = 30s; break;    // 0.032Hz
         }   
-        
+
         auto end_time = flight_timer.elapsed_time();
         auto compute_time = end_time - start_time;
 

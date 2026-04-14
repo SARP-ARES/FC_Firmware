@@ -9,6 +9,9 @@
 #define FLASH_RESET         0x99
 #endif
 
+const int numPacketsAddress = 0x3FFFFE;
+const int apogeeDetectedAddress = 0x3FFFFD;
+
 /**
  * Constructor: Initializes SPI interface and chip select pin.
  * @param mosi - SPI MOSI pin
@@ -254,17 +257,25 @@ float flash::readNum(uint32_t address) {
     return bytes2float(rData);
 }
 
-uint16_t flash::getNumPacketsWritten() {
+pair<uint16_t, bool> flash::getFlightInformation() {
     uint16_t count;
+    uint8_t apogee_detected;
+
     // Read current count (stored in the last two bytes of flash memory)
-    read(0x3FFFFE, reinterpret_cast<uint8_t*>(&count), 2);
+
+    {
+        ScopedLock<Mutex> lock(this->flash_lock);
+        read(numPacketsAddress, reinterpret_cast<uint8_t*>(&count), 2);
+        read(apogeeDetectedAddress, &apogee_detected, 1);
+    }
+
     wait_us(100);
     if (count == 0xFFFF) {
         // unitialized, no packets logged
-        return 0;
+        return {0, false};
     } else {
         // there are packets written
-        return count;
+        return {count, apogee_detected != 0};
     }
 }
 
@@ -275,13 +286,14 @@ uint32_t flash::writePacket(uint32_t address, const FlightPacket& pkt) {
     return address + 256; // increment write address to the next page
 }
 
-void flash::saveNumPacketsLogged(uint16_t packets_logged) {
+void flash::saveFlightInformation(uint16_t packets_logged, bool apogee_detected) {
     { 
         // lock to make sure erased count isn't read elsewhere before new count is written
         ScopedLock<Mutex> lock(this->flash_lock);
         // erase sector before writing
-        eraseSector(0x3FFFFE);
-        write(0x3FFFFE, reinterpret_cast<uint8_t*>(&packets_logged), 2);
+        eraseSector(numPacketsAddress);
+        write(apogeeDetectedAddress, reinterpret_cast<uint8_t*>(&apogee_detected), 1);
+        write(numPacketsAddress, reinterpret_cast<uint8_t*>(&packets_logged), 2);
     }
 }
 

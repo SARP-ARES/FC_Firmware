@@ -18,7 +18,8 @@
 EUSBSerial pc;
 Mutex_I2C i2c(PB_7, PB_8);
 flash flash_chip(PA_7, PA_6, PA_5, PA_4, &pc);
-uint32_t flash_addr = flash_chip.getNumPacketsWritten() * 256; 
+auto [packet_count, apogeeDetec] = flash_chip.getFlightInformation();
+uint32_t flash_addr = static_cast<uint32_t>(packet_count) * 256; 
 ctrldRogallo ARES(&i2c, &flash_chip);
 CLI cli(&pc, &ARES, &flash_chip, &flash_addr);
 

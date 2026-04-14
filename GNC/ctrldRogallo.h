@@ -40,6 +40,7 @@ class ctrldRogallo {
         void saveCtrlStates(float target_heading, float heading_error, float delta_a_cmd);
         void setFSMMode(ModeFSM mode);
         void resetPacketsLogged();
+        void setApogeeDetected(bool apogee_detected);
 
         // ---- thread handlers ----
         void startThreadCLI();
