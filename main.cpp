@@ -35,9 +35,9 @@ const float DT_CTRL = std::chrono::duration<float>(MAIN_EXECUTION_PERIOD).count(
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
 
-const int WATCHDOG_TIMEOUT_MS = 1000;
+const int WATCHDOG_TIMEOUT_MS = 2000;
 
-void executeFlightLogic() {
+void executeFlightLogic(Watchdog& watchdog) {
     // State handling
     ARES.updateFlightPacket();
     ModeFSM mode = ARES.getMode();
@@ -76,7 +76,10 @@ void executeFlightLogic() {
             ARES.stopAllSensorThreads();
 
             // sleep trap after grounded to preserve power
-            while (true) { ThisThread::sleep_for(1s); } 
+            while (true) { 
+                    watchdog.kick();
+                    ThisThread::sleep_for(200ms); 
+                } 
         }
 
         // Mode once within target radius
@@ -99,7 +102,7 @@ void executeFlightLogic() {
 int main() {
 
     // Watchdog timer
-    Watchdog &watchdog = Watchdog::get_instance();
+    Watchdog& watchdog = Watchdog::get_instance();
 
     Thread cli_thread;
     cli_thread.start(callback(&cli, &CLI::run));
@@ -125,7 +128,7 @@ int main() {
         // Reset watchdog timer
         watchdog.kick();
         
-        executeFlightLogic(); // the whole shabang
+        executeFlightLogic(watchdog); // the whole shabang
 
         // scheduling
         auto end_time = execution_timer.elapsed_time();
