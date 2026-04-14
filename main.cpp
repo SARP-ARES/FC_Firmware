@@ -68,13 +68,7 @@ void executeFlightLogic() {
         }
         
         // Mode once on the ground, ends flight logging
-        case FSM_GROUNDED: {
-            ARES.stopLogging();
-            ARES.stopAllSensorThreads();
-
-            // sleep trap after grounded to preserve power
-            while (true) { ThisThread::sleep_for(1s); } 
-        }
+        case FSM_GROUNDED: { }
 
         // Mode once within target radius
         case FSM_SPIRAL: {

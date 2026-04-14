@@ -700,8 +700,9 @@ void ctrldRogallo::logDataLoop(){
             case FSM_IDLE:      LOG_PERIOD = 1s; break;     // 1Hz
             case FSM_SEEKING:   LOG_PERIOD = 100ms; break;  // 10Hz
             case FSM_SPIRAL:    LOG_PERIOD = 100ms; break;  // 10Hz
-            case FSM_GROUNDED:  stopLogging(); return;
+            case FSM_GROUNDED:  LOG_PERIOD = 30s; break;    // 0.032Hz
         }   
+        
         auto end_time = flight_timer.elapsed_time();
         auto compute_time = end_time - start_time;
 
