@@ -411,6 +411,7 @@ void ctrldRogallo::updateFlightPacket(){
     float curr_time = getElapsedSeconds();
     float dt_vspeed = curr_time - vspeed_prev_time;
     if (dt_vspeed > 1.0f) {
+        
         if (!is_nan_safe(vspeed_prev_alt)) {
             state.v_speed_m_s = (state.altitude_m - vspeed_prev_alt) / dt_vspeed;
         } else {
@@ -431,19 +432,12 @@ void ctrldRogallo::updateFlightPacket(){
 
     // Post Apogee sequence
     if(apogeeDetected) {
-        // Similar Idea to apogee detection, now just steady ground state
         if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
-            mode = FSM_GROUNDED;
-        } else if (mode == FSM_SEEKING) {
-
-            // spiral if within inner spiral radius
-            if (distanceToTarget < INNER_SPIRAL_RADIUS) { 
-                mode = FSM_SPIRAL;
-            }
-
+            mode = FSM_GROUNDED; // Ground State 
+        } else if (distanceToTarget < INNER_SPIRAL_RADIUS) {
+            mode = FSM_SPIRAL;   // Within Spiral Range
         } else {
-            // go back to seeking if you exit the outer spiral radius
-            mode = FSM_SEEKING;
+            mode = FSM_SEEKING;  // Approaching Target
         }
 
         groundedCounter += groundedDetection(state.v_speed_m_s, state.altitude_m); // checks if not moving and below threshold
