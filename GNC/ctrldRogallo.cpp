@@ -35,8 +35,10 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
     // Logging setup
     auto [packets_logged, apogee_detected] = flash_mem->getFlightInformation();
 
-    if (packets_logged != 0) {
-        packets_logged += packet_save_incr;
+    this->packets_logged = packets_logged;
+
+    if (this->packets_logged != 0) {
+        this->packets_logged += packet_save_incr;
     }
 
     this->apogeeDetected = apogee_detected;
@@ -50,7 +52,6 @@ ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem)
     vspeed_prev_alt = NAN;
 
     // set target landing spot
-    // setTargetFromMemory();
     setTarget(ARES_TARGET_LAT, ARES_TARGET_LON);
 } 
 
@@ -411,7 +412,7 @@ void ctrldRogallo::updateFlightPacket(){
     float curr_time = getElapsedSeconds();
     float dt_vspeed = curr_time - vspeed_prev_time;
     if (dt_vspeed > 1.0f) {
-        
+
         if (!is_nan_safe(vspeed_prev_alt)) {
             state.v_speed_m_s = (state.altitude_m - vspeed_prev_alt) / dt_vspeed;
         } else {
@@ -432,6 +433,7 @@ void ctrldRogallo::updateFlightPacket(){
 
     // Post Apogee sequence
     if(apogeeDetected) {
+        
         if(groundedCounter >= GROUNDED_COUNTER_THRESHOLD) {
             mode = FSM_GROUNDED; // Ground State 
         } else if (distanceToTarget < INNER_SPIRAL_RADIUS) {

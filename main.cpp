@@ -13,7 +13,6 @@
 #include <cstring>
 #include "rtos.h"
 
-
 // Instantiations
 EUSBSerial pc;
 Mutex_I2C i2c(PB_7, PB_8);
@@ -36,7 +35,7 @@ const float DT_CTRL = std::chrono::duration<float>(MAIN_EXECUTION_PERIOD).count(
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
 
-const int WATCHDOG_TIMEOUT_MS = 2000;
+const int WATCHDOG_TIMEOUT_MS = 10000;
 
 void executeFlightLogic() {
     // State handling
@@ -71,8 +70,10 @@ void executeFlightLogic() {
             break;
         }
         
-        // Mode once on the ground, ends flight logging
-        case FSM_GROUNDED: { }
+        // Shifts flight logging to 0.033 Hz (once every 30s)
+        case FSM_GROUNDED: { 
+            break;
+        }
 
         // Mode once within target radius
         case FSM_SPIRAL: {

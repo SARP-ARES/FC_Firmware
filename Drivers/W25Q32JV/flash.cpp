@@ -25,7 +25,6 @@ flash::flash(PinName mosi, PinName miso, PinName sclk, PinName csPin)
     _spi.frequency(1000000);     // 1 MHz SPI clock
 }
 
-
 /**
  * Constructor: Initializes SPI interface, chip select pin, and EUSBSerial object.
  * @param mosi - SPI MOSI pin

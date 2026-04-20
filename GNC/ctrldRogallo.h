@@ -40,6 +40,10 @@ class ctrldRogallo {
         void saveCtrlStates(float target_heading, float heading_error, float delta_a_cmd);
         void setFSMMode(ModeFSM mode);
         void resetPacketsLogged();
+        void setThreshold(); 
+        void setTarget(double latitude, double longitude);
+
+        // -- Debug -- 
         void setApogeeDetected(bool apogee_detected);
 
         // ---- thread handlers ----
@@ -68,10 +72,8 @@ class ctrldRogallo {
         void resetFlightPacket();
         const uint16_t getPacketsLogged();
 
-        // ---- other stuff ----
+        // ---- Helpers ----
         float getElapsedSeconds();
-        void setThreshold(); 
-        void setTarget(double latitude, double longitude);
         double getTargetLat();
         double getTargetLon();
         void setTargetFromMemory();
