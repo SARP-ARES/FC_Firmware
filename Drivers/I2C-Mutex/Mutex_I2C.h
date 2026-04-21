@@ -32,6 +32,14 @@ class Mutex_I2C {
     private:
         I2C i2c; // i2c api owns a mutex  
         Mutex mutex; 
+        EventFlags _flags;
+
+        static constexpr uint32_t I2C_COMPLETE = (1 << 0);
+        static constexpr uint32_t I2C_TIMEOUT_MS = 50;
+
+        void _i2c_callback(int event){
+            _flags.set(I2C_COMPLETE);
+        }
 };
 
 #endif 

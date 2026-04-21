@@ -15,11 +15,8 @@ Mutex_I2C::Mutex_I2C(PinName SDA, PinName SCL) : i2c(SDA, SCL) {
  * @return 0 on success, non-zero on failure
  */
 int Mutex_I2C::readData(char addr, char regAddr, char* data, uint8_t len) {
-    mutex.lock(); //Mutex i2c transfer
-    i2c.write(addr, &regAddr, 1);
-    uint8_t status = i2c.read(addr, data, len);
-    mutex.unlock();
-    return status; 
+    this->write(addr, &regAddr, 1);
+    return this->read(addr, data, len);
 }
 
 /** 
@@ -30,25 +27,69 @@ int Mutex_I2C::readData(char addr, char regAddr, char* data, uint8_t len) {
  * @return 0 on success, non-zero on failure
  */
 int Mutex_I2C::writeData(char addr, char regAddr, char data) {
-    mutex.lock();
     char buffer[2];
     buffer[0] = regAddr;
     buffer[1] = data;
-    uint8_t status = i2c.write(addr, buffer, 2);
-    mutex.unlock();
-    return status; 
+    return this->write(addr, buffer, 2);
 }
 
 int Mutex_I2C::write(char addr, const char *data, int length) { 
     mutex.lock();
-    uint8_t status = i2c.write(addr, data, length);
+    _flags.clear(I2C_COMPLETE);
+
+    int err = i2c.transfer(
+        addr,
+        data, length, 
+        nullptr, 0,
+        callback(this, &Mutex_I2C::_i2c_callback),
+        I2C_EVENT_ALL
+    );
+
+
+    if( err != 0 ){ // Failed state
+        mutex.unlock();
+        return err;
+    }
+
+    
+    uint32_t result = _flags.wait_any(I2C_COMPLETE, I2C_TIMEOUT_MS);
+
+    int status = 0;
+    if (result == osFlagsErrorTimeout){
+        i2c.abort_transfer();
+        status = -2; // timeout failure
+    }
+
     mutex.unlock();
     return status;
 }
 
 int Mutex_I2C::read(char addr, char *data, int length) {
     mutex.lock();
-    uint8_t status = i2c.read(addr, data, length);
+    _flags.clear(I2C_COMPLETE);
+
+    // Non blocking transfer
+    int err = i2c.transfer(
+        addr,
+        nullptr, 0, // Write params
+        data, length,
+        callback(this, &Mutex_I2C::_i2c_callback),
+        I2C_EVENT_ALL
+    );
+    
+    if( err != 0 ){ // Failed state
+        mutex.unlock();
+        return err;
+    }
+
+    uint32_t result = _flags.wait_any(I2C_COMPLETE, I2C_TIMEOUT_MS);
+
+    int status = 0;
+    if (result == osFlagsErrorTimeout){
+        i2c.abort_transfer();
+        status = -2; // timeout failure
+    }
+
     mutex.unlock(); 
     return status; 
 }
