@@ -35,7 +35,7 @@ const float DT_CTRL = std::chrono::duration<float>(MAIN_EXECUTION_PERIOD).count(
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
 
-const int WATCHDOG_TIMEOUT_MS = 10000;
+const int WATCHDOG_TIMEOUT_MS = 5000;
 
 void executeFlightLogic() {
     // State handling
