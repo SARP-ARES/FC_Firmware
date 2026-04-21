@@ -82,6 +82,7 @@ int Mutex_I2C::read(char addr, char *data, int length) {
         return err;
     }
 
+    // Wait for I2C complete flag to be set
     uint32_t result = _flags.wait_any(I2C_COMPLETE, I2C_TIMEOUT_MS);
 
     int status = 0;
