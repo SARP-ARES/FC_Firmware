@@ -51,9 +51,11 @@ void CLI::run() {
 void CLI::eraseData(){
     Timer t;
     t.start();
-    pc->printf("\nErasing flash chip memory...\n\n");
+    pc->printf("\nErasing flash chip memory..., sensors and logging will turn off\n\n");
     int erase_err = flash_chip->eraseAll(); 
     int ms = chrono::duration_cast<chrono::milliseconds>(t.elapsed_time()).count();
+    ARES->stopAllSensorThreads();
+    ARES->stopLogging();
     ARES->resetPacketsLogged();
     if (erase_err == 0) {
         pc->printf("...Erasing Complete... (%d ms)\n\n", ms);

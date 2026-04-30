@@ -13,7 +13,7 @@
 /** @brief constructor that initializes the sensors and flash chip on the ARES flight computer. */ 
 ctrldRogallo::ctrldRogallo(Mutex_I2C* i2c, flash* flash_mem) 
     : gps(GPS_RX_PIN, GPS_TX_PIN), bmp(i2c, BMP_I2C_ADDR), bno(i2c, BNO_I2C_ADDR), 
-      pid(Kp, Ki, Kd), i2c(i2c),  led_b(BLUE_LED_PIN), led_g(GREEN_LED_PIN) {
+      pid(Kp, Ki, Kd), i2c(i2c),  led_b(BLUE_LED_PIN), led_g(GREEN_LED_PIN), cam(SPOOLCAM_TRIGGER_PIN) {
 
     // Driver Startup
     bmp.start();
@@ -149,7 +149,6 @@ float ctrldRogallo::computeGreatCircleDistance(double lat1_deg, double lon1_deg,
 
     return 2 * R * asin(sqrt(a)); // return in meters
 }
-
 
 /**
  * @brief Uses computeHaversine to convert the current lat/lon position into 
@@ -457,6 +456,25 @@ void ctrldRogallo::updateFlightPacket(){
 
 } // mutex unlocks outside this scope
 
+//////////////
+// Spoolcam
+//////////////
+
+/** @brief starts the camera */
+void start_cam(void) {
+    this->cam.start_recording();
+}
+
+/** @brief stops the camera */
+void stop_cam(void) {
+    this->cam.stop_recording(); 
+}
+
+/** @brief Checks the camera status */ 
+bool cam_recording(void) {
+    return cam.is_recording()
+}
+
 /** 
  *  @brief Sends control command over i2c to the MCPS 
  *  @param ctrl - asymetric deflection 
@@ -484,7 +502,6 @@ bool ctrldRogallo::requestMotorPacket(){
 
     return true; // success
 }
-
 
 /** @brief updates BMP280 internal data struct */ 
 void ctrldRogallo::bmpUpdateLoop() {

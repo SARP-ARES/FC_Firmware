@@ -35,6 +35,7 @@ const float DT_CTRL = std::chrono::duration<float>(MAIN_EXECUTION_PERIOD).count(
 // Size in bytes of one flight packet 
 const int FLIGHT_PACKET_SIZE =  sizeof(FlightPacket); 
 
+// Watchdog timer 
 const int WATCHDOG_TIMEOUT_MS = 5000;
 
 void executeFlightLogic() {
@@ -58,6 +59,11 @@ void executeFlightLogic() {
 
         // Mode for approaching the target radius
         case FSM_SEEKING: { 
+
+            if(!ARES.cam_recording()) {
+                ARES.start_cam();
+            }
+        
             // Ctrl Setup
             float target_heading = ARES.getTargetHeading();
             float heading_error = ARES.getHeadingError();
@@ -72,6 +78,11 @@ void executeFlightLogic() {
         
         // Shifts flight logging to 0.033 Hz (once every 30s)
         case FSM_GROUNDED: { 
+
+            if (ARES.cam_recording()) {
+                ARES.stop_cam();
+            }
+            
             break;
         }
 

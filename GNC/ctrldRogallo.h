@@ -8,6 +8,7 @@
 #include "flash.h"
 #include "flight_packet.h"
 #include "Mutex_I2C.h"
+#include "Spoolcam.h"
 #include <cstdint>
 
 // Event flags uses bit masks, not indexes
@@ -64,6 +65,10 @@ class ctrldRogallo {
         void stopAllThreads();
         void startAllThreads();
 
+        // ---- spoolcam handlers ---- 
+        void start_cam(void);
+        void stop_cap(void);
+        bool cam_recording(void);
 
         // ---- state handlers ---
         const FlightPacket getState();
@@ -98,6 +103,8 @@ class ctrldRogallo {
         BNO055 bno;
         GPS gps;
         PID pid;
+        Spoolcam cam; 
+
         Mutex_I2C* i2c; 
         DigitalOut led_b;
         DigitalOut led_g;

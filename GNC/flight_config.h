@@ -85,10 +85,22 @@ const int BMP_I2C_ADDR                    = 0xEE;
 const int BNO_I2C_ADDR                    = 0x51;
 
 // ====================================
-//           PIN DEFINITIONS
+//           GPS PIN DEFINITIONS
 // ==================================== 
 
 const PinName GPS_RX_PIN                  = PA_2;
 const PinName GPS_TX_PIN                  = PA_3;
+
+// ====================================
+//           LED PIN DEFINITIONS
+// ==================================== 
+
 const PinName BLUE_LED_PIN                = PA_8;
 const PinName GREEN_LED_PIN               = PA_15;
+
+// ====================================
+//        SPOOLCAM PIN DEFINITIONS
+// ==================================== 
+
+// Motor NRST 
+const PinName SPOOLCAM_TRIGGER_PIN        = PB_1;
