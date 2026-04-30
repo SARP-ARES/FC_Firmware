@@ -67,7 +67,7 @@ class ctrldRogallo {
 
         // ---- spoolcam handlers ---- 
         void start_cam(void);
-        void stop_cap(void);
+        void stop_cam(void);
         bool cam_recording(void);
 
         // ---- state handlers ---

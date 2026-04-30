@@ -9,15 +9,15 @@ class Spoolcam {
 
         Spoolcam(PinName output_pin);
 
-        void start_recording();
-        void stop_recording();
-        bool is_recording();
+        void start_recording(void);
+        void stop_recording(void);
+        bool is_recording(void);
 
     private:
 
         bool recording;
         DigitalOut trigger; 
 
-}
+};
 
 #endif

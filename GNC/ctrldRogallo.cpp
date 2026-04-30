@@ -461,18 +461,18 @@ void ctrldRogallo::updateFlightPacket(){
 //////////////
 
 /** @brief starts the camera */
-void start_cam(void) {
+void ctrldRogallo::start_cam(void) {
     this->cam.start_recording();
 }
 
 /** @brief stops the camera */
-void stop_cam(void) {
+void ctrldRogallo::stop_cam(void) {
     this->cam.stop_recording(); 
 }
 
 /** @brief Checks the camera status */ 
-bool cam_recording(void) {
-    return cam.is_recording()
+bool ctrldRogallo::cam_recording(void) {
+    return this->cam.is_recording();
 }
 
 /** 

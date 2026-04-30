@@ -7,20 +7,20 @@ Spoolcam::Spoolcam(PinName output_pin) : trigger(output_pin) {
 }
 
 /** @brief Raises recording line, starting recording process */ 
-void start_recording(void) {
+void Spoolcam::start_recording(void) {
     this->recording = true; 
     trigger.write(1);
 
 }
 
 /** @brief Lowers recording line, stopping recording process */
-void stop_recording(void){
+void Spoolcam::stop_recording(void){
     this->recording = false;
-    tigger.write(0);
+    trigger.write(0);
 }
 
 /** @return the recording status */
-bool is_recording(void) {
+bool Spoolcam::is_recording(void) {
     return this->recording;
 }
 
