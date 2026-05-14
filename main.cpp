@@ -49,6 +49,11 @@ void executeFlightLogic() {
         
         // Mode prior to apogee, waiting phase
         case FSM_IDLE: {
+
+            if(ARES.cam_recording()){
+                ARES.stop_cam();
+            }
+
             // compute control stuff for logging but DON'T send to MC/PS
             float target_heading = ARES.getTargetHeading();
             float heading_error = ARES.getHeadingError();
@@ -88,6 +93,11 @@ void executeFlightLogic() {
 
         // Mode once within target radius
         case FSM_SPIRAL: {
+
+            if(!ARES.cam_recording()){
+                ARES.start_cam();
+            }
+
             float delta_a_cmd = state.fc_cmd > 0 ? 1 : -1;
             float target_heading = NAN;
             float heading_error = NAN;
